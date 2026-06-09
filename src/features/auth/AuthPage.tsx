@@ -1,11 +1,31 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export function AuthPage() {
     const location = useLocation();
+    const navigate = useNavigate();
     const isLogin = location.pathname === '/login';
     const [showPass, setShowPass] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        if (!email || !password) {
+            setError('Please fill in all fields.');
+            return;
+        }
+        // Extract username from email (before @)
+        const user = isLogin
+            ? (email.split('@')[0] || 'member')
+            : (username || email.split('@')[0] || 'member');
+        localStorage.setItem('bluedise_user', user);
+        navigate('/dashboard');
+    };
 
     return (
         <div style={{
@@ -31,7 +51,6 @@ export function AuthPage() {
                     width: '400px', height: '300px', borderRadius: '50%',
                     background: 'rgba(29,78,216,0.04)', filter: 'blur(80px)',
                 }} />
-                {/* Dot grid */}
                 <div style={{
                     position: 'absolute', inset: 0, opacity: 0.12,
                     backgroundImage: 'radial-gradient(circle, rgba(59,130,246,0.3) 1px, transparent 1px)',
@@ -50,7 +69,6 @@ export function AuthPage() {
                 padding: '40px 36px',
                 boxShadow: '0 25px 80px rgba(0,0,0,0.6)',
             }}>
-                {/* Subtle top accent */}
                 <div style={{
                     position: 'absolute', top: 0, left: '20%', right: '20%', height: '1px',
                     background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent)',
@@ -60,22 +78,15 @@ export function AuthPage() {
                 <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                     <h1 style={{
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
-                        fontSize: '2rem',
-                        letterSpacing: '0.2em',
-                        color: '#4a9eff',
-                        fontWeight: 400,
-                        marginBottom: '6px',
+                        fontSize: '2rem', letterSpacing: '0.2em',
+                        color: '#4a9eff', fontWeight: 400, marginBottom: '6px',
                     }}>
                         BLUEDISE
                     </h1>
                     <span style={{
-                        display: 'block',
-                        fontSize: '0.6rem',
-                        letterSpacing: '0.3em',
-                        textTransform: 'uppercase',
-                        color: '#475569',
-                        fontFamily: "'Inter', sans-serif",
-                        fontWeight: 600,
+                        display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
+                        textTransform: 'uppercase', color: '#475569',
+                        fontFamily: "'Inter', sans-serif", fontWeight: 600,
                     }}>
                         Member Portal
                     </span>
@@ -83,140 +94,124 @@ export function AuthPage() {
 
                 {/* Tabs */}
                 <div style={{
-                    display: 'flex',
-                    background: 'rgba(5, 10, 25, 0.8)',
-                    borderRadius: '8px',
-                    padding: '4px',
-                    border: '1px solid rgba(30, 58, 120, 0.4)',
-                    marginBottom: '28px',
+                    display: 'flex', background: 'rgba(5, 10, 25, 0.8)',
+                    borderRadius: '8px', padding: '4px',
+                    border: '1px solid rgba(30, 58, 120, 0.4)', marginBottom: '28px',
                 }}>
-                    <Link
-                        to="/signup"
-                        style={{
-                            flex: 1,
-                            textAlign: 'center',
-                            padding: '9px 0',
-                            fontSize: '0.65rem',
-                            letterSpacing: '0.18em',
-                            textTransform: 'uppercase',
-                            fontWeight: 600,
-                            fontFamily: "'Inter', sans-serif",
-                            textDecoration: 'none',
-                            borderRadius: '5px',
-                            transition: 'all 0.2s',
-                            color: !isLogin ? '#f1f5f9' : '#475569',
-                            background: !isLogin ? 'rgba(29, 78, 216, 0.3)' : 'transparent',
-                        }}
-                    >
-                        Register
-                    </Link>
-                    <Link
-                        to="/login"
-                        style={{
-                            flex: 1,
-                            textAlign: 'center',
-                            padding: '9px 0',
-                            fontSize: '0.65rem',
-                            letterSpacing: '0.18em',
-                            textTransform: 'uppercase',
-                            fontWeight: 600,
-                            fontFamily: "'Inter', sans-serif",
-                            textDecoration: 'none',
-                            borderRadius: '5px',
-                            transition: 'all 0.2s',
-                            color: isLogin ? '#f1f5f9' : '#475569',
-                            background: isLogin ? 'rgba(29, 78, 216, 0.3)' : 'transparent',
-                        }}
-                    >
-                        Sign In
-                    </Link>
+                    <Link to="/signup" style={{
+                        flex: 1, textAlign: 'center', padding: '9px 0',
+                        fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
+                        fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                        textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
+                        color: !isLogin ? '#f1f5f9' : '#475569',
+                        background: !isLogin ? 'rgba(29, 78, 216, 0.3)' : 'transparent',
+                    }}>Register</Link>
+                    <Link to="/login" style={{
+                        flex: 1, textAlign: 'center', padding: '9px 0',
+                        fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
+                        fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                        textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
+                        color: isLogin ? '#f1f5f9' : '#475569',
+                        background: isLogin ? 'rgba(29, 78, 216, 0.3)' : 'transparent',
+                    }}>Sign In</Link>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {/* Error */}
+                {error && (
+                    <div style={{
+                        padding: '10px 14px', background: 'rgba(239,68,68,0.1)',
+                        border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px',
+                        color: '#fca5a5', fontSize: '0.8rem', fontFamily: "'Inter', sans-serif",
+                        marginBottom: '18px',
+                    }}>
+                        {error}
+                    </div>
+                )}
 
-                    {/* Email */}
-                    <div>
-                        <label style={{
-                            display: 'block',
-                            fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                            color: '#475569', fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                            marginBottom: '8px',
-                        }}>
-                            {isLogin ? 'Email or Username' : 'Email Address'}
-                        </label>
-                        <div style={{ position: 'relative' }}>
+                {/* Form */}
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                    {/* Username (signup only) */}
+                    {!isLogin && (
+                        <div>
+                            <label style={{
+                                display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
+                                textTransform: 'uppercase', color: '#475569',
+                                fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
+                            }}>Username</label>
                             <input
-                                type="email"
-                                placeholder={isLogin ? 'Enter your identity...' : 'your@email.com'}
+                                type="text"
+                                placeholder="Choose a username"
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
                                 style={{
-                                    width: '100%',
-                                    padding: '12px 44px 12px 16px',
+                                    width: '100%', padding: '12px 16px',
                                     background: 'rgba(5, 15, 35, 0.8)',
                                     border: '1px solid rgba(30, 58, 120, 0.5)',
-                                    borderRadius: '8px',
-                                    color: '#f1f5f9',
-                                    fontSize: '0.875rem',
-                                    fontFamily: "'Inter', sans-serif",
-                                    outline: 'none',
-                                    transition: 'border-color 0.2s',
-                                    boxSizing: 'border-box',
+                                    borderRadius: '8px', color: '#f1f5f9',
+                                    fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
+                                    outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                                 }}
                                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
                                 onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
                             />
-                            <span style={{
-                                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                color: '#334155',
-                            }}>
-                                {isLogin ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                )}
-                            </span>
                         </div>
+                    )}
+
+                    {/* Email */}
+                    <div>
+                        <label style={{
+                            display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
+                            textTransform: 'uppercase', color: '#475569',
+                            fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
+                        }}>
+                            {isLogin ? 'Email or Username' : 'Email Address'}
+                        </label>
+                        <input
+                            type="email"
+                            placeholder={isLogin ? 'your@email.com' : 'your@email.com'}
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            style={{
+                                width: '100%', padding: '12px 16px',
+                                background: 'rgba(5, 15, 35, 0.8)',
+                                border: '1px solid rgba(30, 58, 120, 0.5)',
+                                borderRadius: '8px', color: '#f1f5f9',
+                                fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
+                                outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
+                            }}
+                            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
+                        />
                     </div>
 
                     {/* Password */}
                     <div>
                         <label style={{
-                            display: 'block',
-                            fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                            color: '#475569', fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                            marginBottom: '8px',
-                        }}>
-                            Password
-                        </label>
+                            display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
+                            textTransform: 'uppercase', color: '#475569',
+                            fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
+                        }}>Password</label>
                         <div style={{ position: 'relative' }}>
                             <input
                                 type={showPass ? 'text' : 'password'}
-                                placeholder={isLogin ? '••••••••' : 'Min. 6 characters'}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
                                 style={{
-                                    width: '100%',
-                                    padding: '12px 44px 12px 16px',
+                                    width: '100%', padding: '12px 44px 12px 16px',
                                     background: 'rgba(5, 15, 35, 0.8)',
                                     border: '1px solid rgba(30, 58, 120, 0.5)',
-                                    borderRadius: '8px',
-                                    color: '#f1f5f9',
-                                    fontSize: '0.875rem',
-                                    fontFamily: "'Inter', sans-serif",
-                                    outline: 'none',
-                                    transition: 'border-color 0.2s',
-                                    boxSizing: 'border-box',
+                                    borderRadius: '8px', color: '#f1f5f9',
+                                    fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
+                                    outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                                 }}
                                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
                                 onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPass(v => !v)}
-                                style={{
-                                    position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                    background: 'none', border: 'none', padding: 0,
-                                    color: '#475569', cursor: 'pointer',
-                                }}
-                            >
+                            <button type="button" onClick={() => setShowPass(v => !v)} style={{
+                                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                                background: 'none', border: 'none', padding: 0, color: '#475569', cursor: 'pointer',
+                            }}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
                         </div>
@@ -226,118 +221,51 @@ export function AuthPage() {
                     {!isLogin && (
                         <div>
                             <label style={{
-                                display: 'block',
-                                fontSize: '0.6rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                                color: '#475569', fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                                marginBottom: '8px',
-                            }}>
-                                Confirm Password
-                            </label>
+                                display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
+                                textTransform: 'uppercase', color: '#475569',
+                                fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
+                            }}>Confirm Password</label>
                             <div style={{ position: 'relative' }}>
                                 <input
                                     type={showConfirm ? 'text' : 'password'}
                                     placeholder="Repeat password"
                                     style={{
-                                        width: '100%',
-                                        padding: '12px 44px 12px 16px',
+                                        width: '100%', padding: '12px 44px 12px 16px',
                                         background: 'rgba(5, 15, 35, 0.8)',
                                         border: '1px solid rgba(30, 58, 120, 0.5)',
-                                        borderRadius: '8px',
-                                        color: '#f1f5f9',
-                                        fontSize: '0.875rem',
-                                        fontFamily: "'Inter', sans-serif",
-                                        outline: 'none',
-                                        transition: 'border-color 0.2s',
-                                        boxSizing: 'border-box',
+                                        borderRadius: '8px', color: '#f1f5f9',
+                                        fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
+                                        outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                                     }}
                                     onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
                                     onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowConfirm(v => !v)}
-                                    style={{
-                                        position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                        background: 'none', border: 'none', padding: 0,
-                                        color: '#475569', cursor: 'pointer',
-                                    }}
-                                >
+                                <button type="button" onClick={() => setShowConfirm(v => !v)} style={{
+                                    position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                                    background: 'none', border: 'none', padding: 0, color: '#475569', cursor: 'pointer',
+                                }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Submit button */}
-                    <button
-                        type="submit"
-                        style={{
-                            width: '100%',
-                            padding: '14px',
-                            marginTop: '4px',
-                            background: 'linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6)',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#fff',
-                            fontSize: '0.65rem',
-                            letterSpacing: '0.18em',
-                            textTransform: 'uppercase',
-                            fontWeight: 700,
-                            fontFamily: "'Inter', sans-serif",
-                            cursor: 'pointer',
-                            boxShadow: '0 0 20px rgba(59,130,246,0.4)',
-                            transition: 'filter 0.2s, transform 0.2s',
-                        }}
+                    {/* Submit */}
+                    <button type="submit" style={{
+                        width: '100%', padding: '14px', marginTop: '4px',
+                        background: 'linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6)',
+                        border: 'none', borderRadius: '8px', color: '#fff',
+                        fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
+                        fontWeight: 700, fontFamily: "'Inter', sans-serif",
+                        cursor: 'pointer', boxShadow: '0 0 20px rgba(59,130,246,0.4)',
+                        transition: 'filter 0.2s, transform 0.2s',
+                    }}
                         onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                         onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
                         {isLogin ? 'Secure Sign In' : 'Create Account'}
                     </button>
                 </form>
-
-                {/* Divider */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    margin: '24px 0',
-                }}>
-                    <div style={{ flex: 1, height: '1px', background: 'rgba(30, 58, 120, 0.5)' }} />
-                    <span style={{
-                        fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                        color: '#334155', fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                    }}>
-                        Or Continue With
-                    </span>
-                    <div style={{ flex: 1, height: '1px', background: 'rgba(30, 58, 120, 0.5)' }} />
-                </div>
-
-                {/* Google button */}
-                <button
-                    style={{
-                        width: '100%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
-                        padding: '12px',
-                        background: 'rgba(5, 15, 35, 0.8)',
-                        border: '1px solid rgba(30, 58, 120, 0.5)',
-                        borderRadius: '8px',
-                        color: '#94a3b8',
-                        fontSize: '0.85rem',
-                        fontFamily: "'Inter', sans-serif",
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        transition: 'border-color 0.2s, background 0.2s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.5)'; e.currentTarget.style.background = 'rgba(10, 25, 55, 0.9)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)'; e.currentTarget.style.background = 'rgba(5, 15, 35, 0.8)'; }}
-                >
-                    <svg viewBox="0 0 24 24" width="18" height="18">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    Google
-                </button>
 
                 {/* Footer link */}
                 <p style={{
@@ -346,22 +274,14 @@ export function AuthPage() {
                 }}>
                     {isLogin ? (
                         <>New to BLUEdise?{' '}
-                            <Link to="/signup" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}
-                                onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                                onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                            >Create an account</Link>
+                            <Link to="/signup" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>Create an account</Link>
                         </>
                     ) : (
                         <>Already a member?{' '}
-                            <Link to="/login" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}
-                                onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-                                onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-                            >Sign in here</Link>
+                            <Link to="/login" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>Sign in here</Link>
                         </>
                     )}
                 </p>
-
-                {/* Copyright */}
                 <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',

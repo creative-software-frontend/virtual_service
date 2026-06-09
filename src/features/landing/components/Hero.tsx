@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 28 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const container = {
@@ -12,17 +12,7 @@ const container = {
 
 export function Hero() {
     return (
-        <section style={{
-            minHeight: 'calc(100vh - 64px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden',
-            padding: '80px 32px',
-            textAlign: 'center',
-        }}>
+        <section className="hero-section">
             {/* Atmospheric glows */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                 <div style={{
@@ -69,10 +59,10 @@ export function Hero() {
 
             {/* Content */}
             <motion.div
+                className="hero-content"
                 variants={container}
                 initial="hidden"
                 animate="visible"
-                style={{ position: 'relative', zIndex: 10, maxWidth: '760px', width: '100%' }}
             >
                 {/* Eyebrow */}
                 <motion.div variants={fadeUp} style={{ marginBottom: '28px' }}>
@@ -96,7 +86,7 @@ export function Hero() {
                 <motion.h1 variants={fadeUp} style={{
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 300,
-                    fontSize: 'clamp(2.8rem, 7vw, 5rem)',
+                    fontSize: 'clamp(2.4rem, 7vw, 5rem)',
                     lineHeight: 1.1,
                     color: '#f1f5f9',
                     marginBottom: '24px',
@@ -119,7 +109,7 @@ export function Hero() {
                 {/* Subheadline */}
                 <motion.p variants={fadeUp} style={{
                     color: '#64748b',
-                    fontSize: '0.95rem',
+                    fontSize: 'clamp(0.82rem, 2vw, 0.95rem)',
                     lineHeight: 1.75,
                     maxWidth: '560px',
                     margin: '0 auto 40px',
@@ -130,9 +120,7 @@ export function Hero() {
                 </motion.p>
 
                 {/* CTA Buttons */}
-                <motion.div variants={fadeUp} style={{
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '16px',
-                }}>
+                <motion.div variants={fadeUp} className="hero-cta-group">
                     <a href="#tiers" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px',
                         background: 'linear-gradient(135deg, #A87C3A, #C5A880, #E8D5A3)',
@@ -176,10 +164,7 @@ export function Hero() {
                 </motion.div>
 
                 {/* Stats */}
-                <motion.div variants={fadeUp} style={{
-                    marginTop: '64px',
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '48px',
-                }}>
+                <motion.div variants={fadeUp} className="hero-stats">
                     {[
                         { value: '500+', label: 'Elite Members' },
                         { value: '100%', label: 'Verified Profiles' },
@@ -188,7 +173,7 @@ export function Hero() {
                         <div key={stat.label} style={{ textAlign: 'center' }}>
                             <p style={{
                                 fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: '1.6rem', fontWeight: 300,
+                                fontSize: 'clamp(1.3rem, 3vw, 1.6rem)', fontWeight: 300,
                                 background: 'linear-gradient(90deg, #A87C3A, #E8D5A3, #C5A880)',
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                             }}>

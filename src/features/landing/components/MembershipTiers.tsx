@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const container = {
@@ -68,7 +68,7 @@ const tiers = [
 export function MembershipTiers() {
     return (
         <section id="tiers" style={{
-            padding: '96px 32px',
+            padding: 'clamp(56px, 8vw, 96px) clamp(16px, 4vw, 32px)',
             position: 'relative',
             overflow: 'hidden',
         }}>
@@ -108,7 +108,7 @@ export function MembershipTiers() {
                 >
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
-                        fontSize: 'clamp(2rem, 5vw, 3.2rem)', color: '#f1f5f9', marginBottom: '12px',
+                        fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', color: '#f1f5f9', marginBottom: '12px',
                         letterSpacing: '-0.01em',
                     }}>
                         Membership Tiers
@@ -128,19 +128,15 @@ export function MembershipTiers() {
 
                 {/* Cards */}
                 <motion.div
+                    className="tiers-grid"
                     variants={container} initial="hidden" whileInView="visible"
                     viewport={{ once: true }}
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '24px',
-                        alignItems: 'center',
-                    }}
                 >
                     {tiers.map(tier => (
                         <motion.div
                             key={tier.id}
                             variants={fadeUp}
+                            className={tier.featured ? 'tier-card-featured' : ''}
                             style={{
                                 background: tier.featured ? '#07111f' : '#06101c',
                                 border: `1px solid ${tier.featured ? 'rgba(197, 168, 128, 0.4)' : 'rgba(30, 58, 100, 0.6)'}`,
@@ -149,7 +145,6 @@ export function MembershipTiers() {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 position: 'relative',
-                                transform: tier.featured ? 'scale(1.03)' : 'scale(1)',
                                 boxShadow: tier.featured ? '0 0 60px rgba(197, 168, 128, 0.08)' : 'none',
                                 zIndex: tier.featured ? 10 : 1,
                             }}

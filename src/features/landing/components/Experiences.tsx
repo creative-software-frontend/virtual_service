@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const container = {
@@ -64,7 +64,7 @@ const experiences = [
 export function Experiences() {
     return (
         <section id="experiences" style={{
-            padding: '96px 32px',
+            padding: 'clamp(56px, 8vw, 96px) clamp(16px, 4vw, 32px)',
             position: 'relative',
             overflow: 'hidden',
         }}>
@@ -98,7 +98,7 @@ export function Experiences() {
                     </span>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
-                        fontSize: 'clamp(2rem, 5vw, 3.2rem)', color: '#f1f5f9', marginBottom: '16px',
+                        fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', color: '#f1f5f9', marginBottom: '16px',
                         letterSpacing: '-0.01em',
                     }}>
                         Curated Experiences
@@ -117,13 +117,9 @@ export function Experiences() {
 
                 {/* Cards */}
                 <motion.div
+                    className="experiences-grid"
                     variants={container} initial="hidden" whileInView="visible"
                     viewport={{ once: true }}
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '24px',
-                    }}
                 >
                     {experiences.map(exp => (
                         <motion.div

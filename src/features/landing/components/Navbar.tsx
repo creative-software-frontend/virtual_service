@@ -1,39 +1,25 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 export function Navbar() {
+    const [menuOpen, setMenuOpen] = useState(false);
+
     return (
         <nav style={{
             position: 'sticky',
             top: 0,
-            zIndex: 100,
+            zIndex: 200,
             width: '100%',
             backgroundColor: 'rgba(2, 6, 18, 0.85)',
             backdropFilter: 'blur(20px)',
             borderBottom: '1px solid rgba(30, 58, 100, 0.4)',
         }}>
-            <div style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '0 32px',
-                height: '64px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-            }}>
+            <div className="navbar-inner">
                 {/* Brand */}
-                <span style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
-                    fontSize: '1.1rem',
-                    letterSpacing: '0.25em',
-                    color: '#C5A880',
-                    fontWeight: 500,
-                    userSelect: 'none',
-                }}>
-                    BLUEDISE
-                </span>
+                <span className="navbar-brand">BLUEDISE</span>
 
-                {/* Nav Links + CTA */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+                {/* Desktop Nav Links */}
+                <div className="navbar-links">
                     <a href="#experiences" style={{
                         color: '#94a3b8',
                         fontSize: '0.65rem',
@@ -96,6 +82,34 @@ export function Navbar() {
                         onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.12)')}
                         onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
                     >
+                        Apply Now
+                    </a>
+                </div>
+
+                {/* Hamburger button (mobile/tablet) */}
+                <button
+                    className={`navbar-hamburger${menuOpen ? ' open' : ''}`}
+                    aria-label="Toggle navigation"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen(prev => !prev)}
+                >
+                    <span />
+                    <span />
+                    <span />
+                </button>
+
+                {/* Mobile dropdown menu */}
+                <div className={`navbar-mobile-menu${menuOpen ? ' open' : ''}`}>
+                    <a href="#experiences" className="navbar-mobile-link" onClick={() => setMenuOpen(false)}>
+                        Experiences
+                    </a>
+                    <a href="#tiers" className="navbar-mobile-link" onClick={() => setMenuOpen(false)}>
+                        Tiers
+                    </a>
+                    <Link to="/login" className="navbar-mobile-link" onClick={() => setMenuOpen(false)}>
+                        Sign In
+                    </Link>
+                    <a href="#tiers" className="navbar-mobile-cta" onClick={() => setMenuOpen(false)}>
                         Apply Now
                     </a>
                 </div>

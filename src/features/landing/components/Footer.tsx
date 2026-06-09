@@ -22,18 +22,17 @@ export function Footer() {
                 background: 'linear-gradient(90deg, transparent, rgba(197,168,128,0.3), transparent)',
             }} />
 
-            <div style={{
-                position: 'relative', zIndex: 10,
-                maxWidth: '1100px', margin: '0 auto', padding: '64px 32px',
-                textAlign: 'center',
-            }}>
+            <div className="footer-inner">
                 {/* Brand */}
                 <div style={{ marginBottom: '40px' }}>
                     <span style={{
                         display: 'block',
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: '1.5rem', letterSpacing: '0.3em', color: '#f1f5f9',
-                        fontWeight: 300, marginBottom: '8px',
+                        fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
+                        letterSpacing: '0.3em',
+                        color: '#f1f5f9',
+                        fontWeight: 300,
+                        marginBottom: '8px',
                     }}>
                         BLUEDISE
                     </span>
@@ -54,7 +53,13 @@ export function Footer() {
                 </div>
 
                 {/* Nav links */}
-                <nav style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '32px', marginBottom: '40px' }}>
+                <nav style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: 'clamp(16px, 4vw, 32px)',
+                    marginBottom: '40px',
+                }}>
                     {[
                         { label: 'Terms of Service', href: '#' },
                         { label: 'Privacy Protocol', href: '#' },

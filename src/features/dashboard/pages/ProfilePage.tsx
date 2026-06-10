@@ -26,7 +26,7 @@ export function ProfilePage() {
             initial="hidden"
             animate="visible"
             variants={container}
-            style={{ minHeight: '100vh', background: '#060d1a', width: '100%' }}
+            style={{ minHeight: '100vh', background: 'var(--bg-main)', width: '100%' }}
         >
             {/* Navigation Header */}
             <TopNav />
@@ -35,7 +35,7 @@ export function ProfilePage() {
             <div style={{
                 width: '100%',
                 height: '1px',
-                background: 'linear-gradient(90deg, rgba(19,34,71,0.1) 0%, rgba(19,34,71,0.8) 50%, rgba(19,34,71,0.1) 100%)'
+                background: 'linear-gradient(90deg, rgba(19,34,71,0.1) 0%, var(--border-default) 50%, rgba(19,34,71,0.1) 100%)'
             }} />
 
             {/* Main Wide Content Viewport Framework */}
@@ -43,7 +43,7 @@ export function ProfilePage() {
                 width: '100%',
                 maxWidth: '2400px',
                 margin: '0 auto',
-                padding: '108px 40px 48px 40px', // Increased side padding for elegant wide display
+                padding: '108px 16px 48px 16px',
                 boxSizing: 'border-box'
             }}>
 
@@ -56,25 +56,25 @@ export function ProfilePage() {
                     }}>
                         <div style={{
                             width: '110px', height: '110px', borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)',
+                            background: 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 16px',
-                            border: '3px solid rgba(59,130,246,0.3)',
+                            border: '3px solid var(--border-subtle)',
                             fontSize: '3rem', fontWeight: 700, color: '#fff',
                             textTransform: 'uppercase',
-                            boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)'
+                            boxShadow: 'var(--shadow-blue)'
                         }}>
                             {user.charAt(0)}
                         </div>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: 600, color: '#f1f5f9', marginBottom: '6px', textTransform: 'capitalize' }}>
+                        <h3 style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px', textTransform: 'capitalize' }}>
                             {user}
                         </h3>
                         <span style={{
                             display: 'inline-block',
                             fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase',
-                            color: '#3b82f6', fontFamily: "'Inter', sans-serif", fontWeight: 700,
-                            background: 'rgba(30,58,100,0.4)', padding: '6px 18px', borderRadius: '20px',
-                            border: '1px solid rgba(59, 130, 246, 0.2)'
+                            color: 'var(--blue-vivid)', fontFamily: "'Inter', sans-serif", fontWeight: 700,
+                            background: 'var(--blue-glow)', padding: '6px 18px', borderRadius: '20px',
+                            border: '1px solid var(--border-subtle)'
                         }}>
                             Verification Pending
                         </span>
@@ -93,15 +93,15 @@ export function ProfilePage() {
 
                         {/* Identity Credentials - Flex Column Left (Takes up remaining space) */}
                         <motion.div variants={fadeUp} style={{
-                            flex: '1 1 500px', // Dynamically grows wide, shrinks up to 500px min-width
-                            background: 'linear-gradient(135deg, #0a122c, #070d22)',
-                            border: '1px solid #132247',
+                            flex: '1 1 500px',
+                            background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: '16px', padding: '32px',
-                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+                            boxShadow: 'var(--shadow-md)'
                         }}>
                             <span style={{
                                 display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em',
-                                textTransform: 'uppercase', color: '#4a9eff', fontWeight: 700,
+                                textTransform: 'uppercase', color: 'var(--blue-vivid)', fontWeight: 700,
                                 marginBottom: '24px',
                             }}>
                                 Identity Credentials
@@ -111,16 +111,16 @@ export function ProfilePage() {
                                 {[
                                     { label: 'Portal ID', value: '#BLD-88291' },
                                     { label: 'Registered Email', value: `${user}@gmail.com` },
-                                    { label: 'Role Level', value: 'Visitor / Free Tier' },
+                                    { label: 'Role', value: 'Visitor / Free Tier' },
                                     { label: 'Join Date', value: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
                                 ].map((item, idx) => (
                                     <div key={idx} style={{
                                         display: 'flex', justifyContent: 'space-between',
                                         fontSize: '0.9rem', paddingBottom: '14px',
-                                        borderBottom: '1px solid #132247',
+                                        borderBottom: '1px solid var(--border-subtle)',
                                     }}>
-                                        <span style={{ color: '#64748b' }}>{item.label}</span>
-                                        <span style={{ color: '#e2e8f0', fontWeight: 500 }}>{item.value}</span>
+                                        <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
+                                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.value}</span>
                                     </div>
                                 ))}
                             </div>
@@ -128,17 +128,17 @@ export function ProfilePage() {
 
                         {/* Account Actions - Flex Column Right (Fixed wider layout context) */}
                         <motion.div variants={fadeUp} style={{
-                            flex: '1 1 380px', // Dynamically grows wide, shrinks up to 380px min-width
-                            background: 'linear-gradient(135deg, #0a122c, #070d22)',
-                            border: '1px solid #132247',
+                            flex: '1 1 380px',
+                            background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
+                            border: '1px solid var(--border-subtle)',
                             borderRadius: '16px', padding: '32px',
                             display: 'flex', flexDirection: 'column', gap: '16px',
                             justifyContent: 'center',
-                            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+                            boxShadow: 'var(--shadow-md)'
                         }}>
                             <span style={{
                                 display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em',
-                                textTransform: 'uppercase', color: '#64748b', fontWeight: 700,
+                                textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700,
                                 marginBottom: '8px',
                             }}>
                                 Account Management
@@ -146,16 +146,16 @@ export function ProfilePage() {
 
                             <button style={{
                                 width: '100%', padding: '16px',
-                                background: 'transparent', border: '1px solid rgba(59, 130, 246, 0.4)',
-                                borderRadius: '10px', color: '#3b82f6',
+                                background: 'transparent', border: '1px solid var(--border-subtle)',
+                                borderRadius: '10px', color: 'var(--blue-vivid)',
                                 fontSize: '0.85rem', fontWeight: 600,
                                 cursor: 'pointer', fontFamily: "'Inter', sans-serif",
                                 transition: 'all 0.2s ease'
                             }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)'}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
-                                Reset Password
+                                Change Password
                             </button>
 
                             <button
@@ -163,7 +163,7 @@ export function ProfilePage() {
                                 style={{
                                     width: '100%', padding: '16px',
                                     background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '10px', color: '#ef4444',
+                                    borderRadius: '10px', color: 'var(--red-status)',
                                     fontSize: '0.85rem', fontWeight: 600,
                                     cursor: 'pointer', fontFamily: "'Inter', sans-serif",
                                     transition: 'all 0.2s ease'
@@ -171,7 +171,7 @@ export function ProfilePage() {
                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)'}
                             >
-                                Sign Out Session
+                                Sign Out
                             </button>
                         </motion.div>
 

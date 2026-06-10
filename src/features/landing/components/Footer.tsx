@@ -4,8 +4,8 @@ export function Footer() {
     return (
         <footer style={{
             position: 'relative',
-            borderTop: '1px solid rgba(15, 30, 60, 0.8)',
-            background: '#020810',
+            borderTop: '1px solid var(--border-default)',
+            background: 'var(--bg-root)',
             overflow: 'hidden',
         }}>
             {/* Ambient glow */}
@@ -19,7 +19,7 @@ export function Footer() {
             {/* Top gold accent */}
             <div style={{
                 position: 'absolute', top: 0, left: '33%', right: '33%', height: '1px',
-                background: 'linear-gradient(90deg, transparent, rgba(197,168,128,0.3), transparent)',
+                background: 'linear-gradient(90deg, transparent, var(--gold-border), transparent)',
             }} />
 
             <div className="footer-inner">
@@ -27,10 +27,10 @@ export function Footer() {
                 <div style={{ marginBottom: '40px' }}>
                     <span style={{
                         display: 'block',
-                        fontFamily: "'Cormorant Garamond', serif",
+                        fontFamily: "var(--font-serif)",
                         fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
                         letterSpacing: '0.3em',
-                        color: '#f1f5f9',
+                        color: 'var(--text-primary)',
                         fontWeight: 300,
                         marginBottom: '8px',
                     }}>
@@ -39,16 +39,16 @@ export function Footer() {
                     <span style={{
                         display: 'block',
                         fontSize: '0.55rem', letterSpacing: '0.25em', textTransform: 'uppercase',
-                        color: '#C5A880', fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                        color: 'var(--gold-mid)', fontFamily: "var(--font-sans)", fontWeight: 600,
                     }}>
                         The Ultimate Elite Network
                     </span>
 
                     {/* Ornament */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '20px' }}>
-                        <div style={{ width: '48px', height: '1px', background: 'linear-gradient(to right, transparent, rgba(197,168,128,0.4))' }} />
-                        <span style={{ color: 'rgba(197, 168, 128, 0.4)', fontSize: '10px' }}>◆</span>
-                        <div style={{ width: '48px', height: '1px', background: 'linear-gradient(to left, transparent, rgba(197,168,128,0.4))' }} />
+                        <div style={{ width: '48px', height: '1px', background: 'linear-gradient(to right, transparent, var(--gold-border))' }} />
+                        <span style={{ color: 'var(--gold-border)', fontSize: '10px' }}>◆</span>
+                        <div style={{ width: '48px', height: '1px', background: 'linear-gradient(to left, transparent, var(--gold-border))' }} />
                     </div>
                 </div>
 
@@ -70,11 +70,11 @@ export function Footer() {
                             href={link.href}
                             style={{
                                 fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
-                                fontWeight: 600, fontFamily: "'Inter', sans-serif",
-                                color: '#334155', textDecoration: 'none', transition: 'color 0.2s',
+                                fontWeight: 600, fontFamily: "var(--font-sans)",
+                                color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s',
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.color = '#C5A880')}
-                            onMouseLeave={e => (e.currentTarget.style.color = '#334155')}
+                            onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold-mid)')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
                         >
                             {link.label}
                         </a>
@@ -84,7 +84,7 @@ export function Footer() {
                 {/* Copyright */}
                 <p style={{
                     fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
-                    color: '#1e293b', fontFamily: "'Inter', sans-serif",
+                    color: 'var(--blue-dim)', fontFamily: "var(--font-sans)",
                 }}>
                     © {year} BLUEDISE Network · All Rights Reserved
                 </p>

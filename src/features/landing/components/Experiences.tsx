@@ -91,27 +91,27 @@ export function Experiences() {
                     <span style={{
                         display: 'block',
                         fontSize: '0.6rem', letterSpacing: '0.25em', textTransform: 'uppercase',
-                        color: '#C5A880', fontFamily: "'Inter', sans-serif", fontWeight: 600,
+                        color: 'var(--gold-mid)', fontFamily: "'Inter', sans-serif", fontWeight: 600,
                         marginBottom: '16px',
                     }}>
                         What We Offer
                     </span>
                     <h2 style={{
                         fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
-                        fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', color: '#f1f5f9', marginBottom: '16px',
+                        fontSize: 'clamp(1.8rem, 5vw, 3.2rem)', color: 'var(--text-primary)', marginBottom: '16px',
                         letterSpacing: '-0.01em',
                     }}>
                         Curated Experiences
                     </h2>
                     <p style={{
-                        color: '#64748b', fontSize: '0.9rem',
+                        color: 'var(--text-secondary)', fontSize: '0.9rem',
                         fontFamily: "'Inter', sans-serif", maxWidth: '440px', margin: '0 auto',
                     }}>
                         Designed for the unapologetic elite.
                     </p>
                     <div style={{
                         width: '48px', height: '1px', margin: '24px auto 0',
-                        background: 'linear-gradient(90deg, transparent, #C5A880, transparent)',
+                        background: 'linear-gradient(90deg, transparent, var(--gold-mid), transparent)',
                     }} />
                 </motion.div>
 
@@ -126,8 +126,8 @@ export function Experiences() {
                             key={exp.id}
                             variants={fadeUp}
                             style={{
-                                background: '#071020',
-                                border: `1px solid ${exp.featured ? 'rgba(197, 168, 128, 0.3)' : 'rgba(30, 58, 100, 0.5)'}`,
+                                background: 'var(--bg-card)',
+                                border: `1px solid ${exp.featured ? 'var(--gold-border)' : 'var(--border-subtle)'}`,
                                 borderRadius: '16px',
                                 padding: '36px 28px',
                                 display: 'flex',
@@ -138,12 +138,12 @@ export function Experiences() {
                                 overflow: 'hidden',
                                 transition: 'border-color 0.3s, transform 0.3s, box-shadow 0.3s',
                             }}
-                            whileHover={{ y: -4, boxShadow: '0 8px 40px rgba(197, 168, 128, 0.12)' }}
+                            whileHover={{ y: -4, boxShadow: 'var(--shadow-gold)' }}
                         >
                             {/* Gold top edge */}
                             <div style={{
                                 position: 'absolute', top: 0, left: '30%', right: '30%', height: '1px',
-                                background: 'linear-gradient(90deg, transparent, #C5A880, transparent)',
+                                background: 'linear-gradient(90deg, transparent, var(--gold-mid), transparent)',
                             }} />
 
                             {/* Featured badge */}
@@ -151,9 +151,9 @@ export function Experiences() {
                                 <span style={{
                                     position: 'absolute', top: '16px', right: '16px',
                                     fontSize: '0.5rem', letterSpacing: '0.2em', textTransform: 'uppercase',
-                                    color: '#C5A880', border: '1px solid rgba(197, 168, 128, 0.3)',
+                                    color: 'var(--gold-mid)', border: '1px solid var(--gold-border)',
                                     padding: '3px 9px', borderRadius: '9999px',
-                                    background: 'rgba(197, 168, 128, 0.1)',
+                                    background: 'var(--gold-glow)',
                                     fontFamily: "'Inter', sans-serif", fontWeight: 700,
                                 }}>
                                     Featured
@@ -163,9 +163,9 @@ export function Experiences() {
                             {/* Icon box */}
                             <div style={{
                                 width: '60px', height: '60px', borderRadius: '12px',
-                                background: exp.featured ? 'rgba(197, 168, 128, 0.12)' : 'rgba(30, 58, 100, 0.5)',
+                                background: exp.featured ? 'var(--gold-glow)' : 'var(--border-subtle)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: exp.featured ? '#C5A880' : '#64748b',
+                                color: exp.featured ? 'var(--gold-mid)' : 'var(--text-secondary)',
                                 marginBottom: '20px',
                             }}>
                                 {exp.icon}
@@ -174,7 +174,7 @@ export function Experiences() {
                             {/* Label */}
                             <span style={{
                                 fontSize: '0.55rem', letterSpacing: '0.25em', textTransform: 'uppercase',
-                                color: '#475569', fontFamily: "'Inter', sans-serif", fontWeight: 700,
+                                color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", fontWeight: 700,
                                 marginBottom: '8px', display: 'block',
                             }}>
                                 {exp.sublabel}
@@ -184,7 +184,7 @@ export function Experiences() {
                             <h3 style={{
                                 fontFamily: "'Cormorant Garamond', serif",
                                 fontSize: '1.5rem', fontWeight: 400,
-                                color: exp.featured ? '#E8D5A3' : '#f1f5f9',
+                                color: exp.featured ? 'var(--gold-light)' : 'var(--text-primary)',
                                 marginBottom: '14px', lineHeight: 1.3,
                             }}>
                                 {exp.title}
@@ -192,7 +192,7 @@ export function Experiences() {
 
                             {/* Description */}
                             <p style={{
-                                color: '#475569', fontSize: '0.82rem', lineHeight: 1.7,
+                                color: 'var(--text-muted)', fontSize: '0.82rem', lineHeight: 1.7,
                                 fontFamily: "'Inter', sans-serif", flex: 1, marginBottom: '24px',
                             }}>
                                 {exp.description}
@@ -203,12 +203,12 @@ export function Experiences() {
                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                 fontSize: '0.6rem', letterSpacing: '0.2em', textTransform: 'uppercase',
                                 fontWeight: 700, fontFamily: "'Inter', sans-serif",
-                                color: exp.featured ? '#C5A880' : '#475569',
+                                color: exp.featured ? 'var(--gold-mid)' : 'var(--text-muted)',
                                 textDecoration: 'none',
                                 transition: 'color 0.2s',
                             }}
-                                onMouseEnter={e => (e.currentTarget.style.color = '#C5A880')}
-                                onMouseLeave={e => (e.currentTarget.style.color = exp.featured ? '#C5A880' : '#475569')}
+                                onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold-mid)')}
+                                onMouseLeave={e => (e.currentTarget.style.color = exp.featured ? 'var(--gold-mid)' : 'var(--text-muted)')}
                             >
                                 {exp.cta}
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>

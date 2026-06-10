@@ -24,20 +24,20 @@ export function ModelsPage() {
             initial="hidden"
             animate="visible"
             variants={container}
-            style={{ minHeight: '100%', background: '#060d1a', padding: '16px' }}
+            style={{ minHeight: '100%', background: 'var(--bg-main)', padding: '16px' }}
         >
             {/* Top Bar */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <span style={{
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: '1.1rem', letterSpacing: '0.2em', color: '#4a9eff', fontWeight: 400,
+                    fontSize: '1.1rem', letterSpacing: '0.2em', color: 'var(--blue-vivid)', fontWeight: 400,
                 }}>
                     BLUEDISE
                 </span>
                 <span style={{
                     fontSize: '0.55rem', letterSpacing: '0.2em', textTransform: 'uppercase',
-                    color: '#f1f5f9', fontFamily: "'Inter', sans-serif", fontWeight: 700,
-                    background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+                    color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", fontWeight: 700,
+                    background: 'var(--blue-glow)', border: '1px solid var(--border-subtle)',
                     padding: '4px 10px', borderRadius: '6px',
                 }}>
                     ◈ COMPANIONS
@@ -48,11 +48,11 @@ export function ModelsPage() {
             <motion.div variants={fadeUp} style={{ marginBottom: '20px' }}>
                 <h2 style={{
                     fontFamily: "'Inter', sans-serif", fontWeight: 700,
-                    fontSize: '1.3rem', color: '#f1f5f9', marginBottom: '4px',
+                    fontSize: '1.3rem', color: 'var(--text-primary)', marginBottom: '4px',
                 }}>
                     Elite Directory
                 </h2>
-                <p style={{ color: '#475569', fontSize: '0.75rem', fontFamily: "'Inter', sans-serif" }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: "'Inter', sans-serif" }}>
                     Select a profile to initiate booking protocols.
                 </p>
             </motion.div>
@@ -69,9 +69,9 @@ export function ModelsPage() {
                         variants={fadeUp}
                         style={{
                             borderRadius: '12px', overflow: 'hidden',
-                            border: '1.5px solid rgba(59,130,246,0.25)',
+                            border: '1.5px solid var(--border-subtle)',
                             position: 'relative', cursor: 'pointer',
-                            background: '#071020',
+                            background: 'var(--bg-card)',
                         }}
                         whileTap={{ scale: 0.98 }}
                     >
@@ -83,8 +83,8 @@ export function ModelsPage() {
                         {/* Demo/Premium badge */}
                         <span style={{
                             position: 'absolute', top: '8px', right: '8px',
-                            background: p.demo ? 'rgba(0,0,0,0.75)' : '#e8a020',
-                            color: p.demo ? '#94a3b8' : '#000',
+                            background: p.demo ? 'var(--bg-overlay)' : 'var(--gold-mid)',
+                            color: p.demo ? 'var(--text-secondary)' : '#000',
                             fontSize: '0.45rem', letterSpacing: '0.15em',
                             textTransform: 'uppercase', padding: '3px 8px',
                             borderRadius: '4px', fontFamily: "'Inter', sans-serif", fontWeight: 700,
@@ -94,12 +94,12 @@ export function ModelsPage() {
 
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
-                            background: 'linear-gradient(transparent, rgba(6,13,26,0.95))',
+                            background: 'linear-gradient(transparent, var(--bg-nav))',
                             padding: '20px 10px 10px',
                         }}>
-                            <p style={{ color: '#f1f5f9', fontSize: '0.8rem', fontWeight: 600, fontFamily: "'Inter', sans-serif", marginBottom: '2px' }}>{p.name}</p>
-                            <p style={{ color: '#3b82f6', fontSize: '0.55rem', fontFamily: "'Inter', sans-serif", marginBottom: '4px' }}>{p.id}</p>
-                            <div style={{ display: 'flex', gap: '8px', fontSize: '0.6rem', color: '#64748b' }}>
+                            <p style={{ color: 'var(--text-primary)', fontSize: '0.8rem', fontWeight: 600, fontFamily: "'Inter', sans-serif", marginBottom: '2px' }}>{p.name}</p>
+                            <p style={{ color: 'var(--blue-vivid)', fontSize: '0.55rem', fontFamily: "'Inter', sans-serif", marginBottom: '4px' }}>{p.id}</p>
+                            <div style={{ display: 'flex', gap: '8px', fontSize: '0.6rem', color: 'var(--text-muted)' }}>
                                 <span>{p.age} Yrs</span>
                                 <span>•</span>
                                 <span>{p.city}</span>

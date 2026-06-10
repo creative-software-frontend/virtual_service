@@ -33,7 +33,7 @@ export function AuthPage() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#0a0f1e',
+            backgroundColor: 'var(--bg-main)',
             padding: '24px',
             position: 'relative',
             overflow: 'hidden',
@@ -44,16 +44,16 @@ export function AuthPage() {
                     position: 'absolute', top: '50%', left: '50%',
                     transform: 'translate(-50%, -50%)',
                     width: '800px', height: '500px', borderRadius: '50%',
-                    background: 'radial-gradient(ellipse, rgba(29,78,216,0.08) 0%, transparent 70%)',
+                    background: 'radial-gradient(ellipse, var(--blue-glow) 0%, transparent 70%)',
                 }} />
                 <div style={{
                     position: 'absolute', top: '20%', left: '30%',
                     width: '400px', height: '300px', borderRadius: '50%',
-                    background: 'rgba(29,78,216,0.04)', filter: 'blur(80px)',
+                    background: 'var(--blue-glow)', filter: 'blur(80px)',
                 }} />
                 <div style={{
                     position: 'absolute', inset: 0, opacity: 0.12,
-                    backgroundImage: 'radial-gradient(circle, rgba(59,130,246,0.3) 1px, transparent 1px)',
+                    backgroundImage: 'radial-gradient(circle, var(--blue-glow) 1px, transparent 1px)',
                     backgroundSize: '36px 36px',
                 }} />
             </div>
@@ -63,15 +63,15 @@ export function AuthPage() {
                 position: 'relative',
                 width: '100%',
                 maxWidth: '440px',
-                background: 'linear-gradient(160deg, #0d1b35 0%, #0a1428 100%)',
-                border: '1px solid rgba(30, 58, 120, 0.5)',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-default)',
                 borderRadius: '20px',
                 padding: '40px 36px',
-                boxShadow: '0 25px 80px rgba(0,0,0,0.6)',
+                boxShadow: 'var(--shadow-lg)',
             }}>
                 <div style={{
                     position: 'absolute', top: 0, left: '20%', right: '20%', height: '1px',
-                    background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent)',
+                    background: 'linear-gradient(90deg, transparent, var(--blue-vivid), transparent)',
                 }} />
 
                 {/* Logo */}
@@ -79,13 +79,13 @@ export function AuthPage() {
                     <h1 style={{
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
                         fontSize: '2rem', letterSpacing: '0.2em',
-                        color: '#4a9eff', fontWeight: 400, marginBottom: '6px',
+                        color: 'var(--gold-mid)', fontWeight: 400, marginBottom: '6px',
                     }}>
                         BLUEDISE
                     </h1>
                     <span style={{
                         display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
-                        textTransform: 'uppercase', color: '#475569',
+                        textTransform: 'uppercase', color: 'var(--text-muted)',
                         fontFamily: "'Inter', sans-serif", fontWeight: 600,
                     }}>
                         Member Portal
@@ -94,25 +94,25 @@ export function AuthPage() {
 
                 {/* Tabs */}
                 <div style={{
-                    display: 'flex', background: 'rgba(5, 10, 25, 0.8)',
+                    display: 'flex', background: 'var(--bg-nav)',
                     borderRadius: '8px', padding: '4px',
-                    border: '1px solid rgba(30, 58, 120, 0.4)', marginBottom: '28px',
+                    border: '1px solid var(--border-subtle)', marginBottom: '28px',
                 }}>
                     <Link to="/signup" style={{
                         flex: 1, textAlign: 'center', padding: '9px 0',
                         fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                         fontWeight: 600, fontFamily: "'Inter', sans-serif",
                         textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
-                        color: !isLogin ? '#f1f5f9' : '#475569',
-                        background: !isLogin ? 'rgba(29, 78, 216, 0.3)' : 'transparent',
+                        color: !isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
+                        background: !isLogin ? 'var(--blue-glow)' : 'transparent',
                     }}>Register</Link>
                     <Link to="/login" style={{
                         flex: 1, textAlign: 'center', padding: '9px 0',
                         fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                         fontWeight: 600, fontFamily: "'Inter', sans-serif",
                         textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
-                        color: isLogin ? '#f1f5f9' : '#475569',
-                        background: isLogin ? 'rgba(29, 78, 216, 0.3)' : 'transparent',
+                        color: isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
+                        background: isLogin ? 'var(--blue-glow)' : 'transparent',
                     }}>Sign In</Link>
                 </div>
 
@@ -135,7 +135,7 @@ export function AuthPage() {
                         <div>
                             <label style={{
                                 display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
-                                textTransform: 'uppercase', color: '#475569',
+                                textTransform: 'uppercase', color: 'var(--text-muted)',
                                 fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
                             }}>Username</label>
                             <input
@@ -145,14 +145,14 @@ export function AuthPage() {
                                 onChange={e => setUsername(e.target.value)}
                                 style={{
                                     width: '100%', padding: '12px 16px',
-                                    background: 'rgba(5, 15, 35, 0.8)',
-                                    border: '1px solid rgba(30, 58, 120, 0.5)',
-                                    borderRadius: '8px', color: '#f1f5f9',
+                                    background: 'var(--bg-input)',
+                                    border: '1px solid var(--border-default)',
+                                    borderRadius: '8px', color: 'var(--text-primary)',
                                     fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
                                     outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                                 }}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
+                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                             />
                         </div>
                     )}
@@ -161,7 +161,7 @@ export function AuthPage() {
                     <div>
                         <label style={{
                             display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
-                            textTransform: 'uppercase', color: '#475569',
+                            textTransform: 'uppercase', color: 'var(--text-muted)',
                             fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
                         }}>
                             {isLogin ? 'Email or Username' : 'Email Address'}
@@ -173,14 +173,14 @@ export function AuthPage() {
                             onChange={e => setEmail(e.target.value)}
                             style={{
                                 width: '100%', padding: '12px 16px',
-                                background: 'rgba(5, 15, 35, 0.8)',
-                                border: '1px solid rgba(30, 58, 120, 0.5)',
-                                borderRadius: '8px', color: '#f1f5f9',
+                                background: 'var(--bg-input)',
+                                border: '1px solid var(--border-default)',
+                                borderRadius: '8px', color: 'var(--text-primary)',
                                 fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
                                 outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                             }}
-                            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
-                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
+                            onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                         />
                     </div>
 
@@ -188,7 +188,7 @@ export function AuthPage() {
                     <div>
                         <label style={{
                             display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
-                            textTransform: 'uppercase', color: '#475569',
+                            textTransform: 'uppercase', color: 'var(--text-muted)',
                             fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
                         }}>Password</label>
                         <div style={{ position: 'relative' }}>
@@ -199,18 +199,18 @@ export function AuthPage() {
                                 onChange={e => setPassword(e.target.value)}
                                 style={{
                                     width: '100%', padding: '12px 44px 12px 16px',
-                                    background: 'rgba(5, 15, 35, 0.8)',
-                                    border: '1px solid rgba(30, 58, 120, 0.5)',
-                                    borderRadius: '8px', color: '#f1f5f9',
+                                    background: 'var(--bg-input)',
+                                    border: '1px solid var(--border-default)',
+                                    borderRadius: '8px', color: 'var(--text-primary)',
                                     fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
                                     outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                                 }}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
+                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                             />
                             <button type="button" onClick={() => setShowPass(v => !v)} style={{
                                 position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                background: 'none', border: 'none', padding: 0, color: '#475569', cursor: 'pointer',
+                                background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
                             }}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
@@ -222,7 +222,7 @@ export function AuthPage() {
                         <div>
                             <label style={{
                                 display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
-                                textTransform: 'uppercase', color: '#475569',
+                                textTransform: 'uppercase', color: 'var(--text-muted)',
                                 fontFamily: "'Inter', sans-serif", fontWeight: 600, marginBottom: '8px',
                             }}>Confirm Password</label>
                             <div style={{ position: 'relative' }}>
@@ -231,18 +231,18 @@ export function AuthPage() {
                                     placeholder="Repeat password"
                                     style={{
                                         width: '100%', padding: '12px 44px 12px 16px',
-                                        background: 'rgba(5, 15, 35, 0.8)',
-                                        border: '1px solid rgba(30, 58, 120, 0.5)',
-                                        borderRadius: '8px', color: '#f1f5f9',
+                                        background: 'var(--bg-input)',
+                                        border: '1px solid var(--border-default)',
+                                        borderRadius: '8px', color: 'var(--text-primary)',
                                         fontSize: '0.875rem', fontFamily: "'Inter', sans-serif",
                                         outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
                                     }}
-                                    onFocus={e => (e.currentTarget.style.borderColor = 'rgba(59,130,246,0.7)')}
-                                    onBlur={e => (e.currentTarget.style.borderColor = 'rgba(30, 58, 120, 0.5)')}
+                                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                                 />
                                 <button type="button" onClick={() => setShowConfirm(v => !v)} style={{
                                     position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                    background: 'none', border: 'none', padding: 0, color: '#475569', cursor: 'pointer',
+                                    background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
                                 }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                 </button>
@@ -253,11 +253,11 @@ export function AuthPage() {
                     {/* Submit */}
                     <button type="submit" style={{
                         width: '100%', padding: '14px', marginTop: '4px',
-                        background: 'linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6)',
+                        background: 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))',
                         border: 'none', borderRadius: '8px', color: '#fff',
                         fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                         fontWeight: 700, fontFamily: "'Inter', sans-serif",
-                        cursor: 'pointer', boxShadow: '0 0 20px rgba(59,130,246,0.4)',
+                        cursor: 'pointer', boxShadow: 'var(--shadow-blue)',
                         transition: 'filter 0.2s, transform 0.2s',
                     }}
                         onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -270,22 +270,22 @@ export function AuthPage() {
                 {/* Footer link */}
                 <p style={{
                     textAlign: 'center', marginTop: '24px',
-                    fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: '#475569',
+                    fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
                 }}>
                     {isLogin ? (
                         <>New to BLUEdise?{' '}
-                            <Link to="/signup" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>Create an account</Link>
+                            <Link to="/signup" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>Create an account</Link>
                         </>
                     ) : (
                         <>Already a member?{' '}
-                            <Link to="/login" style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500 }}>Sign in here</Link>
+                            <Link to="/login" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>Sign in here</Link>
                         </>
                     )}
                 </p>
                 <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                    color: '#1e293b', fontFamily: "'Inter', sans-serif",
+                    color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif",
                 }}>
                     © 2026 BLUEDISE SECURED PORTAL
                 </p>

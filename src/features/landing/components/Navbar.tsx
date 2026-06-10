@@ -10,9 +10,9 @@ export function Navbar() {
             top: 0,
             zIndex: 200,
             width: '100%',
-            backgroundColor: 'rgba(2, 6, 18, 0.85)',
+            backgroundColor: 'var(--bg-overlay)',
             backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(30, 58, 100, 0.4)',
+            borderBottom: '1px solid var(--border-subtle)',
         }}>
             <div className="navbar-inner">
                 {/* Brand */}
@@ -21,7 +21,7 @@ export function Navbar() {
                 {/* Desktop Nav Links */}
                 <div className="navbar-links">
                     <a href="#experiences" style={{
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         fontSize: '0.65rem',
                         letterSpacing: '0.2em',
                         textTransform: 'uppercase',
@@ -30,13 +30,13 @@ export function Navbar() {
                         transition: 'color 0.2s',
                         fontFamily: "'Inter', sans-serif",
                     }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#E8D5A3')}
-                        onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold-light)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
                     >
                         Experiences
                     </a>
                     <a href="#tiers" style={{
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         fontSize: '0.65rem',
                         letterSpacing: '0.2em',
                         textTransform: 'uppercase',
@@ -45,13 +45,13 @@ export function Navbar() {
                         transition: 'color 0.2s',
                         fontFamily: "'Inter', sans-serif",
                     }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#E8D5A3')}
-                        onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold-light)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
                     >
                         Tiers
                     </a>
                     <Link to="/login" style={{
-                        color: '#94a3b8',
+                        color: 'var(--text-secondary)',
                         fontSize: '0.65rem',
                         letterSpacing: '0.2em',
                         textTransform: 'uppercase',
@@ -60,13 +60,13 @@ export function Navbar() {
                         transition: 'color 0.2s',
                         fontFamily: "'Inter', sans-serif",
                     }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#E8D5A3')}
-                        onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}
+                        onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold-light)')}
+                        onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
                     >
                         Sign In
                     </Link>
                     <a href="#tiers" style={{
-                        backgroundColor: '#C5A880',
+                        backgroundColor: 'var(--gold-mid)',
                         color: '#000',
                         padding: '10px 22px',
                         fontSize: '0.6rem',

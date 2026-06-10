@@ -68,44 +68,56 @@ export function DashboardLayout() {
     return (
         <div style={{
             minHeight: '100svh',
-            background: '#060d1a',
+            background: 'var(--bg-main)',
             display: 'flex',
             flexDirection: 'column',
+            /* On mobile: full 100vw. On larger screens, cap at 480px centered */
+            width: '100%',
             maxWidth: '480px',
             margin: '0 auto',
             position: 'relative',
             fontFamily: "'Inter', sans-serif",
+            overflowX: 'hidden',
         }}>
             {/* Page content */}
-            <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '72px' }}>
+            <div style={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                /* Bottom padding = bottom nav height + safe area */
+                paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+            }}>
                 <Outlet />
             </div>
 
-            {/* Bottom navigation */}
-            <nav style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                width: '100%',
-                height: '64px',
-                background: 'rgba(6, 13, 26, 0.97)',
-                borderTop: '1px solid rgba(30, 58, 100, 0.5)',
-                backdropFilter: 'blur(20px)',
-                zIndex: 200,
-                boxSizing: 'border-box',
-            }}>
-                {/* INNER CONTAINER: Perfectly centers navigation nodes on widescreen dashboards */}
+            {/* Bottom navigation — full viewport width, content centred at 480px */}
+            <nav
+                style={{
+                    position: 'fixed',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    width: '100%',   /* Full width on all screen sizes */
+                    height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                    background: 'var(--bg-nav)',
+                    borderTop: '1px solid var(--border-subtle)',
+                    backdropFilter: 'blur(20px)',
+                    zIndex: 200,
+                    boxSizing: 'border-box',
+                }}
+            >
+                {/* Inner row: centred at 480px so icons stay aligned with page content */}
                 <div style={{
-                    maxWidth: '490px', // Matches the exact max-width layout of your top navigation header container
+                    maxWidth: '480px',
                     width: '100%',
-                    height: '100%',
-                    margin: '0 auto',  // Master engine centering hook
-                    padding: '0 24px', // Mirrors your header's gutter padding exactly
+                    height: '64px',
+                    margin: '0 auto',
+                    padding: '0 clamp(8px, 3vw, 16px)',
                     display: 'flex',
-                    justifyContent: 'space-between', // Creates uniform responsive gaps exactly like the desktop view request
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
                 }}>
                     {NAV.map(item => (
                         <NavLink
@@ -118,30 +130,41 @@ export function DashboardLayout() {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 height: '100%',
-                                padding: '0 16px', // Generates premium interactive spacing boxes around elements
-                                gap: '5px',
+                                flex: 1,
+                                padding: '0 2px',
+                                gap: '4px',
                                 textDecoration: 'none',
-                                color: isActive ? '#4a9eff' : '#64748b',
+                                color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
                                 transition: 'all 0.2s ease-in-out',
-                                fontSize: '0.65rem',
-                                letterSpacing: '0.12em',
+                                /* clamp: min 0.52rem, fluid 1.8vw, max 0.65rem */
+                                fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
+                                letterSpacing: '0.06em',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
-                                textShadow: isActive ? '0 0 10px rgba(74, 158, 255, 0.4)' : 'none'
+                                textShadow: isActive ? '0 0 10px var(--blue-glow)' : 'none',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
                             })}
                         >
                             {({ isActive }) => (
                                 <>
                                     <span style={{
-                                        color: isActive ? '#4a9eff' : '#64748b',
+                                        color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
                                         display: 'flex',
-                                        transform: 'scale(1.15)',
+                                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
                                         transition: 'transform 0.2s ease',
-                                        filter: isActive ? 'drop-shadow(0 0 8px rgba(74, 158, 255, 0.6))' : 'none'
+                                        filter: isActive ? 'drop-shadow(0 0 8px var(--blue-vivid))' : 'none',
                                     }}>
                                         {item.icon}
                                     </span>
-                                    {item.label}
+                                    <span style={{
+                                        textOverflow: 'ellipsis',
+                                        overflow: 'hidden',
+                                        width: '100%',
+                                        textAlign: 'center',
+                                    }}>
+                                        {item.label}
+                                    </span>
                                 </>
                             )}
                         </NavLink>

@@ -22,5 +22,55 @@ export const router = createBrowserRouter([
             return { element: <AuthPage /> };
         },
     },
-    // Extra client portals (e.g., /hub, /directory) go here...
+    {
+        path: "/dashboard",
+        lazy: async () => {
+            const { DashboardLayout } = await import("../features/dashboard/DashboardLayout");
+            return { element: <DashboardLayout /> };
+        },
+        children: [
+            {
+                index: true,
+                lazy: async () => {
+                    const { DashboardHome } = await import("../features/dashboard/pages/DashboardHome");
+                    return { element: <DashboardHome /> };
+                }
+            },
+            {
+                path: "membership",
+                lazy: async () => {
+                    const { MembershipPage } = await import("../features/dashboard/pages/MembershipPage");
+                    return { element: <MembershipPage /> };
+                }
+            },
+            {
+                path: "assets",
+                lazy: async () => {
+                    const { AssetsPage } = await import("../features/dashboard/pages/AssetsPage");
+                    return { element: <AssetsPage /> };
+                }
+            },
+            {
+                path: "network",
+                lazy: async () => {
+                    const { NetworkPage } = await import("../features/dashboard/pages/NetworkPage");
+                    return { element: <NetworkPage /> };
+                }
+            },
+            {
+                path: "profile",
+                lazy: async () => {
+                    const { ProfilePage } = await import("../features/dashboard/pages/ProfilePage");
+                    return { element: <ProfilePage /> };
+                }
+            },
+            {
+                path: "models",
+                lazy: async () => {
+                    const { ModelsPage } = await import("../features/dashboard/pages/ModelsPage");
+                    return { element: <ModelsPage /> };
+                }
+            }
+        ]
+    }
 ]);

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 28 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 const container = {
@@ -12,17 +12,7 @@ const container = {
 
 export function Hero() {
     return (
-        <section style={{
-            minHeight: 'calc(100vh - 64px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden',
-            padding: '80px 32px',
-            textAlign: 'center',
-        }}>
+        <section className="hero-section">
             {/* Atmospheric glows */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                 <div style={{
@@ -38,7 +28,7 @@ export function Hero() {
                 {/* Dot grid */}
                 <div style={{
                     position: 'absolute', inset: 0, opacity: 0.15,
-                    backgroundImage: 'radial-gradient(circle, rgba(197,168,128,0.15) 1px, transparent 1px)',
+                    backgroundImage: 'radial-gradient(circle, var(--gold-glow) 1px, transparent 1px)',
                     backgroundSize: '44px 44px',
                 }} />
             </div>
@@ -69,23 +59,23 @@ export function Hero() {
 
             {/* Content */}
             <motion.div
+                className="hero-content"
                 variants={container}
                 initial="hidden"
                 animate="visible"
-                style={{ position: 'relative', zIndex: 10, maxWidth: '760px', width: '100%' }}
             >
                 {/* Eyebrow */}
                 <motion.div variants={fadeUp} style={{ marginBottom: '28px' }}>
                     <span style={{
                         display: 'inline-flex', alignItems: 'center', gap: '12px',
-                        border: '1px solid rgba(197, 168, 128, 0.3)',
+                        border: '1px solid var(--gold-border)',
                         padding: '6px 18px',
                         borderRadius: '9999px',
                         fontSize: '0.6rem',
                         letterSpacing: '0.2em',
                         textTransform: 'uppercase',
-                        color: '#C5A880',
-                        fontFamily: "'Inter', sans-serif",
+                        color: 'var(--gold-mid)',
+                        fontFamily: "var(--font-sans)",
                         fontWeight: 600,
                     }}>
                         By Invitation &amp; Application
@@ -94,17 +84,17 @@ export function Hero() {
 
                 {/* Headline */}
                 <motion.h1 variants={fadeUp} style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontFamily: "var(--font-serif)",
                     fontWeight: 300,
-                    fontSize: 'clamp(2.8rem, 7vw, 5rem)',
+                    fontSize: 'clamp(2.4rem, 7vw, 5rem)',
                     lineHeight: 1.1,
-                    color: '#f1f5f9',
+                    color: 'var(--text-primary)',
                     marginBottom: '24px',
                     letterSpacing: '-0.02em',
                 }}>
                     Discover the Pinnacle of{' '}
                     <span style={{
-                        background: 'linear-gradient(90deg, #A87C3A 0%, #E8D5A3 40%, #C5A880 60%, #A87C3A 100%)',
+                        background: 'linear-gradient(90deg, var(--gold-deep) 0%, var(--gold-light) 40%, var(--gold-mid) 60%, var(--gold-deep) 100%)',
                         backgroundSize: '200% auto',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
@@ -118,24 +108,22 @@ export function Hero() {
 
                 {/* Subheadline */}
                 <motion.p variants={fadeUp} style={{
-                    color: '#64748b',
-                    fontSize: '0.95rem',
+                    color: 'var(--text-muted)',
+                    fontSize: 'clamp(0.82rem, 2vw, 0.95rem)',
                     lineHeight: 1.75,
                     maxWidth: '560px',
                     margin: '0 auto 40px',
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "var(--font-sans)",
                 }}>
                     An exclusive, hyper-curated network offering verified VIP companionship,
                     luxurious 5-star accommodations, and strictly confidential high-society gatherings.
                 </motion.p>
 
                 {/* CTA Buttons */}
-                <motion.div variants={fadeUp} style={{
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '16px',
-                }}>
+                <motion.div variants={fadeUp} className="hero-cta-group">
                     <a href="#tiers" style={{
                         display: 'inline-flex', alignItems: 'center', gap: '8px',
-                        background: 'linear-gradient(135deg, #A87C3A, #C5A880, #E8D5A3)',
+                        background: 'linear-gradient(135deg, var(--gold-deep), var(--gold-mid), var(--gold-light))',
                         color: '#000',
                         padding: '14px 32px',
                         fontSize: '0.6rem',
@@ -143,9 +131,9 @@ export function Hero() {
                         textTransform: 'uppercase',
                         fontWeight: 700,
                         textDecoration: 'none',
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-sans)",
                         borderRadius: '2px',
-                        boxShadow: '0 4px 20px rgba(197, 168, 128, 0.25)',
+                        boxShadow: 'var(--shadow-gold)',
                         transition: 'filter 0.2s, transform 0.2s',
                     }}
                         onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.1)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -156,30 +144,27 @@ export function Hero() {
                     </a>
                     <a href="/login" style={{
                         display: 'inline-flex', alignItems: 'center',
-                        border: '1px solid #C5A880',
-                        color: '#C5A880',
+                        border: '1px solid var(--gold-mid)',
+                        color: 'var(--gold-mid)',
                         padding: '14px 32px',
                         fontSize: '0.6rem',
                         letterSpacing: '0.2em',
                         textTransform: 'uppercase',
                         fontWeight: 700,
                         textDecoration: 'none',
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-sans)",
                         borderRadius: '2px',
                         transition: 'background 0.2s, color 0.2s',
                     }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#C5A880'; e.currentTarget.style.color = '#000'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#C5A880'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--gold-mid)'; e.currentTarget.style.color = '#000'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gold-mid)'; }}
                     >
                         Member Sign In
                     </a>
                 </motion.div>
 
                 {/* Stats */}
-                <motion.div variants={fadeUp} style={{
-                    marginTop: '64px',
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '48px',
-                }}>
+                <motion.div variants={fadeUp} className="hero-stats">
                     {[
                         { value: '500+', label: 'Elite Members' },
                         { value: '100%', label: 'Verified Profiles' },
@@ -187,16 +172,16 @@ export function Hero() {
                     ].map(stat => (
                         <div key={stat.label} style={{ textAlign: 'center' }}>
                             <p style={{
-                                fontFamily: "'Cormorant Garamond', serif",
-                                fontSize: '1.6rem', fontWeight: 300,
-                                background: 'linear-gradient(90deg, #A87C3A, #E8D5A3, #C5A880)',
+                                fontFamily: "var(--font-serif)",
+                                fontSize: 'clamp(1.3rem, 3vw, 1.6rem)', fontWeight: 300,
+                                background: 'linear-gradient(90deg, var(--gold-deep), var(--gold-light), var(--gold-mid))',
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                             }}>
                                 {stat.value}
                             </p>
                             <p style={{
                                 fontSize: '0.55rem', letterSpacing: '0.25em', textTransform: 'uppercase',
-                                color: '#475569', fontFamily: "'Inter', sans-serif", fontWeight: 600, marginTop: '4px',
+                                color: 'var(--text-muted)', fontFamily: "var(--font-sans)", fontWeight: 600, marginTop: '4px',
                             }}>
                                 {stat.label}
                             </p>
@@ -215,7 +200,7 @@ export function Hero() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.8, duration: 0.8 }}
             >
-                <span style={{ fontSize: '0.55rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#475569', fontFamily: "'Inter', sans-serif" }}>
+                <span style={{ fontSize: '0.55rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: 'var(--text-muted)', fontFamily: "var(--font-sans)" }}>
                     Scroll
                 </span>
                 <motion.div

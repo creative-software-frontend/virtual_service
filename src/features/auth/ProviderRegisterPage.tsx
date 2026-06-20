@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../utils/api';
 import type { Role } from '../../context/AuthContext';
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Identical styles to AuthPage ─────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
     textTransform: 'uppercase', color: 'var(--text-muted)',
@@ -20,11 +20,9 @@ const inputStyle: React.CSSProperties = {
     outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
 };
 
-export function AuthPage() {
-    const location = useLocation();
+export function ProviderRegisterPage() {
     const navigate = useNavigate();
     const { login } = useAuth();
-    const isLogin = location.pathname === '/login';
 
     const [showPass, setShowPass] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -39,60 +37,28 @@ export function AuthPage() {
         e.preventDefault();
         setError('');
 
-        if (!email || !password) {
-            setError('Please fill in all required fields.');
-            return;
-        }
+        if (!username.trim()) { setError('Please enter a username.'); return; }
+        if (!email) { setError('Please enter your email.'); return; }
+        if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+        if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
         setLoading(true);
-
         try {
-            if (isLogin) {
-                // ── Login — works for all roles (user, provider, admin) ──
-                const res = await authApi.login({ email, password });
+            const res = await authApi.register({
+                name: username.trim(),
+                email,
+                password,
+                role: 'provider',
+            });
 
-                if (res.error || !res.data) {
-                    setError(res.error || 'Login failed. Please try again.');
-                    return;
-                }
-
-                const { id, name, email: userEmail, role: userRole, token } = res.data;
-
-                login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard/${userRole}`);
-
-            } else {
-                // ── Register — always creates a regular user ──
-                if (!username.trim()) {
-                    setError('Please enter a username.');
-                    return;
-                }
-                if (password.length < 6) {
-                    setError('Password must be at least 6 characters.');
-                    return;
-                }
-                if (password !== confirmPassword) {
-                    setError('Passwords do not match.');
-                    return;
-                }
-
-                const res = await authApi.register({
-                    name: username.trim(),
-                    email,
-                    password,
-                    role: 'user', // always user from this page
-                });
-
-                if (res.error || !res.data) {
-                    setError(res.error || 'Registration failed. Please try again.');
-                    return;
-                }
-
-                const { id, name, email: userEmail, role: userRole, token } = res.data;
-
-                login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard/${userRole}`);
+            if (res.error || !res.data) {
+                setError(res.error || 'Registration failed. Please try again.');
+                return;
             }
+
+            const { id, name, email: userEmail, role: userRole, token } = res.data;
+            login({ id, email: userEmail, role: userRole as Role, username: name, token });
+            navigate('/dashboard/provider');
         } finally {
             setLoading(false);
         }
@@ -111,7 +77,7 @@ export function AuthPage() {
             minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
             backgroundColor: 'var(--bg-main)', padding: '24px', position: 'relative', overflow: 'hidden',
         }}>
-            {/* Background glows */}
+            {/* Background glows — identical to AuthPage */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%',
@@ -131,7 +97,7 @@ export function AuthPage() {
                 }} />
             </div>
 
-            {/* Card */}
+            {/* Card — identical to AuthPage */}
             <div style={{
                 position: 'relative', width: '100%', maxWidth: '440px',
                 background: 'var(--bg-card)', border: '1px solid var(--border-default)',
@@ -153,31 +119,23 @@ export function AuthPage() {
                         display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
                         textTransform: 'uppercase', color: 'var(--text-muted)',
                         fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                    }}>Member Portal</span>
+                    }}>Provider Portal</span>
                 </div>
 
-                {/* Tabs */}
+                {/* Tab-style header — matching the tab look but as a single active label */}
                 <div style={{
                     display: 'flex', background: 'var(--bg-nav)',
                     borderRadius: '8px', padding: '4px',
                     border: '1px solid var(--border-subtle)', marginBottom: '28px',
                 }}>
-                    <Link to="/signup" style={{
+                    <div style={{
                         flex: 1, textAlign: 'center', padding: '9px 0',
                         fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                         fontWeight: 600, fontFamily: "'Inter', sans-serif",
-                        textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
-                        color: !isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
-                        background: !isLogin ? 'var(--blue-glow)' : 'transparent',
-                    }}>Register</Link>
-                    <Link to="/login" style={{
-                        flex: 1, textAlign: 'center', padding: '9px 0',
-                        fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                        fontWeight: 600, fontFamily: "'Inter', sans-serif",
-                        textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
-                        color: isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
-                        background: isLogin ? 'var(--blue-glow)' : 'transparent',
-                    }}>Sign In</Link>
+                        borderRadius: '5px',
+                        color: 'var(--text-primary)',
+                        background: 'var(--blue-glow)',
+                    }}>Provider Register</div>
                 </div>
 
                 {/* Error */}
@@ -190,44 +148,29 @@ export function AuthPage() {
                     }}>{error}</div>
                 )}
 
-                {/* Admin hint on login */}
-                {isLogin && (
-                    <div style={{
-                        padding: '10px 14px', background: 'rgba(168,85,247,0.08)',
-                        border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px',
-                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif",
-                        color: 'rgba(200,170,255,0.85)', marginBottom: '18px', lineHeight: 1.5,
-                    }}>
-                        <strong style={{ color: 'rgba(200,170,255,1)' }}>Admin:</strong>{' '}
-                        admin@bluedise.com / admin123
-                    </div>
-                )}
-
                 {/* Form */}
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
-                    {/* Username (signup only) */}
-                    {!isLogin && (
-                        <div>
-                            <label style={labelStyle}>Username</label>
-                            <input
-                                id="auth-username"
-                                type="text"
-                                placeholder="Choose a username"
-                                value={username}
-                                onChange={e => setUsername(e.target.value)}
-                                style={inputStyle}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-                            />
-                        </div>
-                    )}
+                    {/* Username */}
+                    <div>
+                        <label style={labelStyle}>Username</label>
+                        <input
+                            id="provider-username"
+                            type="text"
+                            placeholder="Choose a username"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                            style={inputStyle}
+                            onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                        />
+                    </div>
 
                     {/* Email */}
                     <div>
                         <label style={labelStyle}>Email Address</label>
                         <input
-                            id="auth-email"
+                            id="provider-email"
                             type="email"
                             placeholder="your@email.com"
                             value={email}
@@ -243,7 +186,7 @@ export function AuthPage() {
                         <label style={labelStyle}>Password</label>
                         <div style={{ position: 'relative' }}>
                             <input
-                                id="auth-password"
+                                id="provider-password"
                                 type={showPass ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 value={password}
@@ -259,32 +202,30 @@ export function AuthPage() {
                         </div>
                     </div>
 
-                    {/* Confirm Password (signup only) */}
-                    {!isLogin && (
-                        <div>
-                            <label style={labelStyle}>Confirm Password</label>
-                            <div style={{ position: 'relative' }}>
-                                <input
-                                    id="auth-confirm-password"
-                                    type={showConfirm ? 'text' : 'password'}
-                                    placeholder="Repeat password"
-                                    value={confirmPassword}
-                                    onChange={e => setConfirmPassword(e.target.value)}
-                                    style={{ ...inputStyle, padding: '12px 44px 12px 16px' }}
-                                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
-                                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-                                />
-                                <button type="button" onClick={() => setShowConfirm(v => !v)} style={{
-                                    position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                    background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
-                                }}>{eyeIcon}</button>
-                            </div>
+                    {/* Confirm Password */}
+                    <div>
+                        <label style={labelStyle}>Confirm Password</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                id="provider-confirm-password"
+                                type={showConfirm ? 'text' : 'password'}
+                                placeholder="Repeat password"
+                                value={confirmPassword}
+                                onChange={e => setConfirmPassword(e.target.value)}
+                                style={{ ...inputStyle, padding: '12px 44px 12px 16px' }}
+                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                            />
+                            <button type="button" onClick={() => setShowConfirm(v => !v)} style={{
+                                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                                background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
+                            }}>{eyeIcon}</button>
                         </div>
-                    )}
+                    </div>
 
-                    {/* Submit */}
+                    {/* Submit — identical style to AuthPage */}
                     <button
-                        id="auth-submit"
+                        id="provider-submit"
                         type="submit"
                         disabled={loading}
                         style={{
@@ -302,7 +243,7 @@ export function AuthPage() {
                         onMouseEnter={e => { if (!loading) { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
                         onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
-                        {loading ? 'Please wait…' : isLogin ? 'Secure Sign In' : 'Create Account'}
+                        {loading ? 'Please wait…' : 'Create Provider Account'}
                     </button>
                 </form>
 
@@ -311,30 +252,9 @@ export function AuthPage() {
                     textAlign: 'center', marginTop: '24px',
                     fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
                 }}>
-                    {isLogin ? (
-                        <>New to BLUEdise?{' '}
-                            <Link to="/signup" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>Create an account</Link>
-                        </>
-                    ) : (
-                        <>Already a member?{' '}
-                            <Link to="/login" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>Sign in here</Link>
-                        </>
-                    )}
+                    Already have an account?{' '}
+                    <Link to="/login" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>Sign in here</Link>
                 </p>
-
-                {/* Provider register hint */}
-                {isLogin && (
-                    <p style={{
-                        textAlign: 'center', marginTop: '12px',
-                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
-                    }}>
-                        Are you a service provider?{' '}
-                        <Link to="/provider/register" style={{ color: '#34d399', textDecoration: 'none', fontWeight: 500 }}>
-                            Register here
-                        </Link>
-                    </p>
-                )}
-
                 <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',

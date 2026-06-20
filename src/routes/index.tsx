@@ -23,6 +23,13 @@ export const router = createBrowserRouter([
             return { element: <AuthPage /> };
         },
     },
+    {
+        path: "/provider/register",
+        lazy: async () => {
+            const { ProviderRegisterPage } = await import("../features/auth/ProviderRegisterPage");
+            return { element: <ProviderRegisterPage /> };
+        },
+    },
     // ── Role-specific dashboards ──────────────────────────────────────────────
     {
         path: "/dashboard/admin",

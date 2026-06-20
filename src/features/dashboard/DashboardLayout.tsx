@@ -1,8 +1,20 @@
 import { useEffect } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
-const NAV = [
+function getUserRole(): 'admin' | 'user' | 'provider' {
+    try {
+        const raw = localStorage.getItem('bluedise_auth_session');
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed?.role === 'admin' || parsed?.role === 'user' || parsed?.role === 'provider') return parsed.role;
+    } catch {
+        // ignore
+    }
+    return 'user';
+}
+
+export const NAV = [
     {
+        // HOME is role-specific; actual `to` will be injected by BottomNav.
         to: '/dashboard',
         end: true,
         label: 'HOME',
@@ -55,6 +67,93 @@ const NAV = [
     },
 ];
 
+export function BottomNav() {
+    // HOME should always go to the main dashboard entry point.
+    // (Role-specific home will be handled by the `/dashboard` route/component.)
+    const homeTo = `/dashboard`;
+
+    return (
+        <nav
+            style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                width: '100%',
+                height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                background: 'var(--bg-nav)',
+                borderTop: '1px solid var(--border-subtle)',
+                backdropFilter: 'blur(20px)',
+                zIndex: 200,
+                boxSizing: 'border-box',
+            }}
+        >
+            <div style={{
+                maxWidth: '480px',
+                width: '100%',
+                height: '64px',
+                margin: '0 auto',
+                padding: '0 clamp(8px, 3vw, 16px)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+            }}>
+                {NAV.map(item => (
+                    <NavLink
+                        key={item.label}
+                        to={item.label === 'HOME' ? homeTo : item.to}
+                        end={item.label === 'HOME' ? true : item.end}
+                        style={({ isActive }) => ({
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100%',
+                            flex: 1,
+                            padding: '0 2px',
+                            gap: '4px',
+                            textDecoration: 'none',
+                            color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
+                            transition: 'all 0.2s ease-in-out',
+                            fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
+                            letterSpacing: '0.06em',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            textShadow: isActive ? '0 0 10px var(--blue-glow)' : 'none',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                        })}
+                    >
+                        {({ isActive }) => (
+                            <>
+                                <span style={{
+                                    color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
+                                    display: 'flex',
+                                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                                    transition: 'transform 0.2s ease',
+                                    filter: isActive ? 'drop-shadow(0 0 8px var(--blue-vivid))' : 'none',
+                                }}>
+                                    {item.icon}
+                                </span>
+                                <span style={{
+                                    textOverflow: 'ellipsis',
+                                    overflow: 'hidden',
+                                    width: '100%',
+                                    textAlign: 'center',
+                                }}>
+                                    {item.label}
+                                </span>
+                            </>
+                        )}
+                    </NavLink>
+                ))}
+            </div>
+        </nav>
+    );
+}
+
 export function DashboardLayout() {
     const navigate = useNavigate();
     const user = localStorage.getItem('bluedise_user');
@@ -71,7 +170,6 @@ export function DashboardLayout() {
             background: 'var(--bg-main)',
             display: 'flex',
             flexDirection: 'column',
-            /* On mobile: full 100vw. On larger screens, cap at 480px centered */
             width: '100%',
             maxWidth: '480px',
             margin: '0 auto',
@@ -79,98 +177,16 @@ export function DashboardLayout() {
             fontFamily: "'Inter', sans-serif",
             overflowX: 'hidden',
         }}>
-            {/* Page content */}
             <div style={{
                 flex: 1,
                 overflowY: 'auto',
                 overflowX: 'hidden',
-                /* Bottom padding = bottom nav height + safe area */
                 paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))',
             }}>
                 <Outlet />
             </div>
 
-            {/* Bottom navigation — full viewport width, content centred at 480px */}
-            <nav
-                style={{
-                    position: 'fixed',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    width: '100%',   /* Full width on all screen sizes */
-                    height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
-                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                    background: 'var(--bg-nav)',
-                    borderTop: '1px solid var(--border-subtle)',
-                    backdropFilter: 'blur(20px)',
-                    zIndex: 200,
-                    boxSizing: 'border-box',
-                }}
-            >
-                {/* Inner row: centred at 480px so icons stay aligned with page content */}
-                <div style={{
-                    maxWidth: '480px',
-                    width: '100%',
-                    height: '64px',
-                    margin: '0 auto',
-                    padding: '0 clamp(8px, 3vw, 16px)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    boxSizing: 'border-box',
-                }}>
-                    {NAV.map(item => (
-                        <NavLink
-                            key={item.to}
-                            to={item.to}
-                            end={item.end}
-                            style={({ isActive }) => ({
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                height: '100%',
-                                flex: 1,
-                                padding: '0 2px',
-                                gap: '4px',
-                                textDecoration: 'none',
-                                color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
-                                transition: 'all 0.2s ease-in-out',
-                                /* clamp: min 0.52rem, fluid 1.8vw, max 0.65rem */
-                                fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
-                                letterSpacing: '0.06em',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                textShadow: isActive ? '0 0 10px var(--blue-glow)' : 'none',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                            })}
-                        >
-                            {({ isActive }) => (
-                                <>
-                                    <span style={{
-                                        color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
-                                        display: 'flex',
-                                        transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                                        transition: 'transform 0.2s ease',
-                                        filter: isActive ? 'drop-shadow(0 0 8px var(--blue-vivid))' : 'none',
-                                    }}>
-                                        {item.icon}
-                                    </span>
-                                    <span style={{
-                                        textOverflow: 'ellipsis',
-                                        overflow: 'hidden',
-                                        width: '100%',
-                                        textAlign: 'center',
-                                    }}>
-                                        {item.label}
-                                    </span>
-                                </>
-                            )}
-                        </NavLink>
-                    ))}
-                </div>
-            </nav>
+            <BottomNav />
         </div>
     );
 }

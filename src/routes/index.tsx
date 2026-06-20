@@ -35,10 +35,13 @@ export const router = createBrowserRouter([
         path: "/dashboard/admin",
         lazy: async () => {
             const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
+            const { RoleDashboardLayout } = await import("../features/dashboard/RoleDashboardLayout");
             return {
                 element: (
                     <ProtectedRoute allowedRoles={["admin"]}>
-                        <RoleDashboard />
+                        <RoleDashboardLayout>
+                            <RoleDashboard />
+                        </RoleDashboardLayout>
                     </ProtectedRoute>
                 )
             };
@@ -48,10 +51,13 @@ export const router = createBrowserRouter([
         path: "/dashboard/user",
         lazy: async () => {
             const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
+            const { RoleDashboardLayout } = await import("../features/dashboard/RoleDashboardLayout");
             return {
                 element: (
                     <ProtectedRoute allowedRoles={["user"]}>
-                        <RoleDashboard />
+                        <RoleDashboardLayout>
+                            <RoleDashboard />
+                        </RoleDashboardLayout>
                     </ProtectedRoute>
                 )
             };
@@ -61,10 +67,13 @@ export const router = createBrowserRouter([
         path: "/dashboard/provider",
         lazy: async () => {
             const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
+            const { RoleDashboardLayout } = await import("../features/dashboard/RoleDashboardLayout");
             return {
                 element: (
                     <ProtectedRoute allowedRoles={["provider"]}>
-                        <RoleDashboard />
+                        <RoleDashboardLayout>
+                            <RoleDashboard />
+                        </RoleDashboardLayout>
                     </ProtectedRoute>
                 )
             };

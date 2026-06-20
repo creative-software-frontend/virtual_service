@@ -59,7 +59,7 @@ export function AuthPage() {
                 const { id, name, email: userEmail, role: userRole, token } = res.data;
 
                 login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard/${userRole}`);
+                navigate(`/dashboard`);
 
             } else {
                 // ── Register — always creates a regular user ──
@@ -91,7 +91,7 @@ export function AuthPage() {
                 const { id, name, email: userEmail, role: userRole, token } = res.data;
 
                 login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard/${userRole}`);
+                navigate(`/dashboard`);
             }
         } finally {
             setLoading(false);
@@ -188,19 +188,6 @@ export function AuthPage() {
                         color: '#fca5a5', fontSize: '0.8rem', fontFamily: "'Inter', sans-serif",
                         marginBottom: '18px',
                     }}>{error}</div>
-                )}
-
-                {/* Admin hint on login */}
-                {isLogin && (
-                    <div style={{
-                        padding: '10px 14px', background: 'rgba(168,85,247,0.08)',
-                        border: '1px solid rgba(168,85,247,0.25)', borderRadius: '8px',
-                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif",
-                        color: 'rgba(200,170,255,0.85)', marginBottom: '18px', lineHeight: 1.5,
-                    }}>
-                        <strong style={{ color: 'rgba(200,170,255,1)' }}>Admin:</strong>{' '}
-                        admin@bluedise.com / admin123
-                    </div>
                 )}
 
                 {/* Form */}

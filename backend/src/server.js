@@ -5,8 +5,13 @@ require("dotenv").config();
 const app = express();
 const db = require("./config/db");
 
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173", // or 5173 if Vite
+    credentials: true
+}));
 app.use(express.json());
+
+
 
 app.get("/", (req, res) => {
     res.send("Backend is running");
@@ -25,8 +30,15 @@ const userRoutes = require("./routes/userRoutes");
 
 app.use("/api/user", userRoutes);
 
+const providerRoutes = require("./routes/providerRoutes");
+
+app.use("/api/provider", providerRoutes);
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
+app.use((req, res) => {
+    res.status(404).json({ message: "Route not found" });
 });

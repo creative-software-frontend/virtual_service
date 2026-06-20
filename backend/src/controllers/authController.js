@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const generateToken = require("../utils/generateToken");
 
 exports.register = async (req, res) => {
-    const { name, email, password } = req.body || {};
+    const { name, email, password ,role } = req.body || {};
 
 
     if (!name || !email || !password) {
@@ -18,8 +18,8 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         db.query(
-            "INSERT INTO users (name,email,password) VALUES (?,?,?)",
-            [name, email, hashedPassword],
+            "INSERT INTO users (name,email,password,role) VALUES (?,?,?,?)",
+            [name, email, hashedPassword, role || "user"],
             (err, result) => {
                 if (err) return res.status(500).json(err);
 

@@ -1,4 +1,5 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
+import { ProtectedRoute } from "../components/ProtectedRoute";
 
 export const router = createBrowserRouter([
     {
@@ -22,8 +23,53 @@ export const router = createBrowserRouter([
             return { element: <AuthPage /> };
         },
     },
+    // ── Role-specific dashboards ──────────────────────────────────────────────
+    {
+        path: "/dashboard/admin",
+        lazy: async () => {
+            const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
+            return {
+                element: (
+                    <ProtectedRoute allowedRoles={["admin"]}>
+                        <RoleDashboard />
+                    </ProtectedRoute>
+                )
+            };
+        },
+    },
+    {
+        path: "/dashboard/user",
+        lazy: async () => {
+            const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
+            return {
+                element: (
+                    <ProtectedRoute allowedRoles={["user"]}>
+                        <RoleDashboard />
+                    </ProtectedRoute>
+                )
+            };
+        },
+    },
+    {
+        path: "/dashboard/provider",
+        lazy: async () => {
+            const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
+            return {
+                element: (
+                    <ProtectedRoute allowedRoles={["provider"]}>
+                        <RoleDashboard />
+                    </ProtectedRoute>
+                )
+            };
+        },
+    },
+    // ── Legacy /dashboard redirect ────────────────────────────────────────────
     {
         path: "/dashboard",
+        element: <Navigate to="/login" replace />,
+    },
+    {
+        path: "/dashboard/*",
         lazy: async () => {
             const { DashboardLayout } = await import("../features/dashboard/DashboardLayout");
             return { element: <DashboardLayout /> };

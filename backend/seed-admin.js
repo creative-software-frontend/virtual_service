@@ -15,8 +15,8 @@ const db = mysql.createConnection({
 });
 
 async function seed() {
-    const email = 'admin@bluedise.com';
-    const plainPassword = 'admin123';
+    const email = 'admin@gmail.com';
+    const plainPassword = '123456';
     const name = 'Admin';
     const role = 'admin';
 

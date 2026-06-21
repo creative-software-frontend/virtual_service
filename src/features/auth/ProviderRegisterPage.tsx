@@ -78,7 +78,7 @@ export function ProviderRegisterPage() {
 
             const { id, name, email: userEmail, role: userRole, token } = res.data;
             login({ id, email: userEmail, role: userRole as Role, username: name, token });
-            navigate('/dashboard/provider');
+            navigate('/provider/dashboard');
         } finally {
             setLoading(false);
         }

@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute } from "../components/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -30,65 +30,18 @@ export const router = createBrowserRouter([
             return { element: <ProviderRegisterPage /> };
         },
     },
-    // ── Role-specific dashboards ──────────────────────────────────────────────
+    // ── Unified Role Dashboard ──────────────────────────────────────────────
     {
-        path: "/dashboard/admin",
-        lazy: async () => {
-            const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
-            const { RoleDashboardLayout } = await import("../features/dashboard/RoleDashboardLayout");
-            return {
-                element: (
-                    <ProtectedRoute allowedRoles={["admin"]}>
-                        <RoleDashboardLayout>
-                            <RoleDashboard />
-                        </RoleDashboardLayout>
-                    </ProtectedRoute>
-                )
-            };
-        },
-    },
-    {
-        path: "/dashboard/user",
-        lazy: async () => {
-            const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
-            const { RoleDashboardLayout } = await import("../features/dashboard/RoleDashboardLayout");
-            return {
-                element: (
-                    <ProtectedRoute allowedRoles={["user"]}>
-                        <RoleDashboardLayout>
-                            <RoleDashboard />
-                        </RoleDashboardLayout>
-                    </ProtectedRoute>
-                )
-            };
-        },
-    },
-    {
-        path: "/dashboard/provider",
-        lazy: async () => {
-            const { RoleDashboard } = await import("../features/dashboard/pages/RoleDashboard");
-            const { RoleDashboardLayout } = await import("../features/dashboard/RoleDashboardLayout");
-            return {
-                element: (
-                    <ProtectedRoute allowedRoles={["provider"]}>
-                        <RoleDashboardLayout>
-                            <RoleDashboard />
-                        </RoleDashboardLayout>
-                    </ProtectedRoute>
-                )
-            };
-        },
-    },
-    // ── Legacy /dashboard redirect ────────────────────────────────────────────
-    {
-        path: "/dashboard",
-        element: <Navigate to="/login" replace />,
-    },
-    {
-        path: "/dashboard/*",
+        path: "/:role/dashboard",
         lazy: async () => {
             const { DashboardLayout } = await import("../features/dashboard/DashboardLayout");
-            return { element: <DashboardLayout /> };
+            return {
+                element: (
+                    <ProtectedRoute>
+                        <DashboardLayout />
+                    </ProtectedRoute>
+                )
+            };
         },
         children: [
             {

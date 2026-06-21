@@ -1,3 +1,4 @@
+import { useParams } from 'react-router-dom';
 import { TopNav } from './TopNav';
 
 const PROFILES = [
@@ -22,6 +23,7 @@ const LOCATIONS = [
 ];
 
 export function DashboardHome() {
+    const { role } = useParams<{ role: string }>();
     const user = localStorage.getItem('bluedise_user') || 'member';
 
     return (
@@ -119,7 +121,7 @@ export function DashboardHome() {
                     </div>
 
                     {/* CTA button */}
-                    <a href="/dashboard/membership" style={{
+                    <a href={`/${role}/dashboard/membership`} style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '8px',
@@ -196,15 +198,15 @@ export function DashboardHome() {
                 }}>
                     {[
                         {
-                            to: '/dashboard/models', label: 'MODELS',
+                            to: `/${role}/dashboard/models`, label: 'MODELS',
                             icon: <svg width="clamp(22px,6vw,28px)" height="clamp(22px,6vw,28px)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 5px rgba(203,213,225,0.6))' }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
                         },
                         {
-                            to: '/dashboard/assets', label: 'PLACES',
+                            to: `/${role}/dashboard/assets`, label: 'PLACES',
                             icon: <svg width="clamp(22px,6vw,28px)" height="clamp(22px,6vw,28px)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 5px rgba(203,213,225,0.6))' }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
                         },
                         {
-                            to: '/dashboard/membership', label: 'MEMBERSHIP',
+                            to: `/${role}/dashboard/membership`, label: 'MEMBERSHIP',
                             icon: <svg width="clamp(22px,6vw,28px)" height="clamp(22px,6vw,28px)" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 5px rgba(203,213,225,0.6))' }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z" /></svg>,
                         },
                     ].map(q => (

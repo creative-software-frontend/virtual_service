@@ -60,7 +60,7 @@ export function AuthPage() {
 
                 const { id, name, email: userEmail, role: userRole, token } = res.data;
                 login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard/${userRole}`);
+                navigate(`/${userRole}/dashboard`);
                 return;
 
 

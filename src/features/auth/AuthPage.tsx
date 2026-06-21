@@ -32,6 +32,8 @@ export function AuthPage() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [username, setUsername] = useState('');
+    const [phone, setPhone] = useState('');
+
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -57,12 +59,17 @@ export function AuthPage() {
                 }
 
                 const { id, name, email: userEmail, role: userRole, token } = res.data;
-
                 login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard`);
+                navigate(`/dashboard/${userRole}`);
+                return;
+
+
+
 
             } else {
                 // ── Register — always creates a regular user ──
+                // (Backend already validates/creates phone + user.)
+
                 if (!username.trim()) {
                     setError('Please enter a username.');
                     return;
@@ -76,24 +83,41 @@ export function AuthPage() {
                     return;
                 }
 
+                // Bangladesh phone validation (basic): allow +8801XXXXXXXXX or 01XXXXXXXXX
+                const normalizedPhone = phone.replace(/\s+/g, '');
+                const bangladeshPhoneRegex = /^(\+?880)?(1\d{9})$/;
+                if (!normalizedPhone) {
+                    setError('Please enter your phone number.');
+                    return;
+                }
+                if (!bangladeshPhoneRegex.test(normalizedPhone)) {
+                    setError('Please enter a valid Bangladesh phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX).');
+                    return;
+                }
+
+                // Normalize to +8801XXXXXXXXX if input is 01XXXXXXXXX
+                const finalPhone = normalizedPhone.startsWith('01') ? `+88${normalizedPhone}` : (normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`);
+
                 const res = await authApi.register({
                     name: username.trim(),
                     email,
+                    phone: finalPhone,
                     password,
                     role: 'user', // always user from this page
                 });
+
 
                 if (res.error || !res.data) {
                     setError(res.error || 'Registration failed. Please try again.');
                     return;
                 }
 
-                const { id, name, email: userEmail, role: userRole, token } = res.data;
+                // Create account only; do not auto-login.
 
-                login({ id, email: userEmail, role: userRole as Role, username: name, token });
-                navigate(`/dashboard`);
+                navigate('/login');
             }
         } finally {
+
             setLoading(false);
         }
     };
@@ -224,6 +248,25 @@ export function AuthPage() {
                             onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                         />
                     </div>
+
+                    {/* Phone (signup only) */}
+                    {!isLogin && (
+                        <div>
+                            <label style={labelStyle}>Phone Number (Bangladesh)</label>
+                            <input
+                                id="auth-phone"
+                                type="tel"
+                                inputMode="tel"
+                                placeholder="e.g. 01XXXXXXXXX or +8801XXXXXXXXX"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                style={inputStyle}
+                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                            />
+                        </div>
+                    )}
+
 
                     {/* Password */}
                     <div>

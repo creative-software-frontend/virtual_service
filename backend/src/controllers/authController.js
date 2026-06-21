@@ -3,9 +3,9 @@ const bcrypt = require("bcrypt");
 const generateToken = require("../utils/generateToken");
 
 exports.register = async (req, res) => {
-    const { name, email, password, role } = req.body || {};
+    const { name, email, phone, password, role } = req.body || {};
 
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
         return res.status(400).json({ message: "All fields required" });
     }
 
@@ -21,8 +21,9 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         db.query(
-            "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-            [name, email, hashedPassword, assignedRole],
+            "INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)",
+            [name, email, phone, hashedPassword, assignedRole],
+
             (err, result) => {
                 if (err) return res.status(500).json({ message: "Database error" });
 
@@ -30,6 +31,7 @@ exports.register = async (req, res) => {
                     id: result.insertId,
                     name,
                     email,
+                    phone,
                     role: assignedRole,
                     token: generateToken(result.insertId, assignedRole)
                 });

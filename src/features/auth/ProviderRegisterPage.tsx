@@ -31,6 +31,8 @@ export function ProviderRegisterPage() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [username, setUsername] = useState('');
     const [error, setError] = useState('');
+    const [phone, setPhone] = useState('');
+
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -39,17 +41,35 @@ export function ProviderRegisterPage() {
 
         if (!username.trim()) { setError('Please enter a username.'); return; }
         if (!email) { setError('Please enter your email.'); return; }
+        if (!phone.trim()) { setError('Please enter your phone number.'); return; }
         if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
         if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
+        // Bangladesh phone validation (basic): allow +8801XXXXXXXXX or 01XXXXXXXXX
+        const normalizedPhone = phone.replace(/\s+/g, '');
+        const bangladeshPhoneRegex = /^(\+?880)?(1\d{9})$/;
+        if (!bangladeshPhoneRegex.test(normalizedPhone)) {
+            setError('Please enter a valid Bangladesh phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX).');
+            return;
+        }
+
+        const finalPhone = normalizedPhone.startsWith('01')
+            ? `+88${normalizedPhone}`
+            : (normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`);
+
         setLoading(true);
+
         try {
             const res = await authApi.register({
                 name: username.trim(),
                 email,
+                phone: finalPhone,
                 password,
                 role: 'provider',
             });
+
+
+
 
             if (res.error || !res.data) {
                 setError(res.error || 'Registration failed. Please try again.');
@@ -180,6 +200,23 @@ export function ProviderRegisterPage() {
                             onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                         />
                     </div>
+
+                    {/* Phone */}
+                    <div>
+                        <label style={labelStyle}>Phone Number (Bangladesh)</label>
+                        <input
+                            id="provider-phone"
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="e.g. 01XXXXXXXXX or +8801XXXXXXXXX"
+                            value={phone}
+                            onChange={e => setPhone(e.target.value)}
+                            style={inputStyle}
+                            onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                        />
+                    </div>
+
 
                     {/* Password */}
                     <div>

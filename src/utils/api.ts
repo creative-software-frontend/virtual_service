@@ -49,9 +49,11 @@ async function request<T>(
 export interface RegisterPayload {
     name: string;
     email: string;
+    phone: string;
     password: string;
     role: 'user' | 'provider';
 }
+
 
 export interface LoginPayload {
     email: string;

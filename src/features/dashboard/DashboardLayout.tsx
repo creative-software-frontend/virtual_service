@@ -1,16 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
-function getUserRole(): 'admin' | 'user' | 'provider' {
-    try {
-        const raw = localStorage.getItem('bluedise_auth_session');
-        const parsed = raw ? JSON.parse(raw) : null;
-        if (parsed?.role === 'admin' || parsed?.role === 'user' || parsed?.role === 'provider') return parsed.role;
-    } catch {
-        // ignore
-    }
-    return 'user';
-}
+
 
 export const NAV = [
     {

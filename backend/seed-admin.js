@@ -26,6 +26,7 @@ async function seed() {
     const plainPassword = process.env.SEED_ADMIN_PASSWORD;
     const name = process.env.SEED_ADMIN_NAME || "Admin";
     const role = process.env.SEED_ADMIN_ROLE || "admin";
+    const phone = process.env.SEED_ADMIN_PHONE;
 
     const hash = await bcrypt.hash(plainPassword, 8); // faster for seeder
 
@@ -53,8 +54,9 @@ async function seed() {
                 }
 
                 db.query(
-                    "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-                    [name, email, hash, role],
+                    "INSERT INTO users (name, email, phone, password, role) VALUES (?, ?, ?, ?, ?)",
+                    [name, email, phone, hash, role],
+
                     (err) => {
                         if (err) {
                             console.error("❌ Insert failed:", err.message);

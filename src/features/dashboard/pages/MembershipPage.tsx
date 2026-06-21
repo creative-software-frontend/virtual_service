@@ -40,7 +40,7 @@ export function MembershipPage() {
                         fontSize: '0.65rem', letterSpacing: '0.12em', textTransform: 'uppercase',
                         color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif", fontWeight: 700,
                     }}>
-                        ONE-TIME PAYMENT. LIFETIME ACCESS.
+                        CHOOSE A PLAN THAT FITS YOU
                     </p>
                 </motion.div>
 
@@ -116,27 +116,25 @@ export function MembershipPage() {
                                     fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)',
                                     marginBottom: '4px',
                                 }}>
-                                    ৳10,000
+                                    Free
                                 </p>
                                 <span style={{ fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                                    LIFETIME ACCESS
+                                    ALWAYS
                                 </span>
                             </div>
 
                             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0' }}>
                                 {[
-                                    'Access to 500+ Verified Profiles',
-                                    '10% Service Discount',
-                                    'Priority Concierge Support',
-                                    'Member-only Listings',
-                                    'Weekly Roster Updates',
+                                    'limited everything',
+                                    'limited chat',
+                                    'limited search',
                                 ].map(feat => (
                                     <li key={feat} style={{
                                         display: 'flex', alignItems: 'center', gap: '10px',
                                         marginBottom: '12px', fontSize: '0.85rem', color: 'var(--text-primary)',
                                         fontFamily: "'Inter', sans-serif",
                                     }}>
-                                        <span style={{ color: 'var(--green-status)', display: 'flex', alignItems: 'center' }}>
+                                        <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
                                             <CheckIcon />
                                         </span>
                                         {feat}
@@ -205,25 +203,28 @@ export function MembershipPage() {
                                 }}>
                                     Premium
                                 </h3>
-                                <p style={{
-                                    fontFamily: "'Inter', sans-serif",
-                                    fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)',
-                                    marginBottom: '4px',
-                                }}>
-                                    ৳22,000
-                                </p>
-                                <span style={{ fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                                    LIFETIME MEMBERSHIP
-                                </span>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px', marginBottom: '16px' }}>
+                                    {[
+                                        { dur: '1 Month', price: '499' },
+                                        { dur: '3 Month', price: '999' },
+                                        { dur: '6 Month', price: '1499' },
+                                        { dur: '12 Month', price: '2499' },
+                                    ].map(p => (
+                                        <div key={p.dur} style={{ background: 'rgba(232, 160, 32, 0.1)', padding: '8px', borderRadius: '6px', border: '1px solid rgba(232, 160, 32, 0.2)' }}>
+                                            <div style={{ fontSize: '0.6rem', color: 'var(--gold-light)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>{p.dur}</div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>৳{p.price}</div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0' }}>
                                 {[
-                                    'All Regular Benefits',
-                                    'Exclusive Premium Portfolios',
-                                    '30% Service Discount',
-                                    'Dedicated Account Manager',
-                                    'Early Access to New Profiles',
+                                    'Unlimited Profile Browsing',
+                                    'Direct Chat Access',
+                                    'Priority Matching',
+                                    'Verified User Badge',
+                                    'Basic Support',
                                 ].map(feat => (
                                     <li key={feat} style={{
                                         display: 'flex', alignItems: 'center', gap: '10px',
@@ -299,27 +300,30 @@ export function MembershipPage() {
                                 }}>
                                     Elite
                                 </h3>
-                                <p style={{
-                                    fontFamily: "'Inter', sans-serif",
-                                    fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)',
-                                    marginBottom: '4px',
-                                    textShadow: '0 0 10px rgba(0, 210, 255, 0.2)',
-                                }}>
-                                    ৳50,000
-                                </p>
-                                <span style={{ fontSize: '0.6rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
-                                    LIFETIME PRESTIGE
-                                </span>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px', marginBottom: '16px' }}>
+                                    {[
+                                        { dur: '1 Month', price: '2499' },
+                                        { dur: '3 Month', price: '4999' },
+                                        { dur: '6 Month', price: '7999' },
+                                        { dur: '12 Month', price: '14999' },
+                                    ].map(p => (
+                                        <div key={p.dur} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '8px', borderRadius: '6px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                                            <div style={{ fontSize: '0.6rem', color: 'var(--blue-vivid)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>{p.dur}</div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', textShadow: '0 0 10px rgba(0, 210, 255, 0.2)' }}>৳{p.price}</div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0' }}>
                                 {[
-                                    'All Premium Benefits',
-                                    'Unrestricted Platinum Access',
-                                    '50% Service Discount',
-                                    'Personal Concierge 24/7',
-                                    'Private Events & Exclusives',
-                                    'Priority Booking Guarantee',
+                                    'Everything in Premium',
+                                    'VIP Profile Visibility',
+                                    'Unlimited Voice & Video Calls',
+                                    'Priority Placement in Search',
+                                    'Exclusive Elite Badge',
+                                    'Dedicated Support',
+                                    'Advanced Match Recommendations',
                                 ].map(feat => (
                                     <li key={feat} style={{
                                         display: 'flex', alignItems: 'center', gap: '10px',

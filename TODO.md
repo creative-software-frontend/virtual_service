@@ -1,24 +1,3 @@
-# RBAC Refactor TODO
-
-- [ ] Frontend: Add role-specific DashboardHome components and update router:
-  - [ ] Update `/dashboard` to redirect to logged-in role home
-  - [ ] Update `/dashboard/admin|user|provider` routes to render role-specific DashboardHome
-- [ ] Frontend: Fix login navigation to always go to `/dashboard`
-- [ ] Frontend: Update `ProtectedRoute`:
-  - [ ] Check role/permissions and redirect to `/unauthorized`
-- [ ] Frontend: Add permissions UI helpers:
-  - [ ] Create `src/utils/permissions.ts` with `rolePermissions` + `hasPermission()`
-  - [ ] Extend `AuthContext` + persistence to include `permissions: string[]`
-  - [ ] Update `src/utils/api.ts` + login handling to store permissions from backend
-- [ ] Frontend: Add `/unauthorized` page component
-- [ ] Backend: Update JWT to include `permissions` array
-  - [ ] Update `backend/src/utils/generateToken.js`
-  - [ ] Update `backend/src/controllers/authController.js`
-- [ ] Backend: Add RBAC enforcement middleware:
-  - [ ] Add `requireRole` middleware
-  - [ ] Add `requirePermission` middleware
-- [ ] Backend: Apply RBAC middleware to protected endpoints
-- [ ] Verify:
-  - [ ] Login redirects to `/dashboard`
-  - [ ] Each role lands on its own role-specific dashboard home
-  - [ ] Unauthorized access redirects to `/unauthorized` (frontend) and returns 403 (backend)
+- [ ] Fix backend nodemon dev script to start only `backend/server.js` (remove bad `index.js` arg causing crash)
+- [ ] Restart backend and confirm server listens on port 5000
+- [ ] Click Admin “Users” bottom nav; confirm data loads (no network/DB error)

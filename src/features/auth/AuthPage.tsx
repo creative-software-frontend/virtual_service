@@ -112,6 +112,7 @@ export function AuthPage() {
                     phone: finalPhone,
                     password,
                     role: 'user',
+                    privacyAccepted: privacyAccepted,
                 });
 
                 if (res.error || !res.data) {

@@ -52,6 +52,7 @@ export interface RegisterPayload {
     phone: string;
     password: string;
     role: 'user' | 'provider';
+    privacyAccepted?: boolean;
 }
 
 
@@ -90,4 +91,27 @@ export const userApi = {
 // ── Provider endpoints ────────────────────────────────────────────────────────
 export const providerApi = {
     getDashboard: () => request<{ message: string }>('/provider/dashboard'),
+};
+// ── Admin endpoints ────────────────────────────────────────────────────────────
+
+export interface UserInfo {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    is_active: number;
+    created_at: string;
+}
+
+export interface UsersSummaryData {
+    totalUsers: number;
+    totalProviders: number;
+    users: UserInfo[];
+    providers: UserInfo[];
+}
+
+export const adminApi = {
+    getUsersSummary: () =>
+        request<UsersSummaryData>('/admin/users-summary'),
 };

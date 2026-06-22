@@ -39,6 +39,8 @@ const providerRoutes = require("./routes/providerRoutes");
 
 app.use("/api/provider", providerRoutes);
 
+const adminRoutes = require("./routes/adminRoutes");
+app.use("/api/admin", adminRoutes);
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

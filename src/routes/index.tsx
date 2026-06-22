@@ -86,6 +86,14 @@ export const router = createBrowserRouter([
                     return { element: <ModelsPage /> };
                 }
             }
+            ,
+           {
+             path: "users",
+             lazy: async () => {
+             const { AdminUsersPage } = await import("../features/dashboard/pages/AdminUsersPage");
+             return { element: <AdminUsersPage /> };
+                }
+            }
         ]
     }
 ]);

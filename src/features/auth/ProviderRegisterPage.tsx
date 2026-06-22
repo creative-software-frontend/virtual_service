@@ -119,7 +119,8 @@ export function ProviderRegisterPage() {
                     email,
                     phone: finalPhone,
                     password,
-                    role: 'user',
+                    role: 'provider',
+                    privacyAccepted: privacyAccepted,
                 });
 
                 if (res.error || !res.data) {

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export function TopNav({ username = "Z", walletBalance = 0 }: { username?: string; walletBalance?: number }) {
+export function TopNav() {
     return (
         <nav style={{
             position: 'sticky',

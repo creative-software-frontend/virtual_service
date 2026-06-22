@@ -1,9 +1,9 @@
 Provider
 Supreme
-1 Month-1000
-3 Month-2000
-6 Month-3000
-12 Month-5000
+1 Month-99
+3 Month-249
+6 Month-449
+12 Month-799
 
 ✅ Benefits
 🔥 Verified Provider Badge

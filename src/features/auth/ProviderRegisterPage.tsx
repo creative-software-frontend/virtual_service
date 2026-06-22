@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../utils/api';
 import type { Role } from '../../context/AuthContext';
 
-// ─── Identical styles to AuthPage ─────────────────────────────────────────────
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: '0.6rem', letterSpacing: '0.18em',
     textTransform: 'uppercase', color: 'var(--text-muted)',
@@ -20,9 +20,19 @@ const inputStyle: React.CSSProperties = {
     outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box',
 };
 
+    // ─── Checkmark Icon ───────────────────────────────────────────────────────
+    const checkIcon = (
+        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+            <path d="M1 4L4 7.5L10 1" stroke="white" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+
 export function ProviderRegisterPage() {
+    const location = useLocation();
     const navigate = useNavigate();
     const { login } = useAuth();
+    const isLogin = location.pathname === '/login';
 
     const [showPass, setShowPass] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -30,63 +40,105 @@ export function ProviderRegisterPage() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [username, setUsername] = useState('');
-    const [error, setError] = useState('');
     const [phone, setPhone] = useState('');
+    const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
 
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        if (!username.trim()) { setError('Please enter a username.'); return; }
-        if (!email) { setError('Please enter your email.'); return; }
-        if (!phone.trim()) { setError('Please enter your phone number.'); return; }
-        if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
-        if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
-
-        // Bangladesh phone validation (basic): allow +8801XXXXXXXXX or 01XXXXXXXXX
-        const normalizedPhone = phone.replace(/\s+/g, '');
-        const bangladeshPhoneRegex = /^(\+?880)?(1\d{9})$/;
-        if (!bangladeshPhoneRegex.test(normalizedPhone)) {
-            setError('Please enter a valid Bangladesh phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX).');
+        if (!email || !password) {
+            setError('Please fill in all required fields.');
             return;
         }
-
-        const finalPhone = normalizedPhone.startsWith('01')
-            ? `+88${normalizedPhone}`
-            : (normalizedPhone.startsWith('+') ? normalizedPhone : `+${normalizedPhone}`);
 
         setLoading(true);
 
         try {
-            const res = await authApi.register({
-                name: username.trim(),
-                email,
-                phone: finalPhone,
-                password,
-                role: 'provider',
-            });
+            if (isLogin) {
+                const res = await authApi.login({ email, password });
 
+                if (res.error || !res.data) {
+                    setError(res.error || 'Login failed. Please try again.');
+                    return;
+                }
 
-
-
-            if (res.error || !res.data) {
-                setError(res.error || 'Registration failed. Please try again.');
+                const { id, name, email: userEmail, role: userRole, token } = res.data;
+                login({ id, email: userEmail, role: userRole as Role, username: name, token });
+                navigate(`/${userRole}/dashboard`);
                 return;
-            }
 
-            const { id, name, email: userEmail, role: userRole, token } = res.data;
-            login({ id, email: userEmail, role: userRole as Role, username: name, token });
-            navigate('/provider/dashboard');
+            } else {
+
+                if (!username.trim()) {
+                    setError('Please enter a username.');
+                    return;
+                }
+                if (password.length < 6) {
+                    setError('Password must be at least 6 characters.');
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    setError('Passwords do not match.');
+                    return;
+                }
+
+                const normalizedPhone = phone.replace(/\s+/g, '');
+                const bangladeshPhoneRegex = /^(\+?880)?(1\d{9})$/;
+                if (!normalizedPhone) {
+                    setError('Please enter your phone number.');
+                    return;
+                }
+                if (!bangladeshPhoneRegex.test(normalizedPhone)) {
+                    setError('Please enter a valid Bangladesh phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX).');
+                    return;
+                }
+
+                if (!privacyAccepted) {
+                    setError('You must accept the Privacy Policy to continue.');
+                    return;
+                }
+
+                if (!termsAccepted) {
+                    setError('You must accept the Terms & Conditions to continue.');
+                    return;
+                }
+
+                const finalPhone = normalizedPhone.startsWith('01')
+                    ? `+88${normalizedPhone}`
+                    : normalizedPhone.startsWith('+')
+                        ? normalizedPhone
+                        : `+${normalizedPhone}`;
+
+                const res = await authApi.register({
+                    name: username.trim(),
+                    email,
+                    phone: finalPhone,
+                    password,
+                    role: 'user',
+                });
+
+                if (res.error || !res.data) {
+                    setError(res.error || 'Registration failed. Please try again.');
+                    return;
+                }
+
+                navigate('/login');
+            }
         } finally {
             setLoading(false);
         }
     };
 
+    // ─── Eye Icon ─────────────────────────────────────────────────────────────
     const eyeIcon = (
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
             <circle cx="12" cy="12" r="3" />
         </svg>
@@ -97,7 +149,7 @@ export function ProviderRegisterPage() {
             minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
             backgroundColor: 'var(--bg-main)', padding: '24px', position: 'relative', overflow: 'hidden',
         }}>
-            {/* Background glows — identical to AuthPage */}
+            {/* ── Background Glows ── */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                 <div style={{
                     position: 'absolute', top: '50%', left: '50%',
@@ -117,7 +169,7 @@ export function ProviderRegisterPage() {
                 }} />
             </div>
 
-            {/* Card — identical to AuthPage */}
+            {/* ── Card ── */}
             <div style={{
                 position: 'relative', width: '100%', maxWidth: '440px',
                 background: 'var(--bg-card)', border: '1px solid var(--border-default)',
@@ -128,7 +180,7 @@ export function ProviderRegisterPage() {
                     background: 'linear-gradient(90deg, transparent, var(--blue-vivid), transparent)',
                 }} />
 
-                {/* Logo */}
+                {/* ── Logo ── */}
                 <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                     <h1 style={{
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -139,26 +191,34 @@ export function ProviderRegisterPage() {
                         display: 'block', fontSize: '0.6rem', letterSpacing: '0.3em',
                         textTransform: 'uppercase', color: 'var(--text-muted)',
                         fontFamily: "'Inter', sans-serif", fontWeight: 600,
-                    }}>Provider Portal</span>
+                    }}>Member Portal</span>
                 </div>
 
-                {/* Tab-style header — matching the tab look but as a single active label */}
+                {/* ── Tabs ── */}
                 <div style={{
                     display: 'flex', background: 'var(--bg-nav)',
                     borderRadius: '8px', padding: '4px',
                     border: '1px solid var(--border-subtle)', marginBottom: '28px',
                 }}>
-                    <div style={{
+                    <Link to="/signup" style={{
                         flex: 1, textAlign: 'center', padding: '9px 0',
                         fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                         fontWeight: 600, fontFamily: "'Inter', sans-serif",
-                        borderRadius: '5px',
-                        color: 'var(--text-primary)',
-                        background: 'var(--blue-glow)',
-                    }}>Provider Register</div>
+                        textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
+                        color: !isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
+                        background: !isLogin ? 'var(--blue-glow)' : 'transparent',
+                    }}>Register</Link>
+                    <Link to="/login" style={{
+                        flex: 1, textAlign: 'center', padding: '9px 0',
+                        fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
+                        fontWeight: 600, fontFamily: "'Inter', sans-serif",
+                        textDecoration: 'none', borderRadius: '5px', transition: 'all 0.2s',
+                        color: isLogin ? 'var(--text-primary)' : 'var(--text-muted)',
+                        background: isLogin ? 'var(--blue-glow)' : 'transparent',
+                    }}>Sign In</Link>
                 </div>
 
-                {/* Error */}
+                {/* ── Error ── */}
                 {error && (
                     <div style={{
                         padding: '10px 14px', background: 'rgba(239,68,68,0.1)',
@@ -168,29 +228,31 @@ export function ProviderRegisterPage() {
                     }}>{error}</div>
                 )}
 
-                {/* Form */}
+                {/* ── Form ── */}
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
 
                     {/* Username */}
-                    <div>
-                        <label style={labelStyle}>Username</label>
-                        <input
-                            id="provider-username"
-                            type="text"
-                            placeholder="Choose a username"
-                            value={username}
-                            onChange={e => setUsername(e.target.value)}
-                            style={inputStyle}
-                            onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
-                            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-                        />
-                    </div>
+                    {!isLogin && (
+                        <div>
+                            <label style={labelStyle}>Username</label>
+                            <input
+                                id="auth-username"
+                                type="text"
+                                placeholder="Choose a username"
+                                value={username}
+                                onChange={e => setUsername(e.target.value)}
+                                style={inputStyle}
+                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                            />
+                        </div>
+                    )}
 
                     {/* Email */}
                     <div>
                         <label style={labelStyle}>Email Address</label>
                         <input
-                            id="provider-email"
+                            id="auth-email"
                             type="email"
                             placeholder="your@email.com"
                             value={email}
@@ -202,28 +264,29 @@ export function ProviderRegisterPage() {
                     </div>
 
                     {/* Phone */}
-                    <div>
-                        <label style={labelStyle}>Phone Number (Bangladesh)</label>
-                        <input
-                            id="provider-phone"
-                            type="tel"
-                            inputMode="tel"
-                            placeholder="e.g. 01XXXXXXXXX or +8801XXXXXXXXX"
-                            value={phone}
-                            onChange={e => setPhone(e.target.value)}
-                            style={inputStyle}
-                            onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
-                            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-                        />
-                    </div>
-
+                    {!isLogin && (
+                        <div>
+                            <label style={labelStyle}>Phone Number (Bangladesh)</label>
+                            <input
+                                id="auth-phone"
+                                type="tel"
+                                inputMode="tel"
+                                placeholder="e.g. 01XXXXXXXXX or +8801XXXXXXXXX"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                style={inputStyle}
+                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                            />
+                        </div>
+                    )}
 
                     {/* Password */}
                     <div>
                         <label style={labelStyle}>Password</label>
                         <div style={{ position: 'relative' }}>
                             <input
-                                id="provider-password"
+                                id="auth-password"
                                 type={showPass ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 value={password}
@@ -233,36 +296,114 @@ export function ProviderRegisterPage() {
                                 onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
                             />
                             <button type="button" onClick={() => setShowPass(v => !v)} style={{
-                                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
+                                position: 'absolute', right: '14px', top: '50%',
+                                transform: 'translateY(-50%)', background: 'none',
+                                border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
                             }}>{eyeIcon}</button>
                         </div>
                     </div>
 
                     {/* Confirm Password */}
-                    <div>
-                        <label style={labelStyle}>Confirm Password</label>
-                        <div style={{ position: 'relative' }}>
-                            <input
-                                id="provider-confirm-password"
-                                type={showConfirm ? 'text' : 'password'}
-                                placeholder="Repeat password"
-                                value={confirmPassword}
-                                onChange={e => setConfirmPassword(e.target.value)}
-                                style={{ ...inputStyle, padding: '12px 44px 12px 16px' }}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-                            />
-                            <button type="button" onClick={() => setShowConfirm(v => !v)} style={{
-                                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-                                background: 'none', border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
-                            }}>{eyeIcon}</button>
+                    {!isLogin && (
+                        <div>
+                            <label style={labelStyle}>Confirm Password</label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    id="auth-confirm-password"
+                                    type={showConfirm ? 'text' : 'password'}
+                                    placeholder="Repeat password"
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    style={{ ...inputStyle, padding: '12px 44px 12px 16px' }}
+                                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                                />
+                                <button type="button" onClick={() => setShowConfirm(v => !v)} style={{
+                                    position: 'absolute', right: '14px', top: '50%',
+                                    transform: 'translateY(-50%)', background: 'none',
+                                    border: 'none', padding: 0, color: 'var(--text-muted)', cursor: 'pointer',
+                                }}>{eyeIcon}</button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Submit — identical style to AuthPage */}
+                    {/* ✅ Privacy Policy Checkbox Custom (same as AuthPage) */}
+                    {!isLogin && (
+                        <div
+                            onClick={() => setPrivacyAccepted(v => !v)}
+                            style={{
+                                display: 'flex', alignItems: 'flex-start',
+                                gap: '10px', cursor: 'pointer', marginBottom: '0px',
+                            }}
+                        >
+                            <div style={{
+                                marginTop: '2px',
+                                width: '18px', height: '18px', minWidth: '18px',
+                                borderRadius: '4px',
+                                border: `2px solid ${privacyAccepted ? '#22c55e' : '#555'}`,
+                                backgroundColor: privacyAccepted ? '#22c55e' : 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                            }}>
+                                {privacyAccepted && checkIcon}
+                            </div>
+                            <span style={{
+                                fontSize: '0.75rem', color: 'var(--text-secondary)',
+                                lineHeight: '1.5', userSelect: 'none',
+                            }}>
+                                I accept the{' '}
+                                <a
+                                    href="/privacy-policy"
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ color: 'var(--blue-vivid)', textDecoration: 'underline' }}
+                                    target="_blank" rel="noreferrer"
+                                >
+                                    Privacy Policy
+                                </a>
+                            </span>
+                        </div>
+                    )}
+
+                    {/* ✅ Terms & Conditions Checkbox Custom (same as AuthPage) */}
+                    {!isLogin && (
+                        <div
+                            onClick={() => setTermsAccepted(v => !v)}
+                            style={{
+                                display: 'flex', alignItems: 'flex-start',
+                                gap: '10px', cursor: 'pointer', marginBottom: '4px',
+                            }}
+                        >
+                            <div style={{
+                                marginTop: '2px',
+                                width: '18px', height: '18px', minWidth: '18px',
+                                borderRadius: '4px',
+                                border: `2px solid ${termsAccepted ? '#22c55e' : '#555'}`,
+                                backgroundColor: termsAccepted ? '#22c55e' : 'transparent',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                            }}>
+                                {termsAccepted && checkIcon}
+                            </div>
+                            <span style={{
+                                fontSize: '0.75rem', color: 'var(--text-secondary)',
+                                lineHeight: '1.5', userSelect: 'none',
+                            }}>
+                                I accept the{' '}
+                                <a
+                                    href="/terms-and-conditions"
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ color: 'var(--blue-vivid)', textDecoration: 'underline' }}
+                                    target="_blank" rel="noreferrer"
+                                >
+                                    Terms &amp; Conditions
+                                </a>
+                            </span>
+                        </div>
+                    )}
+
+                    {/* ── Submit Button ── */}
                     <button
-                        id="provider-submit"
+                        id="auth-submit"
                         type="submit"
                         disabled={loading}
                         style={{
@@ -277,21 +418,54 @@ export function ProviderRegisterPage() {
                             boxShadow: loading ? 'none' : 'var(--shadow-blue)',
                             transition: 'filter 0.2s, transform 0.2s',
                         }}
-                        onMouseEnter={e => { if (!loading) { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-                        onMouseLeave={e => { e.currentTarget.style.filter = 'brightness(1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        onMouseEnter={e => {
+                            if (!loading) {
+                                e.currentTarget.style.filter = 'brightness(1.15)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.filter = 'brightness(1)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                        }}
                     >
-                        {loading ? 'Please wait…' : 'Create Provider Account'}
+                        {loading ? 'Please wait…' : isLogin ? 'Secure Sign In' : 'Create Account'}
                     </button>
                 </form>
 
-                {/* Footer */}
+                {/* ── Footer Links ── */}
                 <p style={{
                     textAlign: 'center', marginTop: '24px',
                     fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
                 }}>
-                    Already have an account?{' '}
-                    <Link to="/login" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>Sign in here</Link>
+                    {isLogin ? (
+                        <>New to BLUEdise?{' '}
+                            <Link to="/signup" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>
+                                Create an account
+                            </Link>
+                        </>
+                    ) : (
+                        <>Already a member?{' '}
+                            <Link to="/login" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>
+                                Sign in here
+                            </Link>
+                        </>
+                    )}
                 </p>
+
+                {/* ── Provider Register Hint ── */}
+                {isLogin && (
+                    <p style={{
+                        textAlign: 'center', marginTop: '12px',
+                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
+                    }}>
+                        Are you a service provider?{' '}
+                        <Link to="/provider/register" style={{ color: '#34d399', textDecoration: 'none', fontWeight: 500 }}>
+                            Register here
+                        </Link>
+                    </p>
+                )}
+
                 <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',

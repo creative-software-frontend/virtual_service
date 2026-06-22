@@ -12,9 +12,26 @@ const container = {
     visible: { transition: { staggerChildren: 0.1 } },
 };
 
+import { useEffect } from "react";
+import { useAuth } from "../../../context/AuthContext";
+
 export function NetworkPage() {
-    const [referralUrl] = useState("https://service.bluedise.com/login.php?ref=BD2UEFC0ZJ");
+    const { user } = useAuth();
+
+    const [referralUrl, setReferralUrl] = useState<string>("");
+
     const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        // Strictly S/P referral code: S|P + userId + 6-char suffix
+        const prefix = user.role === "provider" ? "P" : "S";
+        const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const referralCode = `${prefix}${user.id}${suffix}`;
+
+        setReferralUrl(`https://service.bluedise.com/login.php?ref=${referralCode}`);
+    }, [user?.id, user?.role]);
 
     const handleCopyLink = async () => {
         try {

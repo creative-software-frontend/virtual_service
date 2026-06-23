@@ -1,3 +1,4 @@
 - [ ] Fix backend nodemon dev script to start only `backend/server.js` (remove bad `index.js` arg causing crash)
 - [ ] Restart backend and confirm server listens on port 5000
 - [ ] Click Admin “Users” bottom nav; confirm data loads (no network/DB error)
+- [x] Provider Dashboard “Who is Online”: backend endpoint + UI list updates every ~10s

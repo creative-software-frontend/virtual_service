@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { TopNav } from "./TopNav";
+import { useAuth } from "../../../context/AuthContext";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
@@ -12,15 +13,12 @@ const container = {
     visible: { transition: { staggerChildren: 0.1 } },
 };
 
-import { useEffect } from "react";
-import { useAuth } from "../../../context/AuthContext";
-
 export function NetworkPage() {
     const { user } = useAuth();
 
     const [referralUrl, setReferralUrl] = useState<string>("");
-
     const [copied, setCopied] = useState(false);
+
 
     useEffect(() => {
         if (!user?.id) return;
@@ -145,6 +143,7 @@ export function NetworkPage() {
                         </div>
                     ))}
                 </motion.div>
+
 
                 {/* ── Referral link panel ── */}
                 <motion.div variants={fadeUp} style={{

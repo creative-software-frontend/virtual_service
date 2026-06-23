@@ -91,6 +91,14 @@ export const userApi = {
 // ── Provider endpoints ────────────────────────────────────────────────────────
 export const providerApi = {
     getDashboard: () => request<{ message: string }>('/provider/dashboard'),
+    getOnlineProviders: () =>
+        request<Array<{ id: number; name: string; last_seen: string | null; is_online: number }>>(
+            '/provider/online-providers'
+        ),
+    getOnlineUsers: () =>
+        request<Array<{ id: number; name: string; last_seen: string | null; is_online: number }>>(
+            '/provider/online-users'
+        ),
 };
 // ── Admin endpoints ────────────────────────────────────────────────────────────
 

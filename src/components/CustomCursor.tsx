@@ -8,11 +8,16 @@ export function CustomCursor() {
         const updateCursor = (e: MouseEvent) => {
             setPosition({ x: e.clientX, y: e.clientY });
             const target = e.target as HTMLElement;
-            if (target.closest('a') || target.closest('button') || target.closest('input')) {
-                setIsHovering(true);
-            } else {
-                setIsHovering(false);
-            }
+            
+            // Check if element or any of its ancestors has cursor: pointer or is an interactive tag
+            const hasPointerStyle = target && (
+                window.getComputedStyle(target).cursor === 'pointer' || 
+                target.closest('a') || 
+                target.closest('button') || 
+                target.closest('input')
+            );
+            
+            setIsHovering(!!hasPointerStyle);
         };
 
         window.addEventListener('mousemove', updateCursor);
@@ -31,7 +36,7 @@ export function CustomCursor() {
                 borderRadius: '50%',
                 transform: 'translate(-50%, -50%)',
                 pointerEvents: 'none',
-                zIndex: 9999,
+                zIndex: 999999,
                 transition: 'width 0.2s ease, height 0.2s ease, border-color 0.2s ease',
                 backgroundColor: isHovering ? 'rgba(197, 168, 128, 0.15)' : 'transparent',
             }}

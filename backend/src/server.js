@@ -5,6 +5,15 @@ require("dotenv").config();
 const app = express();
 const db = require("./config/db");
 
+// ── Ensure presence columns exist ──────────────────────────────────────────
+db.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP NULL AFTER updated_at,
+    ADD COLUMN IF NOT EXISTS is_online TINYINT(1) NOT NULL DEFAULT 0 AFTER last_seen
+`, (err) => {
+    if (err) console.error("Failed to ensure users presence columns:", err.message);
+});
+
 app.use(cors({
     origin: [
         "http://localhost:5173",

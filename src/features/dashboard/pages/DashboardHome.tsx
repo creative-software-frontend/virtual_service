@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { TopNav } from './TopNav';
+import { providerApi } from '../../../utils/api';
 
 const PROFILES = [
     { name: 'Sabia',  id: '#550369', img: 'https://images.unsplash.com/photo-1526510747491-58f928ec870f?w=300&q=80', demo: true },
@@ -25,6 +27,40 @@ const LOCATIONS = [
 export function DashboardHome() {
     const { role } = useParams<{ role: string }>();
     const user = localStorage.getItem('bluedise_user') || 'member';
+
+    const isProviderDashboard = role === 'provider';
+
+    const [onlineUsers, setOnlineUsers] = useState<
+        Array<{ id: number; name: string; last_seen: string | null; is_online: number }>
+    >([]);
+    const [onlineLoading, setOnlineLoading] = useState(false);
+    const [onlineError, setOnlineError] = useState<string | null>(null);
+    const [onlineOpen, setOnlineOpen] = useState(false);
+
+    const onlineCount = useMemo(() => onlineUsers.length, [onlineUsers]);
+
+    const loadOnlineUsers = async () => {
+        try {
+            setOnlineLoading(true);
+            setOnlineError(null);
+            const res = await providerApi.getOnlineUsers();
+            if (res.error) throw new Error(res.error);
+            setOnlineUsers(res.data || []);
+        } catch (e: any) {
+            setOnlineError(e?.message || 'Failed to load online users');
+        } finally {
+            setOnlineLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isProviderDashboard) return;
+
+        loadOnlineUsers();
+        const interval = window.setInterval(loadOnlineUsers, 10_000);
+        return () => window.clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isProviderDashboard]);
 
     return (
         <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>
@@ -151,40 +187,76 @@ export function DashboardHome() {
                     borderRadius: '12px',
                 }}>
                     {[
-                        { label: 'LEVEL',    value: 'Free', highlight: false },
-                        { label: 'BOOKINGS', value: '0',    highlight: false },
-                        { label: 'ONLINE',   value: '253',  highlight: true  },
-                    ].map(s => (
-                        <div key={s.label} style={{
-                            background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: '12px',
-                            padding: 'clamp(12px, 3.5vw, 16px) clamp(6px, 2vw, 10px)',
-                            textAlign: 'center',
-                        }}>
-                            <p style={{
-                                fontSize: 'clamp(1rem, 5vw, 1.35rem)',
-                                fontWeight: 800,
-                                color: s.highlight ? 'var(--green-status)' : 'var(--text-primary)',
-                                fontFamily: "'Inter', sans-serif",
-                                marginBottom: '4px',
-                                textShadow: s.highlight ? '0 0 10px rgba(34,197,94,0.7)' : '0 0 5px rgba(248,250,252,0.3)',
-                            }}>
-                                {s.highlight && <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: 'var(--green-status)', marginRight: 5, boxShadow: '0 0 8px var(--green-status)' }} />}
-                                {s.value}
-                            </p>
-                            <p style={{
-                                fontSize: 'clamp(0.5rem, 1.8vw, 0.6rem)',
-                                letterSpacing: '0.12em',
-                                textTransform: 'uppercase',
-                                color: 'var(--text-secondary)',
-                                fontFamily: "'Inter', sans-serif",
-                                fontWeight: 600,
-                            }}>
-                                {s.label}
-                            </p>
-                        </div>
-                    ))}
+                        { label: 'LEVEL', value: 'Free', highlight: false },
+                        { label: 'BOOKINGS', value: '0', highlight: false },
+                        {
+                            label: 'ONLINE',
+                            value: isProviderDashboard ? String(onlineCount) : '0',
+                            highlight: true,
+                        },
+                    ].map((s) => {
+                        const isOnlineCard = s.label === 'ONLINE';
+                        const clickable = isProviderDashboard && isOnlineCard;
+
+                        return (
+                            <div
+                                key={s.label}
+                                onClick={() => {
+                                    if (clickable) setOnlineOpen(true);
+                                }}
+                                style={{
+                                    background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '12px',
+                                    padding: 'clamp(12px, 3.5vw, 16px) clamp(6px, 2vw, 10px)',
+                                    textAlign: 'center',
+                                    cursor: clickable ? 'pointer' : 'default',
+                                }}
+                            >
+                                <p
+                                    style={{
+                                        fontSize: 'clamp(1rem, 5vw, 1.35rem)',
+                                        fontWeight: 800,
+                                        color: s.highlight ? 'var(--green-status)' : 'var(--text-primary)',
+                                        fontFamily: "'Inter', sans-serif",
+                                        marginBottom: '4px',
+                                        textShadow: s.highlight
+                                            ? '0 0 10px rgba(34,197,94,0.7)'
+                                            : '0 0 5px rgba(248,250,252,0.3)',
+                                        userSelect: 'none',
+                                    }}
+                                >
+                                    {s.highlight && (
+                                        <span
+                                            style={{
+                                                display: 'inline-block',
+                                                width: 7,
+                                                height: 7,
+                                                borderRadius: '50%',
+                                                background: 'var(--green-status)',
+                                                marginRight: 5,
+                                                boxShadow: '0 0 8px var(--green-status)',
+                                            }}
+                                        />
+                                    )}
+                                    {s.value}
+                                </p>
+                                <p
+                                    style={{
+                                        fontSize: 'clamp(0.5rem, 1.8vw, 0.6rem)',
+                                        letterSpacing: '0.12em',
+                                        textTransform: 'uppercase',
+                                        color: 'var(--text-secondary)',
+                                        fontFamily: "'Inter', sans-serif",
+                                        fontWeight: 600,
+                                        userSelect: 'none',
+                                    }}
+                                >
+                                    {s.label}
+                                </p>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* ── Quick links ── */}
@@ -365,6 +437,224 @@ export function DashboardHome() {
                 </div>
 
             </div>
+
+            {/* Active Users Modal */}
+            {onlineOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'var(--bg-overlay)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    padding: '20px',
+                    animation: 'fadeIn 0.25s var(--ease-default)',
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',
+                        border: '1px solid var(--border-gold)',
+                        borderRadius: '16px',
+                        width: '100%',
+                        maxWidth: '440px',
+                        padding: '24px',
+                        boxShadow: 'var(--shadow-gold)',
+                        position: 'relative',
+                        animation: 'scaleIn 0.3s var(--ease-spring)',
+                    }}>
+                        {/* Top accent line */}
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+                            background: 'linear-gradient(90deg, transparent, var(--gold-mid), transparent)',
+                        }} />
+
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div>
+                                <h3 style={{
+                                    fontFamily: 'var(--font-serif)',
+                                    fontSize: '1.5rem',
+                                    color: 'var(--text-primary)',
+                                    marginBottom: '4px',
+                                }}>
+                                    Active Users
+                                </h3>
+                                <p style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--green-status)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    fontWeight: 600,
+                                }}>
+                                    <span style={{
+                                        display: 'inline-block',
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: '50%',
+                                        background: 'var(--green-status)',
+                                        boxShadow: '0 0 8px var(--green-status)',
+                                    }} />
+                                    {onlineCount} {onlineCount === 1 ? 'user' : 'users'} online
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setOnlineOpen(false)}
+                                style={{
+                                    background: 'var(--blue-dim)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = 'var(--gold-mid)';
+                                    e.currentTarget.style.borderColor = 'var(--gold-mid)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div style={{
+                            maxHeight: '300px',
+                            overflowY: 'auto',
+                            paddingRight: '4px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                        }}>
+                            {onlineLoading && (
+                                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0' }}>
+                                    Loading active users...
+                                </p>
+                            )}
+                            
+                            {onlineError && (
+                                <p style={{ textAlign: 'center', color: 'var(--red-status)', padding: '20px 0' }}>
+                                    {onlineError}
+                                </p>
+                            )}
+
+                            {!onlineLoading && !onlineError && onlineUsers.length === 0 && (
+                                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px 0' }}>
+                                    No users are currently online.
+                                </p>
+                            )}
+
+                            {!onlineLoading && !onlineError && onlineUsers.map((u) => {
+                                const initials = u.name ? u.name.substring(0, 2).toUpperCase() : 'U';
+                                return (
+                                    <div
+                                        key={u.id}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '14px',
+                                            padding: '12px',
+                                            background: 'var(--bg-input)',
+                                            border: '1px solid var(--border-subtle)',
+                                            borderRadius: '10px',
+                                            transition: 'border-color 0.2s',
+                                        }}
+                                    >
+                                        {/* Avatar with status indicator */}
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{
+                                                width: '40px',
+                                                height: '40px',
+                                                borderRadius: '50%',
+                                                background: 'linear-gradient(135deg, var(--blue-neon), var(--gold-deep))',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#fff',
+                                                fontWeight: 700,
+                                                fontSize: '0.9rem',
+                                                fontFamily: 'var(--font-display)',
+                                                border: '1px solid var(--gold-border)',
+                                            }}>
+                                                {initials}
+                                            </div>
+                                            <span style={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                right: 0,
+                                                width: 10,
+                                                height: 10,
+                                                borderRadius: '50%',
+                                                background: 'var(--green-status)',
+                                                border: '2px solid var(--bg-card)',
+                                                boxShadow: '0 0 6px var(--green-status)',
+                                            }} />
+                                        </div>
+
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{
+                                                color: 'var(--text-primary)',
+                                                fontWeight: 600,
+                                                fontSize: '0.95rem',
+                                                fontFamily: 'var(--font-sans)',
+                                                marginBottom: '2px',
+                                            }}>
+                                                {u.name}
+                                            </p>
+                                            <p style={{
+                                                color: 'var(--text-muted)',
+                                                fontSize: '0.75rem',
+                                            }}>
+                                                ID: #{u.id} • Active now
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setOnlineOpen(false)}
+                                style={{
+                                    background: 'var(--gold-mid)',
+                                    color: '#000',
+                                    padding: '8px 16px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    borderRadius: '6px',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 0 8px rgba(197, 168, 128, 0.4)',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.filter = 'brightness(1.1)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.filter = 'none';
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

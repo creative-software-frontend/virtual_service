@@ -72,4 +72,129 @@ router.get(
     }
 );
 
+// ── GET /api/provider/active-providers (for user dashboard)
+router.get(
+    "/active-providers",
+    authMiddleware,
+    roleMiddleware(["user", "provider", "admin"]),
+    (req, res) => {
+        db.query(
+            `
+            SELECT id, name, last_seen, is_online
+            FROM users
+            WHERE role = 'provider'
+              AND (is_online = 1 OR last_seen >= NOW() - INTERVAL 60 SECOND)
+            ORDER BY is_online DESC, last_seen DESC
+            `,
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows);
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/posts — get all posts with author info
+router.get(
+    "/posts",
+    authMiddleware,
+    roleMiddleware(["user", "provider", "admin"]),
+    (req, res) => {
+        db.query(
+            `SELECT p.id, p.content, p.image_url, p.created_at,
+                    u.id AS user_id, u.name AS author_name, u.role AS author_role
+             FROM posts p
+             JOIN users u ON u.id = p.user_id
+             ORDER BY p.created_at DESC
+             LIMIT 50`,
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows);
+            }
+        );
+    }
+);
+
+// ── POST /api/provider/posts — create a new post
+router.post(
+    "/posts",
+    authMiddleware,
+    roleMiddleware(["user", "provider"]),
+    (req, res) => {
+        const { content, image_url } = req.body;
+        if (!content || !content.trim()) {
+            return res.status(400).json({ message: "Post content cannot be empty." });
+        }
+        const userId = req.user.id;
+        db.query(
+            `INSERT INTO posts (user_id, content, image_url) VALUES (?, ?, ?)`,
+            [userId, content.trim(), image_url || null],
+            (err, result) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                // Return new post with author info
+                db.query(
+                    `SELECT p.id, p.content, p.image_url, p.created_at,
+                            u.id AS user_id, u.name AS author_name, u.role AS author_role
+                     FROM posts p JOIN users u ON u.id = p.user_id
+                     WHERE p.id = ?`,
+                    [result.insertId],
+                    (err2, rows) => {
+                        if (err2) return res.status(500).json({ message: err2.message });
+                        res.status(201).json(rows[0]);
+                    }
+                );
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/messages?with=<userId> — get DM thread
+router.get(
+    "/messages",
+    authMiddleware,
+    roleMiddleware(["user", "provider"]),
+    (req, res) => {
+        const me = req.user.id;
+        const partner = parseInt(req.query.with, 10);
+        if (!partner) return res.status(400).json({ message: "Missing 'with' query param." });
+        db.query(
+            `SELECT m.id, m.sender_id, m.receiver_id, m.message, m.created_at,
+                    u.name AS sender_name
+             FROM chat_messages m
+             JOIN users u ON u.id = m.sender_id
+             WHERE (m.sender_id = ? AND m.receiver_id = ?)
+                OR (m.sender_id = ? AND m.receiver_id = ?)
+             ORDER BY m.created_at ASC
+             LIMIT 200`,
+            [me, partner, partner, me],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: err.message });
+                res.json(rows);
+            }
+        );
+    }
+);
+
+// ── POST /api/provider/messages — send a DM
+router.post(
+    "/messages",
+    authMiddleware,
+    roleMiddleware(["user", "provider"]),
+    (req, res) => {
+        const { receiver_id, message } = req.body;
+        if (!receiver_id || !message || !message.trim()) {
+            return res.status(400).json({ message: "receiver_id and message are required." });
+        }
+        const sender_id = req.user.id;
+        db.query(
+            `INSERT INTO chat_messages (sender_id, receiver_id, message) VALUES (?, ?, ?)`,
+            [sender_id, receiver_id, message.trim()],
+            (err, result) => {
+                if (err) return res.status(500).json({ message: err.message });
+                res.status(201).json({ id: result.insertId, sender_id, receiver_id, message: message.trim() });
+            }
+        );
+    }
+);
+
 module.exports = router;

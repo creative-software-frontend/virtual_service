@@ -100,6 +100,13 @@ export const router = createBrowserRouter([
                     const { AdminSettingsPage } = await import("../features/dashboard/pages/AdminSettingsPage");
                     return { element: <AdminSettingsPage /> };
                 }
+            },
+            {
+                path: "services",
+                lazy: async () => {
+                    const { ProviderServicePage } = await import("../features/dashboard/pages/ProviderServicePage");
+                    return { element: <ProviderServicePage /> };
+                }
             }
         ]
     }

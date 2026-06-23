@@ -100,6 +100,52 @@ export const providerApi = {
             '/provider/online-users'
         ),
 };
+
+// ── Social / Service endpoints ─────────────────────────────────────────────────
+
+export interface Post {
+    id: number;
+    content: string;
+    image_url: string | null;
+    created_at: string;
+    user_id: number;
+    author_name: string;
+    author_role: string;
+}
+
+export interface ChatMessage {
+    id: number;
+    sender_id: number;
+    receiver_id: number;
+    message: string;
+    created_at: string;
+    sender_name: string;
+}
+
+export interface ActiveUser {
+    id: number;
+    name: string;
+    last_seen: string | null;
+    is_online: number;
+}
+
+export const serviceApi = {
+    getPosts: () => request<Post[]>('/provider/posts'),
+    createPost: (content: string, image_url?: string | null) =>
+        request<Post>('/provider/posts', {
+            method: 'POST',
+            body: JSON.stringify({ content, image_url: image_url ?? null }),
+        }),
+    getMessages: (partnerId: number) =>
+        request<ChatMessage[]>(`/provider/messages?with=${partnerId}`),
+    sendMessage: (receiver_id: number, message: string) =>
+        request<{ id: number; sender_id: number; receiver_id: number; message: string }>(
+            '/provider/messages',
+            { method: 'POST', body: JSON.stringify({ receiver_id, message }) }
+        ),
+    getActiveProviders: () =>
+        request<ActiveUser[]>('/provider/active-providers'),
+};
 // ── Admin endpoints ────────────────────────────────────────────────────────────
 
 export interface UserInfo {

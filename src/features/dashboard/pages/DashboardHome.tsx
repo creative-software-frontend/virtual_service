@@ -29,38 +29,47 @@ export function DashboardHome() {
     const user = localStorage.getItem('bluedise_user') || 'member';
 
     const isProviderDashboard = role === 'provider';
+    const isUserDashboard = role === 'user';
+    const showOnlineCard = isProviderDashboard || isUserDashboard;
 
-    const [onlineUsers, setOnlineUsers] = useState<
+    const [onlineList, setOnlineList] = useState<
         Array<{ id: number; name: string; last_seen: string | null; is_online: number }>
     >([]);
     const [onlineLoading, setOnlineLoading] = useState(false);
     const [onlineError, setOnlineError] = useState<string | null>(null);
     const [onlineOpen, setOnlineOpen] = useState(false);
 
-    const onlineCount = useMemo(() => onlineUsers.length, [onlineUsers]);
+    const onlineCount = useMemo(() => onlineList.length, [onlineList]);
+    // Label: providers see "Active Users", users see "Active Providers"
+    const onlineModalTitle = isProviderDashboard ? 'Active Users' : 'Active Providers';
+    const onlineUnitSingular = isProviderDashboard ? 'user' : 'provider';
+    const onlineUnitPlural = isProviderDashboard ? 'users' : 'providers';
 
-    const loadOnlineUsers = async () => {
+    const loadOnlineList = async () => {
         try {
             setOnlineLoading(true);
             setOnlineError(null);
-            const res = await providerApi.getOnlineUsers();
+            // Providers see online users; users see online providers
+            const res = isProviderDashboard
+                ? await providerApi.getOnlineUsers()
+                : await providerApi.getOnlineProviders();
             if (res.error) throw new Error(res.error);
-            setOnlineUsers(res.data || []);
+            setOnlineList(res.data || []);
         } catch (e: any) {
-            setOnlineError(e?.message || 'Failed to load online users');
+            setOnlineError(e?.message || 'Failed to load online list');
         } finally {
             setOnlineLoading(false);
         }
     };
 
     useEffect(() => {
-        if (!isProviderDashboard) return;
+        if (!showOnlineCard) return;
 
-        loadOnlineUsers();
-        const interval = window.setInterval(loadOnlineUsers, 10_000);
+        loadOnlineList();
+        const interval = window.setInterval(loadOnlineList, 10_000);
         return () => window.clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isProviderDashboard]);
+    }, [showOnlineCard, isProviderDashboard]);
 
     return (
         <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>
@@ -191,12 +200,12 @@ export function DashboardHome() {
                         { label: 'BOOKINGS', value: '0', highlight: false },
                         {
                             label: 'ONLINE',
-                            value: isProviderDashboard ? String(onlineCount) : '0',
+                            value: showOnlineCard ? String(onlineCount) : '—',
                             highlight: true,
                         },
                     ].map((s) => {
                         const isOnlineCard = s.label === 'ONLINE';
-                        const clickable = isProviderDashboard && isOnlineCard;
+                        const clickable = showOnlineCard && isOnlineCard;
 
                         return (
                             <div
@@ -481,7 +490,7 @@ export function DashboardHome() {
                                     color: 'var(--text-primary)',
                                     marginBottom: '4px',
                                 }}>
-                                    Active Users
+                                    {onlineModalTitle}
                                 </h3>
                                 <p style={{
                                     fontSize: '0.75rem',
@@ -499,7 +508,7 @@ export function DashboardHome() {
                                         background: 'var(--green-status)',
                                         boxShadow: '0 0 8px var(--green-status)',
                                     }} />
-                                    {onlineCount} {onlineCount === 1 ? 'user' : 'users'} online
+                                    {onlineCount} {onlineCount === 1 ? onlineUnitSingular : onlineUnitPlural} online
                                 </p>
                             </div>
                             <button
@@ -541,7 +550,7 @@ export function DashboardHome() {
                         }}>
                             {onlineLoading && (
                                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px 0' }}>
-                                    Loading active users...
+                                    Loading...
                                 </p>
                             )}
                             
@@ -551,13 +560,13 @@ export function DashboardHome() {
                                 </p>
                             )}
 
-                            {!onlineLoading && !onlineError && onlineUsers.length === 0 && (
+                            {!onlineLoading && !onlineError && onlineList.length === 0 && (
                                 <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px 0' }}>
-                                    No users are currently online.
+                                    No {onlineUnitPlural} are currently online.
                                 </p>
                             )}
 
-                            {!onlineLoading && !onlineError && onlineUsers.map((u) => {
+                            {!onlineLoading && !onlineError && onlineList.map((u) => {
                                 const initials = u.name ? u.name.substring(0, 2).toUpperCase() : 'U';
                                 return (
                                     <div

@@ -14,6 +14,35 @@ db.query(`
     if (err) console.error("Failed to ensure users presence columns:", err.message);
 });
 
+// ── Ensure posts table exists ───────────────────────────────────────────────
+db.query(`
+    CREATE TABLE IF NOT EXISTS posts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        content TEXT NOT NULL,
+        image_url VARCHAR(500) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+`, (err) => {
+    if (err) console.error("Failed to ensure posts table:", err.message);
+});
+
+// ── Ensure chat_messages table exists ──────────────────────────────────────
+db.query(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sender_id INT NOT NULL,
+        receiver_id INT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+`, (err) => {
+    if (err) console.error("Failed to ensure chat_messages table:", err.message);
+});
+
 app.use(cors({
     origin: [
         "http://localhost:5173",

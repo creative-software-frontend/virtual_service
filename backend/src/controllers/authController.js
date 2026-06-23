@@ -69,6 +69,10 @@ exports.login = (req, res) => {
         }
 
         const user = result[0];
+        if (user.is_active === 0) {
+            return res.status(403).json({ message: "Your account is blocked by the administrator." });
+        }
+
         const match = await bcrypt.compare(password, user.password);
 
         if (!match) {

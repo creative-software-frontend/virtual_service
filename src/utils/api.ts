@@ -177,4 +177,10 @@ export const adminApi = {
             `/admin/rates/${key}`,
             { method: 'PUT', body: JSON.stringify({ rate_value }) }
         ),
+
+    toggleUserActive: (id: number) =>
+        request<{ message: string; is_active: number }>(
+            `/admin/users/${id}/toggle-active`,
+            { method: 'PUT' }
+        ),
 };

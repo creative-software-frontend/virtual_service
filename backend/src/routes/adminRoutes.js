@@ -118,5 +118,19 @@ router.delete("/packages/:id", authMiddleware, roleMiddleware(["admin"]), (req, 
     });
 });
 
+// PUT /api/admin/users/:id/toggle-active
+router.put("/users/:id/toggle-active", authMiddleware, roleMiddleware(["admin"]), (req, res) => {
+    const { id } = req.params;
+    db.query("SELECT is_active FROM users WHERE id = ?", [id], (err, rows) => {
+        if (err) return res.status(500).json({ message: "Database error: " + err.message });
+        if (rows.length === 0) return res.status(404).json({ message: "User not found" });
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        db.query("UPDATE users SET is_active = ? WHERE id = ?", [newStatus, id], (err) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json({ message: "User status updated successfully", is_active: newStatus });
+        });
+    });
+});
+
 module.exports = router;
 

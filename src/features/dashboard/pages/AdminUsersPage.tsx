@@ -25,19 +25,37 @@ export function AdminUsersPage() {
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'users' | 'providers'>('users');
 
-    useEffect(() => {
-        const fetchSummary = async () => {
-            const res = await adminApi.getUsersSummary();
-            if (res.error) {
-                setError(res.error);
-            } else {
-                setSummary(res.data);
-            }
-            setLoading(false);
-        };
+    const fetchSummary = async () => {
+        setLoading(true);
+        const res = await adminApi.getUsersSummary();
+        if (res.error) {
+            setError(res.error);
+        } else {
+            setSummary(res.data || null);
+        }
+        setLoading(false);
+    };
 
+    useEffect(() => {
         fetchSummary();
     }, []);
+
+    const handleToggleActive = async (id: number, currentStatus: number) => {
+        const action = currentStatus === 1 ? 'block' : 'unblock';
+        if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
+
+        try {
+            const res = await adminApi.toggleUserActive(id);
+            if (res.error) {
+                alert(res.error);
+            } else {
+                // Refresh summary from the server to get precise updated counts and state
+                await fetchSummary();
+            }
+        } catch (err: any) {
+            alert(err.message || 'Failed to update account status');
+        }
+    };
 
     return (
         <div style={{
@@ -317,6 +335,34 @@ export function AdminUsersPage() {
                                         }}>
                                             {person.is_active ? '● Active' : '● Blocked'}
                                         </div>
+
+                                        {/* Block / Unblock Action Button */}
+                                        <button
+                                            onClick={() => handleToggleActive(person.id, person.is_active)}
+                                            style={{
+                                                flexShrink: 0,
+                                                padding: '6px 12px',
+                                                borderRadius: '6px',
+                                                fontSize: '0.6rem',
+                                                letterSpacing: '0.05em',
+                                                textTransform: 'uppercase',
+                                                fontWeight: 700,
+                                                cursor: 'pointer',
+                                                background: person.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+                                                color: person.is_active ? 'var(--red-status)' : 'var(--green-status)',
+                                                border: `1px solid ${person.is_active ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                                                fontFamily: "'Inter', sans-serif",
+                                                transition: 'all 0.2s',
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.filter = 'brightness(1.2)';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.filter = 'none';
+                                            }}
+                                        >
+                                            {person.is_active ? 'Block' : 'Unblock'}
+                                        </button>
                                     </div>
                                 ))
                             )}

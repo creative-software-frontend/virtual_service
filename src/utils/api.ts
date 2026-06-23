@@ -111,7 +111,62 @@ export interface UsersSummaryData {
     providers: UserInfo[];
 }
 
+export interface Package {
+    id: number;
+    name: string;
+    description: string;
+    price: number;
+    duration_days: number;
+    duration_months: number;
+    tier_type: 'starter' | 'premium' | 'elite';
+    features: string;
+    is_active: number;
+    created_at: string;
+}
+
+export interface CreatePackagePayload {
+    name: string;
+    description: string;
+    price: number;
+    duration_days: number;
+    duration_months: number;
+    tier_type: 'starter' | 'premium' | 'elite';
+    features: string;
+}
+
+export interface PlatformRate {
+    id: number;
+    rate_key: string;
+    rate_value: number;
+    label: string;
+    updated_at: string;
+}
+
 export const adminApi = {
     getUsersSummary: () =>
         request<UsersSummaryData>('/admin/users-summary'),
+
+    getPublicPackages: () =>
+        request<Package[]>('/admin/packages/public'),
+
+    getPackages: () =>
+        request<Package[]>('/admin/packages'),
+
+    createPackage: (payload: CreatePackagePayload) =>
+        request<Package>('/admin/packages', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+
+    deletePackage: (id: number) =>
+        request<{ message: string }>(`/admin/packages/${id}`, { method: 'DELETE' }),
+
+    getRates: () =>
+        request<PlatformRate[]>('/admin/rates'),
+
+    updateRate: (key: string, rate_value: number) =>
+        request<{ message: string; rate_key: string; rate_value: number }>(
+            `/admin/rates/${key}`,
+            { method: 'PUT', body: JSON.stringify({ rate_value }) }
+        ),
 };

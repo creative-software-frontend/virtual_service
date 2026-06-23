@@ -1,6 +1,15 @@
+import { useAuth } from "../../../context/AuthContext";
 import { TopNav } from "./TopNav";
 
 export function AssetsPage() {
+    const { user } = useAuth();
+    const role = user?.role;
+
+    const depositLabel = role === 'user' ? 'DEPOSIT' : 'ALLOCATE';
+    const depositSub = role === 'user' ? 'Deposit funds to wallet' : 'Deposit funds to wallet';
+    const withdrawLabel = role === 'user' ? 'WITHDRAW' : 'LIQUIDATE';
+    const withdrawSub = role === 'user' ? 'Withdraw your earnings' : 'Withdraw your earnings';
+
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-main)', width: '100%', color: 'var(--text-primary)' }}>
             {/* Top Navigation Bar */}
@@ -81,8 +90,8 @@ export function AssetsPage() {
                         }}>
                             {[
                                 {
-                                    label: 'ALLOCATE',
-                                    sub: 'Deposit funds to wallet',
+                                    label: depositLabel,
+                                    sub: depositSub,
                                     icon: (
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-vivid)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                             <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
@@ -90,8 +99,8 @@ export function AssetsPage() {
                                     ),
                                 },
                                 {
-                                    label: 'LIQUIDATE',
-                                    sub: 'Withdraw your earnings',
+                                    label: withdrawLabel,
+                                    sub: withdrawSub,
                                     icon: (
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-vivid)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                             <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />

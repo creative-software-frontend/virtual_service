@@ -181,6 +181,7 @@ function DurationSelector({
 function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
     const cfg = TIER_CONFIG[tier];
     const isStarter = tier === 'starter';
+    const [showModal, setShowModal] = useState(false);
 
     // starter shows no duration selector — just static "Free" display
     const [selected, setSelected] = useState<Package | null>(
@@ -198,121 +199,287 @@ function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
         ? featSource.features.split(',').map(f => f.trim()).filter(Boolean)
         : [];
 
+    const handleCTA = () => {
+        if (isStarter) {
+            alert("Proceeding with Free Starter plan registration...");
+        } else {
+            setShowModal(true);
+        }
+    };
+
+    const handleProceed = () => {
+        if (selected) {
+            alert(`Proceeding with ${cfg.label} Plan (${selected.duration_months} Months) for ৳${Number(selected.price).toLocaleString()}...`);
+            setShowModal(false);
+        }
+    };
+
     return (
-        <motion.div
-            variants={fadeUp}
-            style={{
-                background: cfg.cardBg,
-                border: cfg.cardBorder,
-                borderRadius: '16px',
-                padding: '28px 24px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                position: 'relative',
-                height: '100%',
-                boxShadow: cfg.shadow,
-            }}
-        >
-            {/* Top accent line */}
-            {cfg.topLine && (
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px',
-                    background: cfg.topLine,
-                }} />
-            )}
+        <>
+            <motion.div
+                variants={fadeUp}
+                style={{
+                    background: cfg.cardBg,
+                    border: cfg.cardBorder,
+                    borderRadius: '16px',
+                    padding: '28px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    position: 'relative',
+                    height: '100%',
+                    boxShadow: cfg.shadow,
+                }}
+            >
+                {/* Top accent line */}
+                {cfg.topLine && (
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px',
+                        background: cfg.topLine,
+                    }} />
+                )}
 
-            <div>
-                {/* Badge + name */}
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                    <span style={{
-                        display: 'inline-block',
-                        fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase',
-                        color: cfg.accentColor,
-                        border: `1px solid ${cfg.accentColor}40`,
-                        padding: '4px 12px', borderRadius: '4px',
-                        background: `${cfg.accentColor}12`,
-                        fontFamily: "'Inter', sans-serif", fontWeight: 700,
-                        marginBottom: '12px',
-                    }}>
-                        {cfg.badge}
-                    </span>
+                <div>
+                    {/* Badge + name */}
+                    <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                        <span style={{
+                            display: 'inline-block',
+                            fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase',
+                            color: cfg.accentColor,
+                            border: `1px solid ${cfg.accentColor}40`,
+                            padding: '4px 12px', borderRadius: '4px',
+                            background: `${cfg.accentColor}12`,
+                            fontFamily: "'Inter', sans-serif", fontWeight: 700,
+                            marginBottom: '12px',
+                        }}>
+                            {cfg.badge}
+                        </span>
 
-                    <h3 style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: '1.4rem', fontWeight: 700,
-                        color: cfg.headerColor,
-                        marginBottom: '4px',
-                    }}>
-                        {cfg.label}
-                    </h3>
+                        <h3 style={{
+                            fontFamily: "'Inter', sans-serif",
+                            fontSize: '1.4rem', fontWeight: 700,
+                            color: cfg.headerColor,
+                            marginBottom: '4px',
+                        }}>
+                            {cfg.label}
+                        </h3>
 
-                    {/* Starter: static "Free · ALWAYS" */}
-                    {isStarter ? (
-                        <>
-                            <p style={{
-                                fontFamily: "'Inter', sans-serif",
-                                fontSize: '2rem', fontWeight: 800,
-                                color: 'var(--text-primary)', marginBottom: '4px',
-                            }}>
-                                Free
-                            </p>
-                            <span style={{
-                                fontSize: '0.6rem', letterSpacing: '0.1em',
-                                textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700,
-                            }}>
-                                ALWAYS
-                            </span>
-                        </>
-                    ) : (
-                        /* Premium / Elite: duration picker */
-                        <DurationSelector
-                            options={packages}
-                            selected={selected}
-                            onChange={setSelected}
-                            config={cfg}
-                        />
+                        {/* Starter: static "Free · ALWAYS" */}
+                        {isStarter ? (
+                            <>
+                                <p style={{
+                                    fontFamily: "'Inter', sans-serif",
+                                    fontSize: '2rem', fontWeight: 800,
+                                    color: 'var(--text-primary)', marginBottom: '4px',
+                                }}>
+                                    Free
+                                </p>
+                                <span style={{
+                                    fontSize: '0.6rem', letterSpacing: '0.1em',
+                                    textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700,
+                                }}>
+                                    ALWAYS
+                                </span>
+                            </>
+                        ) : (
+                            /* Premium / Elite: duration picker inline like old version */
+                            <DurationSelector
+                                options={packages}
+                                selected={selected}
+                                onChange={setSelected}
+                                config={cfg}
+                            />
+                        )}
+                    </div>
+
+                    {/* Feature list */}
+                    {featureList.length > 0 && (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0' }}>
+                            {featureList.map(feat => (
+                                <li key={feat} style={{
+                                    display: 'flex', alignItems: 'center', gap: '10px',
+                                    marginBottom: '12px', fontSize: '0.85rem',
+                                    color: 'var(--text-primary)',
+                                    fontFamily: "'Inter', sans-serif",
+                                }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                        <CheckIcon color={cfg.checkColor} />
+                                    </span>
+                                    {feat}
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </div>
 
-                {/* Feature list */}
-                {featureList.length > 0 && (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0' }}>
-                        {featureList.map(feat => (
-                            <li key={feat} style={{
-                                display: 'flex', alignItems: 'center', gap: '10px',
-                                marginBottom: '12px', fontSize: '0.85rem',
-                                color: 'var(--text-primary)',
-                                fontFamily: "'Inter', sans-serif",
-                            }}>
-                                <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                                    <CheckIcon color={cfg.checkColor} />
-                                </span>
-                                {feat}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
+                {/* CTA button */}
+                <button
+                    onClick={handleCTA}
+                    style={{
+                        ...cfg.btnStyle,
+                        padding: '14px',
+                        borderRadius: '8px',
+                        fontSize: '0.7rem',
+                        letterSpacing: '0.12em',
+                        textTransform: 'uppercase',
+                        fontWeight: 800,
+                        fontFamily: "'Inter', sans-serif",
+                        cursor: 'pointer',
+                        width: '100%',
+                        transition: 'all 0.2s',
+                        boxShadow: isStarter ? 'none' : `0 4px 20px ${cfg.accentColor}40`,
+                    }}
+                >
+                    {cfg.btnLabel}
+                </button>
+            </motion.div>
 
-            {/* CTA button */}
-            <button style={{
-                ...cfg.btnStyle,
-                padding: '14px',
-                borderRadius: '8px',
-                fontSize: '0.7rem',
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                fontWeight: 800,
-                fontFamily: "'Inter', sans-serif",
-                cursor: 'pointer',
-                width: '100%',
-                transition: 'all 0.2s',
-                boxShadow: isStarter ? 'none' : `0 4px 20px ${cfg.accentColor}40`,
-            }}>
-                {cfg.btnLabel}
-            </button>
-        </motion.div>
+            {/* Confirm Plan Modal - shows monthly breakdown and proceeds */}
+            {showModal && !isStarter && selected && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'var(--bg-overlay)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 99999,
+                    padding: '20px',
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',
+                        border: `1px solid ${cfg.accentColor}40`,
+                        borderRadius: '16px',
+                        width: '100%',
+                        maxWidth: '440px',
+                        padding: '24px',
+                        boxShadow: cfg.shadow,
+                        position: 'relative',
+                    }}>
+                        {/* Top accent line */}
+                        {cfg.topLine && (
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, right: 0, height: '2.5px',
+                                background: cfg.topLine,
+                            }} />
+                        )}
+
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                            <div>
+                                <h3 style={{
+                                    fontFamily: 'var(--font-serif)',
+                                    fontSize: '1.5rem',
+                                    color: cfg.headerColor,
+                                    marginBottom: '4px',
+                                }}>
+                                    Confirm Plan
+                                </h3>
+                                <p style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--text-secondary)',
+                                }}>
+                                    Review pricing breakdown for your selection
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                style={{
+                                    background: 'var(--blue-dim)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Plan Summary Card */}
+                        <div style={{
+                            background: 'var(--bg-input)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: '12px',
+                            padding: '18px',
+                            marginBottom: '24px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Plan Tier</span>
+                                <span style={{ fontSize: '0.85rem', color: cfg.headerColor, fontWeight: 700 }}>{cfg.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Duration</span>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 700 }}>{selected.duration_months} Month{selected.duration_months > 1 ? 's' : ''}</span>
+                            </div>
+                            
+                            <hr style={{ borderTop: '1px solid var(--border-subtle)', margin: '4px 0' }} />
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Cost</span>
+                                <span style={{ fontSize: '1.1rem', color: 'var(--green-status)', fontWeight: 800 }}>
+                                    ৳{Math.round(Number(selected.price) / selected.duration_months).toLocaleString()} <span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--text-secondary)' }}>/ month</span>
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Price</span>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 700 }}>৳{Number(selected.price).toLocaleString()}</span>
+                            </div>
+                        </div>
+
+                        {/* Footer / CTA Actions */}
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                style={{
+                                    background: 'transparent',
+                                    border: '1px solid var(--border-default)',
+                                    borderRadius: '8px',
+                                    padding: '10px 18px',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '0.7rem',
+                                    letterSpacing: '0.05em',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleProceed}
+                                style={{
+                                    ...cfg.btnStyle,
+                                    borderRadius: '8px',
+                                    padding: '10px 22px',
+                                    fontSize: '0.7rem',
+                                    letterSpacing: '0.05em',
+                                    textTransform: 'uppercase',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    boxShadow: `0 0 10px ${cfg.accentColor}50`,
+                                }}
+                            >
+                                Proceed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 

@@ -66,6 +66,13 @@ export const router = createBrowserRouter([
                 }
             },
             {
+                path: "earnings",
+                lazy: async () => {
+                    const { AssetsPage } = await import("../features/dashboard/pages/AssetsPage");
+                    return { element: <AssetsPage /> };
+                }
+            },
+            {
                 path: "network",
                 lazy: async () => {
                     const { NetworkPage } = await import("../features/dashboard/pages/NetworkPage");
@@ -106,6 +113,13 @@ export const router = createBrowserRouter([
                 lazy: async () => {
                     const { ProviderServicePage } = await import("../features/dashboard/pages/ProviderServicePage");
                     return { element: <ProviderServicePage /> };
+                }
+            },
+            {
+                path: "reports",
+                lazy: async () => {
+                    const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");
+                    return { element: <AdminReportsPage /> };
                 }
             }
         ]

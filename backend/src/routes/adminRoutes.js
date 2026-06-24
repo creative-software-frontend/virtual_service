@@ -131,4 +131,90 @@ router.put("/users/:id/toggle-active",
     }
 );
 
+// GET /api/admin/reports — platform financial summary and global ledger
+router.get("/reports",
+    authMiddleware,
+    roleMiddleware(["admin"]),
+    async (req, res) => {
+        try {
+            // Total deposits (all users)
+            const [depositRows] = await db.query(
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = 'deposit'"
+            );
+
+            // Total withdrawals (all users)
+            const [withdrawRows] = await db.query(
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = 'withdraw'"
+            );
+
+            // Total earnings (all providers)
+            const [earningRows] = await db.query(
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = 'earning'"
+            );
+
+            // Total users and providers count
+            const [userCountRows] = await db.query(
+                "SELECT COUNT(*) AS total FROM users WHERE role = 'user'"
+            );
+            const [providerCountRows] = await db.query(
+                "SELECT COUNT(*) AS total FROM users WHERE role = 'provider'"
+            );
+
+            // Top depositing users
+            const [topDepositors] = await db.query(`
+                SELECT u.id, u.name, u.role,
+                       COALESCE(SUM(t.amount), 0) AS total_deposited
+                FROM users u
+                INNER JOIN transactions t ON t.user_id = u.id AND t.type = 'deposit'
+                GROUP BY u.id, u.name, u.role
+                ORDER BY total_deposited DESC
+                LIMIT 5
+            `);
+
+            // Top earning providers
+            const [topEarners] = await db.query(`
+                SELECT u.id, u.name, u.role,
+                       COALESCE(SUM(t.amount), 0) AS total_earned
+                FROM users u
+                INNER JOIN transactions t ON t.user_id = u.id AND t.type = 'earning'
+                GROUP BY u.id, u.name, u.role
+                ORDER BY total_earned DESC
+                LIMIT 5
+            `);
+
+            // Global recent ledger (last 100 transactions with user metadata)
+            const [ledger] = await db.query(`
+                SELECT t.id, t.type, t.amount, t.status, t.description, t.created_at,
+                       u.id AS user_id, u.name AS user_name, u.role AS user_role
+                FROM transactions t
+                JOIN users u ON u.id = t.user_id
+                ORDER BY t.created_at DESC
+                LIMIT 100
+            `);
+
+            const totalDeposits = Number(depositRows[0].total);
+            const totalWithdrawals = Number(withdrawRows[0].total);
+            const totalEarnings = Number(earningRows[0].total);
+            const netHoldings = totalDeposits - totalWithdrawals;
+
+            res.json({
+                stats: {
+                    totalDeposits,
+                    totalWithdrawals,
+                    totalEarnings,
+                    netHoldings,
+                    totalUsers: Number(userCountRows[0].total),
+                    totalProviders: Number(providerCountRows[0].total),
+                },
+                topDepositors,
+                topEarners,
+                ledger,
+            });
+
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }
+);
+
 module.exports = router;

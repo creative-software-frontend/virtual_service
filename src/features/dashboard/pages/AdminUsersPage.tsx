@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 
@@ -24,6 +24,20 @@ export function AdminUsersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'users' | 'providers'>('users');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredPeople = useMemo(() => {
+        if (!summary) return [];
+        const people = activeTab === 'users' ? summary.users : summary.providers;
+        if (!searchQuery.trim()) return people;
+        const q = searchQuery.toLowerCase().trim();
+        return people.filter(
+            p =>
+                p.name.toLowerCase().includes(q) ||
+                p.email.toLowerCase().includes(q) ||
+                p.phone.includes(q)
+        );
+    }, [summary, activeTab, searchQuery]);
 
     const fetchSummary = async () => {
         setLoading(true);
@@ -189,6 +203,75 @@ export function AdminUsersPage() {
                             </div>
                         </div>
 
+                        {/* ── Search Bar ── */}
+                        <div style={{ position: 'relative', marginBottom: '20px' }}>
+                            <span style={{
+                                position: 'absolute',
+                                left: '16px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                color: 'var(--text-muted)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                pointerEvents: 'none'
+                            }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder={`Search ${activeTab === 'users' ? 'users' : 'providers'} instantly...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '14px 16px 14px 48px',
+                                    background: 'var(--bg-input)',
+                                    border: '1px solid var(--border-subtle)',
+                                    borderRadius: '12px',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '0.85rem',
+                                    fontFamily: "'Inter', sans-serif",
+                                    outline: 'none',
+                                    transition: 'all 0.2s',
+                                    boxSizing: 'border-box',
+                                    boxShadow: 'var(--shadow-sm)'
+                                }}
+                                onFocus={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--blue-neon)';
+                                    e.currentTarget.style.boxShadow = '0 0 15px var(--blue-glow)';
+                                }}
+                                onBlur={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                }}
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '16px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem',
+                                        padding: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+
                         {/* ── Tabs ── */}
                         <div style={{
                             display: 'flex',
@@ -242,7 +325,7 @@ export function AdminUsersPage() {
 
                         {/* ── List ── */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {(activeTab === 'users' ? summary.users : summary.providers).length === 0 ? (
+                            {filteredPeople.length === 0 ? (
                                 <div style={{
                                     textAlign: 'center',
                                     padding: '40px',
@@ -252,7 +335,7 @@ export function AdminUsersPage() {
                                     No {activeTab} found
                                 </div>
                             ) : (
-                                (activeTab === 'users' ? summary.users : summary.providers).map((person) => (
+                                filteredPeople.map((person) => (
                                     <div key={person.id} style={{
                                         background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
                                         border: '1px solid var(--border-subtle)',

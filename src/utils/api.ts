@@ -83,9 +83,34 @@ export const authApi = {
         }),
 };
 
+export interface Transaction {
+    id: number;
+    type: 'deposit' | 'withdraw' | 'earning';
+    amount: number;
+    status: string;
+    description: string;
+    created_at: string;
+}
+
+export interface WalletResponse {
+    balance: number;
+    earnings: number;
+    role: string;
+    transactions: Transaction[];
+}
+
 // ── User endpoints ────────────────────────────────────────────────────────────
 export const userApi = {
     getProfile: () => request<{ id: number; name: string; email: string; created_at: string }>('/user/profile'),
+    getWallet: () => request<WalletResponse>('/user/wallet'),
+    deposit: (amount: number) => request<{ message: string; amount: number }>('/user/deposit', {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+    }),
+    withdraw: (amount: number) => request<{ message: string; amount: number }>('/user/withdraw', {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+    }),
 };
 
 // ── Provider endpoints ────────────────────────────────────────────────────────
@@ -196,6 +221,40 @@ export interface PlatformRate {
     updated_at: string;
 }
 
+export interface LedgerEntry {
+    id: number;
+    type: 'deposit' | 'withdraw' | 'earning';
+    amount: number;
+    status: string;
+    description: string;
+    created_at: string;
+    user_id: number;
+    user_name: string;
+    user_role: string;
+}
+
+export interface TopAccount {
+    id: number;
+    name: string;
+    role: string;
+    total_deposited?: number;
+    total_earned?: number;
+}
+
+export interface ReportsData {
+    stats: {
+        totalDeposits: number;
+        totalWithdrawals: number;
+        totalEarnings: number;
+        netHoldings: number;
+        totalUsers: number;
+        totalProviders: number;
+    };
+    topDepositors: TopAccount[];
+    topEarners: TopAccount[];
+    ledger: LedgerEntry[];
+}
+
 export const adminApi = {
     getUsersSummary: () =>
         request<UsersSummaryData>('/admin/users-summary'),
@@ -229,4 +288,7 @@ export const adminApi = {
             `/admin/users/${id}/toggle-active`,
             { method: 'PUT' }
         ),
+
+    getReports: () =>
+        request<ReportsData>('/admin/reports'),
 };

@@ -146,6 +146,22 @@ export function ProfilePage() {
                                 Account Management
                             </span>
 
+                            <button
+                                style={{
+                                    width: '100%', padding: '16px',
+                                    background: 'transparent', border: '1px solid var(--border-subtle)',
+                                    borderRadius: '10px', color: 'var(--blue-vivid)',
+                                    fontSize: '0.85rem', fontWeight: 600,
+                                    cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onClick={() => navigate('/network')}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                Referral
+                            </button>
+
                             <button style={{
                                 width: '100%', padding: '16px',
                                 background: 'transparent', border: '1px solid var(--border-subtle)',
@@ -159,6 +175,7 @@ export function ProfilePage() {
                             >
                                 Change Password
                             </button>
+
 
                             <button
                                 onClick={handleLogout}

@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { TopNav } from "./TopNav";
 import { useAuth } from "../../../context/AuthContext";
+
 
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
@@ -15,6 +16,7 @@ const container = {
 
 export function ProfilePage() {
     const navigate = useNavigate();
+    const { role } = useParams<{ role: string }>();
     const auth = useAuth();
     const user = localStorage.getItem('bluedise_user') || 'member';
 
@@ -146,21 +148,28 @@ export function ProfilePage() {
                                 Account Management
                             </span>
 
-                            <button
-                                style={{
-                                    width: '100%', padding: '16px',
-                                    background: 'transparent', border: '1px solid var(--border-subtle)',
-                                    borderRadius: '10px', color: 'var(--blue-vivid)',
-                                    fontSize: '0.85rem', fontWeight: 600,
-                                    cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-                                    transition: 'all 0.2s ease'
-                                }}
-                                onClick={() => navigate('../network')}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
-                                Referral
-                            </button>
+                           {role !== 'admin' && (
+    <button
+        style={{
+            width: '100%',
+            padding: '16px',
+            background: 'transparent',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '10px',
+            color: 'var(--blue-vivid)',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: "'Inter', sans-serif",
+            transition: 'all 0.2s ease'
+        }}
+        onClick={() => navigate('../network')}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+        Referral
+    </button>
+)}
 
                             <button style={{
                                 width: '100%', padding: '16px',

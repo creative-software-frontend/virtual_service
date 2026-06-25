@@ -155,7 +155,7 @@ export function ProfilePage() {
                                     cursor: 'pointer', fontFamily: "'Inter', sans-serif",
                                     transition: 'all 0.2s ease'
                                 }}
-                                onClick={() => navigate('/network')}
+                                onClick={() => navigate('../network')}
                                 onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >

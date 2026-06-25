@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { TopNav } from "./TopNav";
+import { useAuth } from "../../../context/AuthContext";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
@@ -14,10 +15,11 @@ const container = {
 
 export function ProfilePage() {
     const navigate = useNavigate();
+    const auth = useAuth();
     const user = localStorage.getItem('bluedise_user') || 'member';
 
     const handleLogout = () => {
-        localStorage.removeItem('bluedise_user');
+        auth.logout();
         navigate('/');
     };
 

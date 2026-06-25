@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { serviceApi, providerApi } from '../../../utils/api';
 import type { Post, ChatMessage, ActiveUser } from '../../../utils/api';
@@ -44,7 +45,7 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
 }
 
 /* ─────────────────────────────────────────────────────────────── Newsfeed */
-function NewsfeedTab({ myId, myName }: { myId: number; myName: string }) {
+function NewsfeedTab({ myName }: { myName: string }) {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [content, setContent] = useState('');
@@ -447,7 +448,7 @@ export function ProviderServicePage() {
     const myName = user?.username ?? 'Member';
     const myId = user?.id ?? 0;
 
-    const tabs: { key: 'feed' | 'chat'; label: string; icon: JSX.Element }[] = [
+    const tabs: { key: 'feed' | 'chat'; label: string; icon: ReactNode }[] = [
         {
             key: 'feed', label: 'Newsfeed',
             icon: (
@@ -526,7 +527,7 @@ export function ProviderServicePage() {
             {/* ── Tab content ── */}
             <div style={{ padding: '16px 14px 100px' }}>
                 {tab === 'feed' ? (
-                    <NewsfeedTab myId={myId} myName={myName} />
+                    <NewsfeedTab myName={myName} />
                 ) : (
                     <ChatTab myId={myId} myName={myName} role={role ?? 'user'} />
                 )}

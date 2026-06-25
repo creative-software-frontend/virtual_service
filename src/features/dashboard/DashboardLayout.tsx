@@ -1,8 +1,4 @@
-import { useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-
-
-
+import { NavLink, Outlet } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 
 const ICONS = {
@@ -181,15 +177,6 @@ export function BottomNav() {
 }
 
 export function DashboardLayout() {
-    const navigate = useNavigate();
-    const user = localStorage.getItem('bluedise_user');
-
-    useEffect(() => {
-        if (!user) navigate('/login', { replace: true });
-    }, [user, navigate]);
-
-    if (!user) return null;
-
     return (
         <div style={{
             minHeight: '100svh',

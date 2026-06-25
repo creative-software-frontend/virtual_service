@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { adminApi } from '../../../utils/api';
-import type { ReportsData, LedgerEntry } from '../../../utils/api';
+import type { ReportsData } from '../../../utils/api';
 
 const fmt = (n: number) =>
     '৳ ' + Number(n).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

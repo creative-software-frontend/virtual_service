@@ -1,6 +1,10 @@
 import { TopNav } from "./TopNav";
+import { useAuth } from "../../../context/AuthContext";
+import { NewsfeedTab } from "./provider/NewsfeedTab";
 
 export function NewsfeedPage() {
+    const { user } = useAuth();
+
     return (
         <div
             style={{
@@ -34,11 +38,10 @@ export function NewsfeedPage() {
                         padding: "20px",
                     }}
                 >
-                    <p style={{ color: "var(--text-secondary)" }}>
-                        No posts available yet.
-                    </p>
+                    <NewsfeedTab myName={user?.username ?? ""} />
                 </div>
             </div>
         </div>
     );
 }
+

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ActiveUser, ChatMessage } from '../../../../utils/api';
 import { serviceApi, providerApi } from '../../../../utils/api';
+import { useChatPolling } from './hooks/useChatPolling';
 import { Avatar } from './Avatar';
 
 
@@ -13,16 +14,28 @@ export function ChatTab({ myId, myName, role }: { myId: number; myName: string; 
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
-    const bottomRef = useRef<HTMLDivElement>(null);
-    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const [contactsError, setContactsError] = useState<string | null>(null);
+    const [messagesError, setMessagesError] = useState<string | null>(null);
+
+
+
+
+
+    const bottomRef = useRef<HTMLDivElement>(null);
     // Load contacts: users see providers, providers see users
     const loadContacts = async () => {
         setLoadingContacts(true);
+        setContacts([]);
         const res = role === 'user'
             ? await providerApi.getOnlineProviders()
             : await providerApi.getOnlineUsers();
-        if (!res.error) setContacts(res.data ?? []);
+        if (res.error) {
+            setContactsError(res.error);
+        } else {
+            setContactsError(null);
+            setContacts(res.data ?? []);
+        }
         setLoadingContacts(false);
     };
 
@@ -31,17 +44,17 @@ export function ChatTab({ myId, myName, role }: { myId: number; myName: string; 
     // Load and poll messages
     const loadMessages = async (contact: ActiveUser) => {
         setLoadingMsgs(true);
+        setMessagesError(null);
         const res = await serviceApi.getMessages(contact.id);
-        if (!res.error) setMessages(res.data ?? []);
+        if (res.error) {
+            setMessagesError(res.error);
+        } else {
+            setMessages(res.data ?? []);
+        }
         setLoadingMsgs(false);
     };
 
-    useEffect(() => {
-        if (!selectedContact) return;
-        loadMessages(selectedContact);
-        pollRef.current = setInterval(() => loadMessages(selectedContact), 4000);
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }, [selectedContact?.id]);
+    useChatPolling({ selectedContact, loadMessages });
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,7 +73,10 @@ export function ChatTab({ myId, myName, role }: { myId: number; myName: string; 
         setSending(true);
         const res = await serviceApi.sendMessage(selectedContact.id, input.trim());
         setSending(false);
-        if (res.error) return;
+        if (res.error) {
+            return;
+        }
+
         setInput('');
         if (res.data) {
             setMessages(prev => [...prev, {
@@ -110,7 +126,28 @@ export function ChatTab({ myId, myName, role }: { myId: number; myName: string; 
                     border: '1px solid rgba(99,102,241,0.15)',
                     display: 'flex', flexDirection: 'column', gap: 10,
                 }}>
-                    {loadingMsgs && messages.length === 0 ? (
+                    {messagesError ? (
+                        <div style={{ padding: '20px 0', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--red-status)', fontWeight: 700, marginBottom: 8 }}>Failed to load messages.</p>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 16 }}>{messagesError}</p>
+                            <button
+                                onClick={() => {
+                                    if (selectedContact) loadMessages(selectedContact);
+                                }}
+                                style={{
+                                    padding: '10px 14px',
+                                    background: 'transparent',
+                                    border: '1px solid rgba(99,102,241,0.25)',
+                                    borderRadius: 10,
+                                    color: 'var(--blue-vivid)',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    ) : loadingMsgs && messages.length === 0 ? (
                         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: 40 }}>Loading messages…</p>
                     ) : messages.length === 0 ? (
                         <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: 40 }}>
@@ -188,13 +225,34 @@ export function ChatTab({ myId, myName, role }: { myId: number; myName: string; 
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 16, letterSpacing: '0.08em' }}>
                 {loadingContacts ? 'Finding active ' + label + '…' : `${contacts.length} active ${label} online`}
             </p>
-            {contacts.length === 0 && !loadingContacts ? (
+            {(!contactsError && contacts.length === 0 && !loadingContacts) ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
                     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.35)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', margin: '0 auto 12px' }}>
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
                     No {label} online right now.
+                </div>
+            ) : contactsError ? (
+                <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+                    <p style={{ color: 'var(--red-status)', fontWeight: 700, marginBottom: 10 }}>Failed to load active {label}.</p>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: 16 }}>{contactsError}</p>
+                    <button
+                        onClick={loadContacts}
+                        style={{
+                            width: '100%',
+                            maxWidth: 320,
+                            padding: '12px 16px',
+                            background: 'transparent',
+                            border: '1px solid rgba(99,102,241,0.25)',
+                            borderRadius: 10,
+                            color: 'var(--blue-vivid)',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        Retry
+                    </button>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

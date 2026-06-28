@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
-import { adminApi } from '../../../utils/api';
+import { adminApi, userApi } from '../../../utils/api';
 import type { Package } from '../../../utils/api';
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -207,11 +207,19 @@ function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
         }
     };
 
-    const handleProceed = () => {
-        if (selected) {
-            alert(`Proceeding with ${cfg.label} Plan (${selected.duration_months} Months) for ৳${Number(selected.price).toLocaleString()}...`);
-            setShowModal(false);
+    const handleProceed = async () => {
+        if (!selected) return;
+
+        // Existing architecture: charge the selected plan price to the user's wallet
+        // using the already-implemented wallet deposit endpoint.
+        const res = await userApi.deposit(Number(selected.price));
+        if (res.error) {
+            alert(res.error);
+            return;
         }
+
+        alert(`Added ৳${Number(selected.price).toLocaleString()} to your wallet for the ${cfg.label} plan.`);
+        setShowModal(false);
     };
 
     return (

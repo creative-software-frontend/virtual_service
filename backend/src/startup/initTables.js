@@ -35,11 +35,13 @@ module.exports = async (db) => {
             )
         `);
 
-        // Check and add balance/earnings columns to users
+        // Check and add profile/balance/earnings columns to users
         const [userCols] = await db.query(
             "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
         );
         const colNames = userCols.map(c => c.COLUMN_NAME.toLowerCase());
+
+        // Wallet columns
         if (!colNames.includes("balance")) {
             await db.query("ALTER TABLE users ADD COLUMN balance DECIMAL(15,2) DEFAULT 0.00");
             console.log("Added balance column to users table");
@@ -48,6 +50,29 @@ module.exports = async (db) => {
             await db.query("ALTER TABLE users ADD COLUMN earnings DECIMAL(15,2) DEFAULT 0.00");
             console.log("Added earnings column to users table");
         }
+
+        // Profile columns (nullable)
+        const profileColumns = [
+            { name: 'gender', type: "VARCHAR(50) NULL" },
+            { name: 'date_of_birth', type: "DATE NULL" },
+            { name: 'profession', type: "VARCHAR(100) NULL" },
+            { name: 'education', type: "VARCHAR(150) NULL" },
+            { name: 'location', type: "VARCHAR(150) NULL" },
+            { name: 'bio', type: "TEXT NULL" },
+            { name: 'interests', type: "TEXT NULL" },
+            { name: 'relationship_goal', type: "VARCHAR(100) NULL" },
+            { name: 'marital_status', type: "VARCHAR(100) NULL" },
+            { name: 'avatar_url', type: "TEXT NULL" },
+        ];
+
+        // Ensure any missing columns exist; keeps backward compatibility
+        for (const col of profileColumns) {
+            if (!colNames.includes(col.name.toLowerCase())) {
+                await db.query(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+                console.log(`Added ${col.name} column to users table`);
+            }
+        }
+
 
         // Create transactions table
         await db.query(`

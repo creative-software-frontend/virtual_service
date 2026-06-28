@@ -3,25 +3,14 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const db = require("../config/db");
 
-router.get("/profile", authMiddleware, (req, res) => {
-    const userId = req.user.id;
+const { getProfile, updateProfile } = require("../controllers/profileController");
 
-    db.query(
-        "SELECT id, name, email, created_at FROM users WHERE id = ?",
-        [userId],
-        (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: "Database error" });
-            }
+// GET /api/user/profile
+router.get("/profile", authMiddleware, getProfile);
 
-            if (result.length === 0) {
-                return res.status(404).json({ message: "User not found" });
-            }
+// PUT /api/user/profile
+router.put("/profile", authMiddleware, updateProfile);
 
-            res.json(result[0]);
-        }
-    );
-});
 
 // GET /api/user/wallet
 router.get("/wallet", authMiddleware, (req, res) => {

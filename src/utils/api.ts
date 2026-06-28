@@ -100,8 +100,51 @@ export interface WalletResponse {
 }
 
 // ── User endpoints ────────────────────────────────────────────────────────────
+export interface UserProfile {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    gender: string | null;
+    date_of_birth: string | null;
+    profession: string | null;
+    education: string | null;
+    location: string | null;
+    bio: string | null;
+    interests: string | null;
+    relationship_goal: string | null;
+    marital_status: string | null;
+    avatar_url: string | null;
+    role: 'admin' | 'user' | 'provider';
+    created_at: string;
+}
+
+export interface UpdateUserProfilePayload {
+    // editable fields only
+    name?: string;
+    phone?: string;
+    gender?: string | null;
+    date_of_birth?: string | null; // YYYY-MM-DD
+    profession?: string | null;
+    education?: string | null;
+    location?: string | null;
+    bio?: string | null;
+    interests?: string | null;
+    relationship_goal?: string | null;
+    marital_status?: string | null;
+    avatar_url?: string | null; // base64 data URL
+}
+
 export const userApi = {
-    getProfile: () => request<{ id: number; name: string; email: string; created_at: string }>('/user/profile'),
+    getProfile: () =>
+        request<UserProfile>('/user/profile'),
+
+    updateProfile: (payload: UpdateUserProfilePayload) =>
+        request<UserProfile>('/user/profile', {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        }),
+
     getWallet: () => request<WalletResponse>('/user/wallet'),
     deposit: (amount: number) => request<{ message: string; amount: number }>('/user/deposit', {
         method: 'POST',
@@ -112,6 +155,7 @@ export const userApi = {
         body: JSON.stringify({ amount }),
     }),
 };
+
 
 // ── Provider endpoints ────────────────────────────────────────────────────────
 export const providerApi = {

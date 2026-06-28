@@ -2,8 +2,12 @@ import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { TopNav } from "./TopNav";
 import { useAuth } from "../../../context/AuthContext";
-import { userApi } from "../../../utils/api";
-import { useEffect, useState } from "react";
+import {
+    userApi,
+    type UpdateUserProfilePayload,
+    type UserProfile,
+} from "../../../utils/api";
+import { useEffect, useMemo, useState } from "react";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
@@ -15,21 +19,64 @@ const container = {
     visible: { transition: { staggerChildren: 0.1 } },
 };
 
-type ProfileResponse = {
-    id: number;
-    name: string;
-    email: string;
-    created_at: string;
-};
+function toDateInputValue(value: string | null | undefined): string {
+    if (!value) return "";
+    // backend can return DATE string as YYYY-MM-DD
+    return value.slice(0, 10);
+}
+
+function normalizeInterests(value: string): string {
+    return value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(", ");
+}
+
+function labelForRole(role: UserProfile["role"]): string {
+    if (role === "admin") return "Admin";
+    if (role === "provider") return "Provider";
+    return "User";
+}
+
+async function fileToBase64DataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+    });
+}
 
 export function ProfilePage() {
     const navigate = useNavigate();
     const { role } = useParams<{ role: string }>();
     const auth = useAuth();
 
-    const [profile, setProfile] = useState<ProfileResponse | null>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const [editMode, setEditMode] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [editSuccess, setEditSuccess] = useState<string | null>(null);
+
+    const [draft, setDraft] = useState<UpdateUserProfilePayload | null>(null);
+
+    const memberSince = profile?.created_at
+        ? new Date(profile.created_at).toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+          })
+        : "Not set";
+
+    const initials = useMemo(() => {
+        const displayName = profile?.name ?? "";
+        return displayName ? displayName.charAt(0) : "M";
+    }, [profile?.name]);
 
     useEffect(() => {
         let cancelled = false;
@@ -52,170 +99,880 @@ export function ProfilePage() {
         };
     }, []);
 
-    const handleLogout = () => {
-        auth.logout();
-        navigate('/');
+    const refreshProfile = async () => {
+        const res = await userApi.getProfile();
+        if (res.error || !res.data) {
+            throw new Error(res.error || "Failed to load profile");
+        }
+        setProfile(res.data);
+        return res.data;
     };
 
-    const displayName = profile?.name ?? "";
-    const initials = displayName ? displayName.charAt(0) : "M";
-    const memberSince = profile?.created_at
-        ? new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-        : "Not set";
+    const handleLogout = () => {
+        auth.logout();
+        navigate("/");
+    };
+
+    const startEdit = () => {
+        if (!profile) return;
+        setEditError(null);
+        setEditSuccess(null);
+        setDraft({
+            avatar_url: profile.avatar_url,
+            name: profile.name,
+            phone: profile.phone,
+            gender: profile.gender,
+            date_of_birth: profile.date_of_birth,
+            profession: profile.profession,
+            education: profile.education,
+            location: profile.location,
+            bio: profile.bio,
+            interests: profile.interests,
+            relationship_goal: profile.relationship_goal,
+            marital_status: profile.marital_status,
+        });
+        setEditMode(true);
+    };
+
+    const cancelEdit = () => {
+        setEditMode(false);
+        setDraft(null);
+        setEditError(null);
+        setEditSuccess(null);
+    };
+
+    const validateDraft = (d: UpdateUserProfilePayload) => {
+        if (!d.name || typeof d.name !== "string" || d.name.trim().length < 2) {
+            return "Full Name must be at least 2 characters.";
+        }
+        if (!d.phone || typeof d.phone !== "string" || d.phone.trim().length < 6) {
+            return "Phone is invalid.";
+        }
+        if (d.gender !== undefined && d.gender !== null && d.gender !== "") {
+            const allowedGenders = [
+                "male",
+                "female",
+                "other",
+                "prefer_not_to_say",
+            ];
+            if (!allowedGenders.includes(d.gender)) {
+                return "Invalid gender.";
+            }
+        }
+        if (
+            d.date_of_birth !== undefined &&
+            d.date_of_birth !== null &&
+            d.date_of_birth !== ""
+        ) {
+            const v = String(d.date_of_birth);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+                return "Date of Birth must be YYYY-MM-DD.";
+            }
+        }
+
+        return null;
+    };
+
+    const saveChanges = async () => {
+        if (!draft) return;
+
+        setEditError(null);
+        setEditSuccess(null);
+
+        const errMsg = validateDraft(draft);
+        if (errMsg) {
+            setEditError(errMsg);
+            return;
+        }
+
+        setSaving(true);
+        try {
+            await userApi.updateProfile(draft);
+            await refreshProfile();
+            setEditMode(false);
+            setDraft(null);
+            setEditSuccess("Profile updated successfully.");
+        } catch (e) {
+            setEditError(e instanceof Error ? e.message : "Failed to update profile.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const avatarSource =
+        (editMode && draft?.avatar_url) || profile?.avatar_url || null;
 
     return (
         <motion.div
             initial="hidden"
             animate="visible"
             variants={container}
-            style={{ minHeight: '100vh', background: 'var(--bg-main)', width: '100%' }}
+            style={{ minHeight: "100vh", background: "var(--bg-main)", width: "100%" }}
         >
             <TopNav />
 
-            <div style={{
-                width: '100%',
-                height: '1px',
-                background: 'linear-gradient(90deg, rgba(19,34,71,0.1) 0%, var(--border-default) 50%, rgba(19,34,71,0.1) 100%)'
-            }} />
+            <div
+                style={{
+                    width: "100%",
+                    height: "1px",
+                    background:
+                        "linear-gradient(90deg, rgba(19,34,71,0.1) 0%, var(--border-default) 50%, rgba(19,34,71,0.1) 100%)",
+                }}
+            />
 
-            <div style={{
-                width: '100%',
-                maxWidth: '2400px',
-                margin: '0 auto',
-                padding: '108px 16px 48px 16px',
-                boxSizing: 'border-box'
-            }}>
-                <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-                    <motion.div variants={fadeUp} style={{
-                        textAlign: 'center', margin: '0 0 40px 0',
-                    }}>
-                        <div style={{
-                            width: '110px', height: '110px', borderRadius: '50%',
-                            background: 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            margin: '0 auto 16px',
-                            border: '3px solid var(--border-subtle)',
-                            fontSize: '3rem', fontWeight: 700, color: '#fff',
-                            textTransform: 'uppercase',
-                            boxShadow: 'var(--shadow-blue)'
-                        }}>
-                            {initials}
+            <div
+                style={{
+                    width: "100%",
+                    maxWidth: "2400px",
+                    margin: "0 auto",
+                    padding: "108px 16px 48px 16px",
+                    boxSizing: "border-box",
+                }}
+            >
+                <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+                    <motion.div
+                        variants={fadeUp}
+                        style={{ textAlign: "center", margin: "0 0 40px 0" }}
+                    >
+                        <div
+                            style={{
+                                width: "110px",
+                                height: "110px",
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                margin: "0 auto 16px",
+                                border: "3px solid var(--border-subtle)",
+                                fontSize: "3rem",
+                                fontWeight: 700,
+                                color: "#fff",
+                                textTransform: "uppercase",
+                                boxShadow: "var(--shadow-blue)",
+                                overflow: "hidden",
+                            }}
+                        >
+                            {avatarSource ? (
+                                <img
+                                    src={avatarSource}
+                                    alt="Avatar"
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                            ) : (
+                                initials
+                            )}
                         </div>
-                        <h3 style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px', textTransform: 'capitalize' }}>
-                            {displayName || 'Loading…'}
-                        </h3>
-                        <span style={{
-                            display: 'inline-block',
-                            fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase',
-                            color: 'var(--blue-vivid)', fontFamily: "'Inter', sans-serif", fontWeight: 700,
-                            background: 'var(--blue-glow)', padding: '6px 18px', borderRadius: '20px',
-                            border: '1px solid var(--border-subtle)'
-                        }}>
-                            {loading ? 'Loading…' : (profile ? 'Verified' : 'Not set')}
-                        </span>
-                        {error && (
-                            <div style={{
-                                marginTop: 12,
-                                color: 'var(--red-status)',
-                                fontSize: '0.85rem',
+
+                        <h3
+                            style={{
+                                fontSize: "1.75rem",
                                 fontWeight: 600,
-                            }}>
+                                color: "var(--text-primary)",
+                                marginBottom: "6px",
+                                textTransform: "capitalize",
+                            }}
+                        >
+                            {profile?.name || "Loading…"}
+                        </h3>
+
+                        <span
+                            style={{
+                                display: "inline-block",
+                                fontSize: "0.65rem",
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                color: "var(--blue-vivid)",
+                                fontFamily: "'Inter', sans-serif",
+                                fontWeight: 700,
+                                background: "var(--blue-glow)",
+                                padding: "6px 18px",
+                                borderRadius: "20px",
+                                border: "1px solid var(--border-subtle)",
+                            }}
+                        >
+                            {loading ? "Loading…" : profile ? (editMode ? "Editing" : "Verified") : "Not set"}
+                        </span>
+
+                        {error && (
+                            <div
+                                style={{
+                                    marginTop: 12,
+                                    color: "var(--red-status)",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                }}
+                            >
                                 {error}
+                            </div>
+                        )}
+
+                        {editSuccess && (
+                            <div
+                                style={{
+                                    marginTop: 12,
+                                    color: "#22c55e",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 800,
+                                }}
+                            >
+                                {editSuccess}
                             </div>
                         )}
                     </motion.div>
 
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        flexWrap: 'wrap',
-                        gap: '24px',
-                        width: '100%'
-                    }}>
-                        <motion.div variants={fadeUp} style={{
-                            flex: '1 1 500px',
-                            background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: '16px', padding: '32px',
-                            boxShadow: 'var(--shadow-md)'
-                        }}>
-                            <span style={{
-                                display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em',
-                                textTransform: 'uppercase', color: 'var(--blue-vivid)', fontWeight: 700,
-                                marginBottom: '24px',
-                            }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            flexWrap: "wrap",
+                            gap: "24px",
+                            width: "100%",
+                        }}
+                    >
+                        <motion.div
+                            variants={fadeUp}
+                            style={{
+                                flex: "1 1 500px",
+                                background: "linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))",
+                                border: "1px solid var(--border-subtle)",
+                                borderRadius: "16px",
+                                padding: "32px",
+                                boxShadow: "var(--shadow-md)",
+                            }}
+                        >
+                            <span
+                                style={{
+                                    display: "block",
+                                    fontSize: "0.7rem",
+                                    letterSpacing: "0.15em",
+                                    textTransform: "uppercase",
+                                    color: "var(--blue-vivid)",
+                                    fontWeight: 700,
+                                    marginBottom: "24px",
+                                }}
+                            >
                                 Identity Credentials
                             </span>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                {[
-                                    { label: 'Portal ID', value: profile?.id != null ? `#${profile.id}` : 'Not set' },
-                                    { label: 'Registered Email', value: profile?.email ?? 'Not set' },
-                                    { label: 'Role', value: role === 'admin' ? 'Admin' : (role === 'provider' ? 'Provider' : 'User') },
-                                    { label: 'Join Date', value: memberSince },
-                                ].map((item, idx) => (
-                                    <div key={idx} style={{
-                                        display: 'flex', justifyContent: 'space-between',
-                                        fontSize: '0.9rem', paddingBottom: '14px',
-                                        borderBottom: '1px solid var(--border-subtle)',
-                                    }}>
-                                        <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
-                                        <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{item.value}</span>
+                            {loading ? (
+                                <div style={{ color: "var(--text-muted)", fontWeight: 600 }}>Loading profile…</div>
+                            ) : !profile ? (
+                                <div style={{ color: "var(--red-status)", fontWeight: 700 }}>User not found.</div>
+                            ) : (
+                                <>
+                                    {!editMode && (
+                                        <div style={{ marginBottom: 18 }}>
+                                            <button
+                                                onClick={startEdit}
+                                                style={{
+                                                    width: "100%",
+                                                    padding: "14px 16px",
+                                                    background: "var(--blue-glow)",
+                                                    border: "1px solid var(--border-subtle)",
+                                                    borderRadius: 10,
+                                                    color: "var(--text-primary)",
+                                                    fontWeight: 800,
+                                                    cursor: "pointer",
+                                                    fontFamily: "'Inter', sans-serif",
+                                                    transition: "all 0.2s ease",
+                                                }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
+                                                onMouseLeave={(e) => (e.currentTarget.style.filter = "brightness(1)")}
+                                            >
+                                                Edit Profile
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                                        {[
+                                            { label: "Email", value: profile.email ?? "Not set" },
+                                            { label: "Phone", value: profile.phone ?? "Not set" },
+                                            { label: "Role", value: labelForRole(profile.role) },
+                                            { label: "Member Since", value: memberSince },
+                                        ].map((item) => (
+                                            <div
+                                                key={item.label}
+                                                style={{
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    fontSize: "0.9rem",
+                                                    paddingBottom: "14px",
+                                                    borderBottom: "1px solid var(--border-subtle)",
+                                                }}
+                                            >
+                                                <span style={{ color: "var(--text-muted)" }}>{item.label}</span>
+                                                <span
+                                                    style={{
+                                                        color: "var(--text-primary)",
+                                                        fontWeight: 500,
+                                                        wordBreak: "break-word",
+                                                        textAlign: "right",
+                                                    }}
+                                                >
+                                                    {item.value}
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+
+                                    {editMode && draft && (
+                                        <div style={{ marginTop: 18 }}>
+                                            {editError && (
+                                                <div
+                                                    style={{
+                                                        marginBottom: 12,
+                                                        padding: "10px 12px",
+                                                        borderRadius: 10,
+                                                        background: "rgba(239,68,68,0.08)",
+                                                        border: "1px solid rgba(239,68,68,0.25)",
+                                                        color: "var(--red-status)",
+                                                        fontWeight: 800,
+                                                    }}
+                                                >
+                                                    {editError}
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                                                <div>
+                                                    <div
+                                                        style={{
+                                                            display: "block",
+                                                            fontSize: "0.6rem",
+                                                            letterSpacing: "0.18em",
+                                                            textTransform: "uppercase",
+                                                            color: "var(--text-muted)",
+                                                            fontFamily: "'Inter', sans-serif",
+                                                            fontWeight: 700,
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        Full Name
+                                                    </div>
+                                                    <input
+                                                        value={draft.name ?? ""}
+                                                        onChange={(e) =>
+                                                            setDraft((prev) => ({
+                                                                ...(prev || {}),
+                                                                name: e.target.value,
+                                                            }))
+                                                        }
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "12px 16px",
+                                                            background: "var(--bg-input)",
+                                                            border: "1px solid var(--border-default)",
+                                                            borderRadius: 8,
+                                                            color: "var(--text-primary)",
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <div
+                                                        style={{
+                                                            display: "block",
+                                                            fontSize: "0.6rem",
+                                                            letterSpacing: "0.18em",
+                                                            textTransform: "uppercase",
+                                                            color: "var(--text-muted)",
+                                                            fontFamily: "'Inter', sans-serif",
+                                                            fontWeight: 700,
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        Gender
+                                                    </div>
+                                                    <select
+                                                        value={draft.gender ?? ""}
+                                                        onChange={(e) =>
+                                                            setDraft((prev) => ({
+                                                                ...(prev || {}),
+                                                                gender: e.target.value || null,
+                                                            }))
+                                                        }
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "12px 16px",
+                                                            background: "var(--bg-input)",
+                                                            border: "1px solid var(--border-default)",
+                                                            borderRadius: 8,
+                                                            color: "var(--text-primary)",
+                                                        }}
+                                                    >
+                                                        <option value="">Prefer not to say</option>
+                                                        <option value="male">Male</option>
+                                                        <option value="female">Female</option>
+                                                        <option value="other">Other</option>
+                                                        <option value="prefer_not_to_say">Prefer not to say</option>
+                                                    </select>
+                                                </div>
+
+                                                <div>
+                                                    <div
+                                                        style={{
+                                                            display: "block",
+                                                            fontSize: "0.6rem",
+                                                            letterSpacing: "0.18em",
+                                                            textTransform: "uppercase",
+                                                            color: "var(--text-muted)",
+                                                            fontFamily: "'Inter', sans-serif",
+                                                            fontWeight: 700,
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        Date of Birth
+                                                    </div>
+                                                    <input
+                                                        type="date"
+                                                        value={toDateInputValue(draft.date_of_birth)}
+                                                        onChange={(e) =>
+                                                            setDraft((prev) => ({
+                                                                ...(prev || {}),
+                                                                date_of_birth: e.target.value || null,
+                                                            }))
+                                                        }
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "12px 16px",
+                                                            background: "var(--bg-input)",
+                                                            border: "1px solid var(--border-default)",
+                                                            borderRadius: 8,
+                                                            color: "var(--text-primary)",
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                                    <div style={{ flex: "1 1 200px" }}>
+                                                        <div
+                                                            style={{
+                                                                display: "block",
+                                                                fontSize: "0.6rem",
+                                                                letterSpacing: "0.18em",
+                                                                textTransform: "uppercase",
+                                                                color: "var(--text-muted)",
+                                                                fontFamily: "'Inter', sans-serif",
+                                                                fontWeight: 700,
+                                                                marginBottom: 8,
+                                                            }}
+                                                        >
+                                                            Profession
+                                                        </div>
+                                                        <input
+                                                            value={draft.profession ?? ""}
+                                                            onChange={(e) =>
+                                                                setDraft((prev) => ({
+                                                                    ...(prev || {}),
+                                                                    profession: e.target.value || null,
+                                                                }))
+                                                            }
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 16px",
+                                                                background: "var(--bg-input)",
+                                                                border: "1px solid var(--border-default)",
+                                                                borderRadius: 8,
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div style={{ flex: "1 1 200px" }}>
+                                                        <div
+                                                            style={{
+                                                                display: "block",
+                                                                fontSize: "0.6rem",
+                                                                letterSpacing: "0.18em",
+                                                                textTransform: "uppercase",
+                                                                color: "var(--text-muted)",
+                                                                fontFamily: "'Inter', sans-serif",
+                                                                fontWeight: 700,
+                                                                marginBottom: 8,
+                                                            }}
+                                                        >
+                                                            Education
+                                                        </div>
+                                                        <input
+                                                            value={draft.education ?? ""}
+                                                            onChange={(e) =>
+                                                                setDraft((prev) => ({
+                                                                    ...(prev || {}),
+                                                                    education: e.target.value || null,
+                                                                }))
+                                                            }
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 16px",
+                                                                background: "var(--bg-input)",
+                                                                border: "1px solid var(--border-default)",
+                                                                borderRadius: 8,
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                                    <div style={{ flex: "1 1 260px" }}>
+                                                        <div
+                                                            style={{
+                                                                display: "block",
+                                                                fontSize: "0.6rem",
+                                                                letterSpacing: "0.18em",
+                                                                textTransform: "uppercase",
+                                                                color: "var(--text-muted)",
+                                                                fontFamily: "'Inter', sans-serif",
+                                                                fontWeight: 700,
+                                                                marginBottom: 8,
+                                                            }}
+                                                        >
+                                                            Location
+                                                        </div>
+                                                        <input
+                                                            value={draft.location ?? ""}
+                                                            onChange={(e) =>
+                                                                setDraft((prev) => ({
+                                                                    ...(prev || {}),
+                                                                    location: e.target.value || null,
+                                                                }))
+                                                            }
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 16px",
+                                                                background: "var(--bg-input)",
+                                                                border: "1px solid var(--border-default)",
+                                                                borderRadius: 8,
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div style={{ flex: "1 1 200px" }}>
+                                                        <div
+                                                            style={{
+                                                                display: "block",
+                                                                fontSize: "0.6rem",
+                                                                letterSpacing: "0.18em",
+                                                                textTransform: "uppercase",
+                                                                color: "var(--text-muted)",
+                                                                fontFamily: "'Inter', sans-serif",
+                                                                fontWeight: 700,
+                                                                marginBottom: 8,
+                                                            }}
+                                                        >
+                                                            Marital Status
+                                                        </div>
+                                                        <input
+                                                            value={draft.marital_status ?? ""}
+                                                            onChange={(e) =>
+                                                                setDraft((prev) => ({
+                                                                    ...(prev || {}),
+                                                                    marital_status: e.target.value || null,
+                                                                }))
+                                                            }
+                                                            placeholder="e.g. Single"
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 16px",
+                                                                background: "var(--bg-input)",
+                                                                border: "1px solid var(--border-default)",
+                                                                borderRadius: 8,
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div
+                                                        style={{
+                                                            display: "block",
+                                                            fontSize: "0.6rem",
+                                                            letterSpacing: "0.18em",
+                                                            textTransform: "uppercase",
+                                                            color: "var(--text-muted)",
+                                                            fontFamily: "'Inter', sans-serif",
+                                                            fontWeight: 700,
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        Bio
+                                                    </div>
+                                                    <textarea
+                                                        value={draft.bio ?? ""}
+                                                        onChange={(e) =>
+                                                            setDraft((prev) => ({
+                                                                ...(prev || {}),
+                                                                bio: e.target.value || null,
+                                                            }))
+                                                        }
+                                                        rows={4}
+                                                        style={{
+                                                            width: "100%",
+                                                            padding: "12px 16px",
+                                                            background: "var(--bg-input)",
+                                                            border: "1px solid var(--border-default)",
+                                                            borderRadius: 8,
+                                                            color: "var(--text-primary)",
+                                                            resize: "vertical",
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                                    <div style={{ flex: "1 1 260px" }}>
+                                                        <div
+                                                            style={{
+                                                                display: "block",
+                                                                fontSize: "0.6rem",
+                                                                letterSpacing: "0.18em",
+                                                                textTransform: "uppercase",
+                                                                color: "var(--text-muted)",
+                                                                fontFamily: "'Inter', sans-serif",
+                                                                fontWeight: 700,
+                                                                marginBottom: 8,
+                                                            }}
+                                                        >
+                                                            Interests (comma separated)
+                                                        </div>
+                                                        <input
+                                                            value={draft.interests ?? ""}
+                                                            onChange={(e) =>
+                                                                setDraft((prev) => ({
+                                                                    ...(prev || {}),
+                                                                    interests: e.target.value
+                                                                        ? normalizeInterests(e.target.value)
+                                                                        : null,
+                                                                }))
+                                                            }
+                                                            placeholder="e.g. Music, Travel, Coding"
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 16px",
+                                                                background: "var(--bg-input)",
+                                                                border: "1px solid var(--border-default)",
+                                                                borderRadius: 8,
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div style={{ flex: "1 1 260px" }}>
+                                                        <div
+                                                            style={{
+                                                                display: "block",
+                                                                fontSize: "0.6rem",
+                                                                letterSpacing: "0.18em",
+                                                                textTransform: "uppercase",
+                                                                color: "var(--text-muted)",
+                                                                fontFamily: "'Inter', sans-serif",
+                                                                fontWeight: 700,
+                                                                marginBottom: 8,
+                                                            }}
+                                                        >
+                                                            Relationship Goal
+                                                        </div>
+                                                        <input
+                                                            value={draft.relationship_goal ?? ""}
+                                                            onChange={(e) =>
+                                                                setDraft((prev) => ({
+                                                                    ...(prev || {}),
+                                                                    relationship_goal: e.target.value || null,
+                                                                }))
+                                                            }
+                                                            placeholder="e.g. Long-term"
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "12px 16px",
+                                                                background: "var(--bg-input)",
+                                                                border: "1px solid var(--border-default)",
+                                                                borderRadius: 8,
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div
+                                                        style={{
+                                                            display: "block",
+                                                            fontSize: "0.6rem",
+                                                            letterSpacing: "0.18em",
+                                                            textTransform: "uppercase",
+                                                            color: "var(--text-muted)",
+                                                            fontFamily: "'Inter', sans-serif",
+                                                            fontWeight: 700,
+                                                            marginBottom: 8,
+                                                        }}
+                                                    >
+                                                        Avatar
+                                                    </div>
+                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
+
+                                                                setEditError(null);
+                                                                setEditSuccess(null);
+                                                                setSaving(true);
+                                                                try {
+                                                                    const base64 = await fileToBase64DataUrl(file);
+                                                                    setDraft((prev) => ({
+                                                                        ...(prev || {}),
+                                                                        avatar_url: base64,
+                                                                    }));
+                                                                } catch {
+                                                                    setEditError("Failed to read image.");
+                                                                } finally {
+                                                                    setSaving(false);
+                                                                }
+                                                            }}
+                                                        />
+
+                                                        {avatarSource ? (
+                                                            <div
+                                                                style={{
+                                                                    width: 64,
+                                                                    height: 64,
+                                                                    borderRadius: "50%",
+                                                                    overflow: "hidden",
+                                                                    border: "1px solid var(--border-subtle)",
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={avatarSource}
+                                                                    alt="Avatar preview"
+                                                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div style={{ color: "var(--text-muted)", fontWeight: 700 }}>
+                                                                No avatar selected
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={saveChanges}
+                                                        disabled={saving}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: "14px",
+                                                            background: saving
+                                                                ? "rgba(59,130,246,0.4)"
+                                                                : "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",
+                                                            border: "none",
+                                                            borderRadius: 10,
+                                                            color: "#fff",
+                                                            fontWeight: 800,
+                                                            cursor: saving ? "not-allowed" : "pointer",
+                                                        }}
+                                                    >
+                                                        {saving ? "Saving…" : "Save Changes"}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelEdit}
+                                                        disabled={saving}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: "14px",
+                                                            background: "transparent",
+                                                            border: "1px solid var(--border-subtle)",
+                                                            borderRadius: 10,
+                                                            color: "var(--text-primary)",
+                                                            fontWeight: 800,
+                                                            cursor: saving ? "not-allowed" : "pointer",
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </motion.div>
 
-                        <motion.div variants={fadeUp} style={{
-                            flex: '1 1 380px',
-                            background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                            border: '1px solid var(--border-subtle)',
-                            borderRadius: '16px', padding: '32px',
-                            display: 'flex', flexDirection: 'column', gap: '16px',
-                            justifyContent: 'center',
-                            boxShadow: 'var(--shadow-md)'
-                        }}>
-                            <span style={{
-                                display: 'block', fontSize: '0.7rem', letterSpacing: '0.15em',
-                                textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700,
-                                marginBottom: '8px',
-                            }}>
+                        <motion.div
+                            variants={fadeUp}
+                            style={{
+                                flex: "1 1 380px",
+                                background: "linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))",
+                                border: "1px solid var(--border-subtle)",
+                                borderRadius: "16px",
+                                padding: "32px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "16px",
+                                justifyContent: "center",
+                                boxShadow: "var(--shadow-md)",
+                            }}
+                        >
+                            <span
+                                style={{
+                                    display: "block",
+                                    fontSize: "0.7rem",
+                                    letterSpacing: "0.15em",
+                                    textTransform: "uppercase",
+                                    color: "var(--text-muted)",
+                                    fontWeight: 700,
+                                    marginBottom: "8px",
+                                }}
+                            >
                                 Account Management
                             </span>
 
-                           {role !== 'admin' && (
+                            {role !== "admin" && (
                                 <button
                                     style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: 'transparent',
-                                        border: '1px solid var(--border-subtle)',
-                                        borderRadius: '10px',
-                                        color: 'var(--blue-vivid)',
-                                        fontSize: '0.85rem',
+                                        width: "100%",
+                                        padding: "16px",
+                                        background: "transparent",
+                                        border: "1px solid var(--border-subtle)",
+                                        borderRadius: "10px",
+                                        color: "var(--blue-vivid)",
+                                        fontSize: "0.85rem",
                                         fontWeight: 600,
-                                        cursor: 'pointer',
+                                        cursor: "pointer",
                                         fontFamily: "'Inter', sans-serif",
-                                        transition: 'all 0.2s ease'
+                                        transition: "all 0.2s ease",
                                     }}
-                                    onClick={() => navigate('../network')}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                    onClick={() => navigate("../network")}
+                                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--blue-glow)")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                                 >
                                     Referral
                                 </button>
                             )}
 
-                            <button style={{
-                                width: '100%', padding: '16px',
-                                background: 'transparent', border: '1px solid var(--border-subtle)',
-                                borderRadius: '10px', color: 'var(--blue-vivid)',
-                                fontSize: '0.85rem', fontWeight: 600,
-                                cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-                                transition: 'all 0.2s ease'
-                            }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            <button
+                                style={{
+                                    width: "100%",
+                                    padding: "16px",
+                                    background: "transparent",
+                                    border: "1px solid var(--border-subtle)",
+                                    borderRadius: "10px",
+                                    color: "var(--blue-vivid)",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    fontFamily: "'Inter', sans-serif",
+                                    transition: "all 0.2s ease",
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--blue-glow)")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >
                                 Change Password
                             </button>
@@ -223,15 +980,20 @@ export function ProfilePage() {
                             <button
                                 onClick={handleLogout}
                                 style={{
-                                    width: '100%', padding: '16px',
-                                    background: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.3)',
-                                    borderRadius: '10px', color: 'var(--red-status)',
-                                    fontSize: '0.85rem', fontWeight: 600,
-                                    cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-                                    transition: 'all 0.2s ease'
+                                    width: "100%",
+                                    padding: "16px",
+                                    background: "rgba(239, 68, 68, 0.06)",
+                                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                                    borderRadius: "10px",
+                                    color: "var(--red-status)",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    fontFamily: "'Inter', sans-serif",
+                                    transition: "all 0.2s ease",
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)'}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)")}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(239, 68, 68, 0.06)")}
                             >
                                 Sign Out
                             </button>

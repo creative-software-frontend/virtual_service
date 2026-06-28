@@ -336,3 +336,62 @@ export const adminApi = {
     getReports: () =>
         request<ReportsData>('/admin/reports'),
 };
+
+// ── Event endpoints ────────────────────────────────────────────────────────────
+
+export interface Event {
+    id: number;
+    title: string;
+    description: string | null;
+    date_time: string;
+    location: string;
+    capacity: number;
+    creator_id: number;
+    creator_name?: string;
+    status: 'active' | 'cancelled' | 'completed';
+    created_at: string;
+    participant_count: number;
+    joined?: number; // 1 or 0
+}
+
+export interface EventParticipant {
+    id: number;
+    name: string;
+    email: string;
+    joined_at: string;
+}
+
+export const eventApi = {
+    getEvents: (role: string) =>
+        request<Event[]>(`/${role}/events`),
+
+    createEvent: (payload: { title: string; description: string; date_time: string; location: string; capacity: number }) =>
+        request<Event>('/provider/events', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+
+    updateEvent: (id: number, payload: { title: string; description: string; date_time: string; location: string; capacity: number; status: string }) =>
+        request<Event>(`/provider/events/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload),
+        }),
+
+    deleteEvent: (id: number) =>
+        request<{ message: string }>(`/provider/events/${id}`, {
+            method: 'DELETE',
+        }),
+
+    joinEvent: (id: number) =>
+        request<{ message: string }>(`/user/events/${id}/join`, {
+            method: 'POST',
+        }),
+
+    leaveEvent: (id: number) =>
+        request<{ message: string }>(`/user/events/${id}/leave`, {
+            method: 'POST',
+        }),
+
+    getParticipants: (id: number) =>
+        request<EventParticipant[]>(`/provider/events/${id}/participants`),
+};

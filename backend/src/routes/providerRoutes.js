@@ -197,4 +197,129 @@ router.post(
     }
 );
 
+// Create Event
+router.post(
+    "/events",
+    authMiddleware,
+    roleMiddleware(["provider"]),
+    (req, res) => {
+        const { title, description, date_time, location, capacity } = req.body;
+        if (!title || !date_time || !location) {
+            return res.status(400).json({ message: "Title, date/time, and location are required." });
+        }
+        const creatorId = req.user.id;
+        db.query(
+            `INSERT INTO events (title, description, date_time, location, capacity, creator_id) VALUES (?, ?, ?, ?, ?, ?)`,
+            [title.trim(), description ? description.trim() : null, date_time, location.trim(), capacity || 0, creatorId],
+            (err, result) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.status(201).json({
+                    id: result.insertId,
+                    title,
+                    description,
+                    date_time,
+                    location,
+                    capacity: capacity || 0,
+                    creator_id: creatorId,
+                    status: 'active'
+                });
+            }
+        );
+    }
+);
+
+// Edit Event
+router.put(
+    "/events/:id",
+    authMiddleware,
+    roleMiddleware(["provider"]),
+    (req, res) => {
+        const { title, description, date_time, location, capacity, status } = req.body;
+        const eventId = req.params.id;
+        const providerId = req.user.id;
+
+        db.query(
+            `UPDATE events SET title = ?, description = ?, date_time = ?, location = ?, capacity = ?, status = ? WHERE id = ? AND creator_id = ?`,
+            [title.trim(), description ? description.trim() : null, date_time, location.trim(), capacity || 0, status || 'active', eventId, providerId],
+            (err, result) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: "Event not found or you are not authorized to edit it." });
+                }
+                res.json({ id: eventId, title, description, date_time, location, capacity, status });
+            }
+        );
+    }
+);
+
+// Delete Event
+router.delete(
+    "/events/:id",
+    authMiddleware,
+    roleMiddleware(["provider"]),
+    (req, res) => {
+        const eventId = req.params.id;
+        const providerId = req.user.id;
+
+        db.query(
+            `DELETE FROM events WHERE id = ? AND creator_id = ?`,
+            [eventId, providerId],
+            (err, result) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                if (result.affectedRows === 0) {
+                    return res.status(404).json({ message: "Event not found or you are not authorized to delete it." });
+                }
+                // also delete participants
+                db.query(`DELETE FROM event_participants WHERE event_id = ?`, [eventId]);
+                res.json({ message: "Event deleted successfully." });
+            }
+        );
+    }
+);
+
+// View Participants
+router.get(
+    "/events/:id/participants",
+    authMiddleware,
+    roleMiddleware(["provider"]),
+    (req, res) => {
+        const eventId = req.params.id;
+        db.query(
+            `SELECT u.id, u.name, u.email, ep.joined_at 
+             FROM event_participants ep 
+             JOIN users u ON ep.user_id = u.id 
+             WHERE ep.event_id = ?`,
+            [eventId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows);
+            }
+        );
+    }
+);
+
+// Get Provider's Events
+router.get(
+    "/events",
+    authMiddleware,
+    roleMiddleware(["provider"]),
+    (req, res) => {
+        const providerId = req.user.id;
+        db.query(
+            `SELECT e.*, 
+                    (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) as participant_count,
+                    u.name as creator_name
+             FROM events e
+             JOIN users u ON e.creator_id = u.id
+             WHERE e.creator_id = ?
+             ORDER BY e.date_time ASC`,
+            [providerId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows);
+            }
+        );
+    }
+);
+
 module.exports = router;

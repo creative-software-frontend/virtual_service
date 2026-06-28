@@ -88,6 +88,33 @@ module.exports = async (db) => {
         `);
         console.log("Transactions table setup verified");
 
+        // Create events table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS events (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                date_time DATETIME NOT NULL,
+                location VARCHAR(255) NOT NULL,
+                capacity INT NOT NULL DEFAULT 0,
+                creator_id INT NOT NULL,
+                status VARCHAR(50) DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        console.log("Events table setup verified");
+
+        // Create event participants table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS event_participants (
+                event_id INT NOT NULL,
+                user_id INT NOT NULL,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (event_id, user_id)
+            )
+        `);
+        console.log("Event participants table setup verified");
+
         console.log("DB initialized successfully");
     } catch (err) {
         console.error("DB init error:", err.message);

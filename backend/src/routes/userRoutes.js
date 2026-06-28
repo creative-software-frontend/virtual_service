@@ -154,4 +154,98 @@ router.post("/withdraw", authMiddleware, (req, res) => {
     );
 });
 
+// Get User Events
+router.get("/events", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    db.query(
+        `SELECT e.*, 
+                u.name as creator_name,
+                (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) as participant_count,
+                IF(EXISTS(SELECT 1 FROM event_participants WHERE event_id = e.id AND user_id = ?), 1, 0) as joined
+         FROM events e
+         JOIN users u ON e.creator_id = u.id
+         ORDER BY e.date_time ASC`,
+        [userId],
+        (err, rows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json(rows);
+        }
+    );
+});
+
+// Join Event
+router.post("/events/:id/join", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    const eventId = req.params.id;
+
+    // Check event exists and capacity
+    db.query(
+        "SELECT * FROM events WHERE id = ?",
+        [eventId],
+        (err, eventRows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (eventRows.length === 0) return res.status(404).json({ message: "Event not found" });
+
+            const event = eventRows[0];
+            if (event.status !== 'active') {
+                return res.status(400).json({ message: "This event is not active" });
+            }
+
+            // Check if already joined
+            db.query(
+                "SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ?",
+                [eventId, userId],
+                (err2, participantRows) => {
+                    if (err2) return res.status(500).json({ message: err2.message });
+                    if (participantRows.length > 0) {
+                        return res.status(400).json({ message: "You have already joined this event" });
+                    }
+
+                    // Check capacity
+                    db.query(
+                        "SELECT COUNT(*) as count FROM event_participants WHERE event_id = ?",
+                        [eventId],
+                        (err3, countRows) => {
+                            if (err3) return res.status(500).json({ message: err3.message });
+                            const currentCount = countRows[0].count;
+
+                            if (event.capacity > 0 && currentCount >= event.capacity) {
+                                return res.status(400).json({ message: "This event has reached its capacity limit" });
+                            }
+
+                            // Join
+                            db.query(
+                                "INSERT INTO event_participants (event_id, user_id) VALUES (?, ?)",
+                                [eventId, userId],
+                                (err4) => {
+                                    if (err4) return res.status(500).json({ message: "Database error: " + err4.message });
+                                    res.json({ message: "Successfully joined the event" });
+                                }
+                            );
+                        }
+                    );
+                }
+            );
+        }
+    );
+});
+
+// Leave Event
+router.post("/events/:id/leave", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    const eventId = req.params.id;
+
+    db.query(
+        "DELETE FROM event_participants WHERE event_id = ? AND user_id = ?",
+        [eventId, userId],
+        (err, result) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            if (result.affectedRows === 0) {
+                return res.status(400).json({ message: "You are not a participant in this event" });
+            }
+            res.json({ message: "Successfully left the event" });
+        }
+    );
+});
+
 module.exports = router;

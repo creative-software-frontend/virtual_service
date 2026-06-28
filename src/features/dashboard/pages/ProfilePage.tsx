@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { TopNav } from "./TopNav";
 import { useAuth } from "../../../context/AuthContext";
-
+import { userApi } from "../../../utils/api";
+import { useEffect, useState } from "react";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
@@ -14,16 +15,53 @@ const container = {
     visible: { transition: { staggerChildren: 0.1 } },
 };
 
+type ProfileResponse = {
+    id: number;
+    name: string;
+    email: string;
+    created_at: string;
+};
+
 export function ProfilePage() {
     const navigate = useNavigate();
     const { role } = useParams<{ role: string }>();
     const auth = useAuth();
-    const user = localStorage.getItem('bluedise_user') || 'member';
+
+    const [profile, setProfile] = useState<ProfileResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            setLoading(true);
+            setError(null);
+            const res = await userApi.getProfile();
+            if (cancelled) return;
+            if (res.error) {
+                setError(res.error);
+            } else {
+                setProfile(res.data ?? null);
+            }
+            setLoading(false);
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleLogout = () => {
         auth.logout();
         navigate('/');
     };
+
+    const displayName = profile?.name ?? "";
+    const initials = displayName ? displayName.charAt(0) : "M";
+    const memberSince = profile?.created_at
+        ? new Date(profile.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+        : "Not set";
 
     return (
         <motion.div
@@ -32,17 +70,14 @@ export function ProfilePage() {
             variants={container}
             style={{ minHeight: '100vh', background: 'var(--bg-main)', width: '100%' }}
         >
-            {/* Navigation Header */}
             <TopNav />
 
-            {/* Bottom Nav Border/Divider Line */}
             <div style={{
                 width: '100%',
                 height: '1px',
                 background: 'linear-gradient(90deg, rgba(19,34,71,0.1) 0%, var(--border-default) 50%, rgba(19,34,71,0.1) 100%)'
             }} />
 
-            {/* Main Wide Content Viewport Framework */}
             <div style={{
                 width: '100%',
                 maxWidth: '2400px',
@@ -50,11 +85,7 @@ export function ProfilePage() {
                 padding: '108px 16px 48px 16px',
                 boxSizing: 'border-box'
             }}>
-
-                {/* CRITICAL CHANGE: Widened out to 1100px max layout width boundary */}
                 <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-
-                    {/* Avatar & User info */}
                     <motion.div variants={fadeUp} style={{
                         textAlign: 'center', margin: '0 0 40px 0',
                     }}>
@@ -68,10 +99,10 @@ export function ProfilePage() {
                             textTransform: 'uppercase',
                             boxShadow: 'var(--shadow-blue)'
                         }}>
-                            {user.charAt(0)}
+                            {initials}
                         </div>
                         <h3 style={{ fontSize: '1.75rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px', textTransform: 'capitalize' }}>
-                            {user}
+                            {displayName || 'Loading…'}
                         </h3>
                         <span style={{
                             display: 'inline-block',
@@ -80,13 +111,20 @@ export function ProfilePage() {
                             background: 'var(--blue-glow)', padding: '6px 18px', borderRadius: '20px',
                             border: '1px solid var(--border-subtle)'
                         }}>
-                            Verification Pending
+                            {loading ? 'Loading…' : (profile ? 'Verified' : 'Not set')}
                         </span>
+                        {error && (
+                            <div style={{
+                                marginTop: 12,
+                                color: 'var(--red-status)',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                            }}>
+                                {error}
+                            </div>
+                        )}
                     </motion.div>
 
-                    {/* Grid Container: Automatically shifts between a widescreen side-by-side double row
-                      and standard column layout configurations natively via Flex Wrapping
-                    */}
                     <div style={{
                         display: 'flex',
                         flexDirection: 'row',
@@ -94,8 +132,6 @@ export function ProfilePage() {
                         gap: '24px',
                         width: '100%'
                     }}>
-
-                        {/* Identity Credentials - Flex Column Left (Takes up remaining space) */}
                         <motion.div variants={fadeUp} style={{
                             flex: '1 1 500px',
                             background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
@@ -113,10 +149,10 @@ export function ProfilePage() {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                                 {[
-                                    { label: 'Portal ID', value: '#BLD-88291' },
-                                    { label: 'Registered Email', value: `${user}@gmail.com` },
-                                    { label: 'Role', value: 'Visitor / Free Tier' },
-                                    { label: 'Join Date', value: new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) },
+                                    { label: 'Portal ID', value: profile?.id != null ? `#${profile.id}` : 'Not set' },
+                                    { label: 'Registered Email', value: profile?.email ?? 'Not set' },
+                                    { label: 'Role', value: role === 'admin' ? 'Admin' : (role === 'provider' ? 'Provider' : 'User') },
+                                    { label: 'Join Date', value: memberSince },
                                 ].map((item, idx) => (
                                     <div key={idx} style={{
                                         display: 'flex', justifyContent: 'space-between',
@@ -130,7 +166,6 @@ export function ProfilePage() {
                             </div>
                         </motion.div>
 
-                        {/* Account Actions - Flex Column Right (Fixed wider layout context) */}
                         <motion.div variants={fadeUp} style={{
                             flex: '1 1 380px',
                             background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
@@ -149,27 +184,27 @@ export function ProfilePage() {
                             </span>
 
                            {role !== 'admin' && (
-    <button
-        style={{
-            width: '100%',
-            padding: '16px',
-            background: 'transparent',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '10px',
-            color: 'var(--blue-vivid)',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: "'Inter', sans-serif",
-            transition: 'all 0.2s ease'
-        }}
-        onClick={() => navigate('../network')}
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-        Referral
-    </button>
-)}
+                                <button
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px',
+                                        background: 'transparent',
+                                        border: '1px solid var(--border-subtle)',
+                                        borderRadius: '10px',
+                                        color: 'var(--blue-vivid)',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        fontFamily: "'Inter', sans-serif",
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onClick={() => navigate('../network')}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-glow)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    Referral
+                                </button>
+                            )}
 
                             <button style={{
                                 width: '100%', padding: '16px',
@@ -184,7 +219,6 @@ export function ProfilePage() {
                             >
                                 Change Password
                             </button>
-
 
                             <button
                                 onClick={handleLogout}
@@ -202,11 +236,10 @@ export function ProfilePage() {
                                 Sign Out
                             </button>
                         </motion.div>
-
                     </div>
                 </div>
-
             </div>
         </motion.div>
     );
 }
+

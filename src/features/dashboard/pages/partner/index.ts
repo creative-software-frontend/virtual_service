@@ -1,0 +1,2 @@
+export { PartnerSearchPage } from './PartnerSearchPage';
+

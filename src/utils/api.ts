@@ -135,9 +135,70 @@ export interface UpdateUserProfilePayload {
     avatar_url?: string | null; // base64 data URL
 }
 
+export interface PartnerSearchFilters {
+    keyword?: string;
+    gender?: string;
+    ageMin?: number;
+    ageMax?: number;
+    profession?: string;
+    education?: string;
+    location?: string;
+    relationship_goal?: string;
+    marital_status?: string;
+    interests?: string[]; // will be joined by backend as comma-separated
+}
+
+export interface PartnerSearchResponse {
+    total: number;
+    page: number;
+    pageSize: number;
+    results: Array<Pick<
+        UserProfile,
+        | 'id'
+        | 'name'
+        | 'gender'
+        | 'date_of_birth'
+        | 'profession'
+        | 'education'
+        | 'location'
+        | 'relationship_goal'
+        | 'marital_status'
+        | 'interests'
+        | 'avatar_url'
+        | 'created_at'
+    >>;
+}
+
+export type MatchRequestStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface MatchRequestItem {
+    id: number;
+    sender_id: number;
+    receiver_id: number;
+    status: MatchRequestStatus;
+    created_at: string;
+    name: string; // other user's name (sender or receiver depending on incoming/outgoing)
+    avatar_url: string | null;
+    gender: string | null;
+    date_of_birth: string | null;
+    profession: string | null;
+    location: string | null;
+    relationship_goal: string | null;
+    interests: string | null;
+}
+
+export interface MatchRequestListResponse {
+    incoming: MatchRequestItem[];
+    outgoing: MatchRequestItem[];
+}
+
+export interface SendMatchRequestResponse {
+    message: string;
+}
+
+// ── User endpoints ────────────────────────────────────────────────────────────
 export const userApi = {
-    getProfile: () =>
-        request<UserProfile>('/user/profile'),
+    getProfile: () => request<UserProfile>('/user/profile'),
 
     updateProfile: (payload: UpdateUserProfilePayload) =>
         request<UserProfile>('/user/profile', {
@@ -146,14 +207,55 @@ export const userApi = {
         }),
 
     getWallet: () => request<WalletResponse>('/user/wallet'),
-    deposit: (amount: number) => request<{ message: string; amount: number }>('/user/deposit', {
-        method: 'POST',
-        body: JSON.stringify({ amount }),
-    }),
-    withdraw: (amount: number) => request<{ message: string; amount: number }>('/user/withdraw', {
-        method: 'POST',
-        body: JSON.stringify({ amount }),
-    }),
+
+    deposit: (amount: number) =>
+        request<{ message: string; amount: number }>('/user/deposit', {
+            method: 'POST',
+            body: JSON.stringify({ amount }),
+        }),
+
+    withdraw: (amount: number) =>
+        request<{ message: string; amount: number }>('/user/withdraw', {
+            method: 'POST',
+            body: JSON.stringify({ amount }),
+        }),
+
+    searchPartners: (filters: PartnerSearchFilters & { page?: number; pageSize?: number }) => {
+        const params = new URLSearchParams();
+
+        if (filters.keyword) params.set('keyword', filters.keyword);
+        if (filters.gender) params.set('gender', filters.gender);
+        if (filters.ageMin !== undefined) params.set('ageMin', String(filters.ageMin));
+        if (filters.ageMax !== undefined) params.set('ageMax', String(filters.ageMax));
+        if (filters.profession) params.set('profession', filters.profession);
+        if (filters.education) params.set('education', filters.education);
+        if (filters.location) params.set('location', filters.location);
+        if (filters.relationship_goal) params.set('relationship_goal', filters.relationship_goal);
+        if (filters.marital_status) params.set('marital_status', filters.marital_status);
+        if (filters.interests && filters.interests.length > 0) params.set('interests', filters.interests.join(','));
+        if (filters.page !== undefined) params.set('page', String(filters.page));
+        if (filters.pageSize !== undefined) params.set('pageSize', String(filters.pageSize));
+
+        return request<PartnerSearchResponse>(`/user/search?${params.toString()}`);
+    },
+
+    getMatchRequests: () => request<MatchRequestListResponse>('/user/match-request'),
+
+    sendMatchRequest: (receiverId: number) =>
+        request<SendMatchRequestResponse>('/user/match-request', {
+            method: 'POST',
+            body: JSON.stringify({ receiver_id: receiverId }),
+        }),
+
+    acceptMatchRequest: (id: number) =>
+        request<{ message: string; match_request_id: number }>(`/user/match-request/${id}/accept`, {
+            method: 'POST',
+        }),
+
+    rejectMatchRequest: (id: number) =>
+        request<{ message: string; match_request_id: number }>(`/user/match-request/${id}/reject`, {
+            method: 'POST',
+        }),
 };
 
 

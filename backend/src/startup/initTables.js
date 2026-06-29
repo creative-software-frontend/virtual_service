@@ -136,6 +136,21 @@ module.exports = async (db) => {
         `);
         console.log("Event participants table setup verified");
 
+        // Create match requests table
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS match_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                sender_id INT NOT NULL,
+                receiver_id INT NOT NULL,
+                status ENUM('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_match_requests_sender (sender_id),
+                INDEX idx_match_requests_receiver (receiver_id),
+                INDEX idx_match_requests_status (status)
+            )
+        `);
+        console.log("Match requests table setup verified");
+
         console.log("DB initialized successfully");
     } catch (err) {
         console.error("DB init error:", err.message);

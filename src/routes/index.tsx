@@ -128,6 +128,13 @@ export const router = createBrowserRouter([
                 }
             },
             {
+                path: "partner",
+                lazy: async () => {
+                    const { PartnerSearchPage } = await import("../features/dashboard/pages/partner/PartnerSearchPage");
+                    return { element: <PartnerSearchPage /> };
+                },
+            },
+            {
                 path: "reports",
                 lazy: async () => {
                     const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");

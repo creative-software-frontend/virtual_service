@@ -9,6 +9,61 @@ import {
 } from "../../../utils/api";
 import { useEffect, useMemo, useState } from "react";
 
+const EDUCATION_OPTIONS = [
+    "SSC",
+    "HSC",
+    "Diploma",
+    "Bachelor's",
+    "Master's",
+    "PhD",
+    "Other",
+] as const;
+
+const MARITAL_STATUS_OPTIONS = ["Single", "Divorced", "Widowed"] as const;
+
+const RELATIONSHIP_GOAL_OPTIONS = [
+    "Serious Relationship",
+    "Marriage",
+    "Friendship",
+    "Casual Dating",
+    "Travel Partner",
+    "Activity Partner",
+    "Networking",
+    "Open to Anything",
+] as const;
+
+const INTEREST_OPTIONS = [
+    "Traveling",
+    "Music",
+    "Movies",
+    "Reading",
+    "Gaming",
+    "Photography",
+    "Cooking",
+    "Fitness",
+    "Gym",
+    "Football",
+    "Cricket",
+    "Badminton",
+    "Swimming",
+    "Hiking",
+    "Cycling",
+    "Dancing",
+    "Singing",
+    "Art",
+    "Fashion",
+    "Technology",
+    "Programming",
+    "Business",
+    "Entrepreneurship",
+    "Pets",
+    "Food",
+    "Coffee",
+    "Nature",
+    "Volunteering",
+    "Writing",
+] as const;
+
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
@@ -25,12 +80,26 @@ function toDateInputValue(value: string | null | undefined): string {
     return value.slice(0, 10);
 }
 
-function normalizeInterests(value: string): string {
+function interestsToArray(value: string | null | undefined): string[] {
+    if (!value) return [];
     return value
         .split(",")
         .map((s) => s.trim())
-        .filter(Boolean)
-        .join(", ");
+        .filter(Boolean);
+}
+
+function arrayToInterestsString(items: string[]): string | null {
+    const normalized = items.map((s) => s.trim()).filter(Boolean);
+    if (normalized.length === 0) return null;
+    return normalized.join(",");
+}
+
+function removeInterestAt(items: string[], item: string): string[] {
+    return items.filter((x) => x !== item);
+}
+
+function uniqueInterests(items: string[]): string[] {
+    return Array.from(new Set(items));
 }
 
 function labelForRole(role: UserProfile["role"]): string {
@@ -168,6 +237,43 @@ export function ProfilePage() {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
                 return "Date of Birth must be YYYY-MM-DD.";
             }
+        }
+
+        const education = d.education ?? null;
+        if (!education) {
+            return "Education must be selected.";
+        }
+        if (!EDUCATION_OPTIONS.includes(education as (typeof EDUCATION_OPTIONS)[number])) {
+            return "Invalid education selected.";
+        }
+
+        const maritalStatus = d.marital_status ?? null;
+        if (!maritalStatus) {
+            return "Marital Status must be selected.";
+        }
+        if (!MARITAL_STATUS_OPTIONS.includes(maritalStatus as (typeof MARITAL_STATUS_OPTIONS)[number])) {
+            return "Invalid marital status selected.";
+        }
+
+        const relationshipGoal = d.relationship_goal ?? null;
+        if (!relationshipGoal) {
+            return "Relationship Goal must be selected.";
+        }
+        if (
+            !RELATIONSHIP_GOAL_OPTIONS.includes(
+                relationshipGoal as (typeof RELATIONSHIP_GOAL_OPTIONS)[number]
+            )
+        ) {
+            return "Invalid relationship goal selected.";
+        }
+
+        const interestsArr = interestsToArray(d.interests);
+        const unique = uniqueInterests(interestsArr);
+        if (unique.length !== interestsArr.length) {
+            return "Interests must be unique.";
+        }
+        if (unique.length === 0) {
+            return "At least one interest must be selected.";
         }
 
         return null;
@@ -595,7 +701,7 @@ export function ProfilePage() {
                                                         >
                                                             Education
                                                         </div>
-                                                        <input
+                                                        <select
                                                             value={draft.education ?? ""}
                                                             onChange={(e) =>
                                                                 setDraft((prev) => ({
@@ -611,7 +717,14 @@ export function ProfilePage() {
                                                                 borderRadius: 8,
                                                                 color: "var(--text-primary)",
                                                             }}
-                                                        />
+                                                        >
+                                                            <option value="">Select education</option>
+                                                            {EDUCATION_OPTIONS.map((opt) => (
+                                                                <option key={opt} value={opt}>
+                                                                    {opt}
+                                                                </option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
 
@@ -665,7 +778,7 @@ export function ProfilePage() {
                                                         >
                                                             Marital Status
                                                         </div>
-                                                        <input
+                                                        <select
                                                             value={draft.marital_status ?? ""}
                                                             onChange={(e) =>
                                                                 setDraft((prev) => ({
@@ -673,7 +786,6 @@ export function ProfilePage() {
                                                                     marital_status: e.target.value || null,
                                                                 }))
                                                             }
-                                                            placeholder="e.g. Single"
                                                             style={{
                                                                 width: "100%",
                                                                 padding: "12px 16px",
@@ -682,7 +794,14 @@ export function ProfilePage() {
                                                                 borderRadius: 8,
                                                                 color: "var(--text-primary)",
                                                             }}
-                                                        />
+                                                        >
+                                                            <option value="">Select marital status</option>
+                                                            {MARITAL_STATUS_OPTIONS.map((opt) => (
+                                                                <option key={opt} value={opt}>
+                                                                    {opt}
+                                                                </option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
 
@@ -736,28 +855,128 @@ export function ProfilePage() {
                                                                 marginBottom: 8,
                                                             }}
                                                         >
-                                                            Interests (comma separated)
+                                                            Interests
                                                         </div>
-                                                        <input
-                                                            value={draft.interests ?? ""}
-                                                            onChange={(e) =>
-                                                                setDraft((prev) => ({
-                                                                    ...(prev || {}),
-                                                                    interests: e.target.value
-                                                                        ? normalizeInterests(e.target.value)
-                                                                        : null,
-                                                                }))
-                                                            }
-                                                            placeholder="e.g. Music, Travel, Coding"
-                                                            style={{
-                                                                width: "100%",
-                                                                padding: "12px 16px",
-                                                                background: "var(--bg-input)",
-                                                                border: "1px solid var(--border-default)",
-                                                                borderRadius: 8,
-                                                                color: "var(--text-primary)",
-                                                            }}
-                                                        />
+
+                                                        {(() => {
+                                                            const interestsArr = interestsToArray(draft.interests);
+
+                                                            return (
+                                                                <>
+                                                                    <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                                                                        <select
+                                                                            value=""
+                                                                            onChange={(e) => {
+                                                                                const next = e.target.value;
+                                                                                if (!next) return;
+                                                                                setDraft((prev) => {
+                                                                                    const prevArr = interestsToArray(prev?.interests);
+                                                                                    if (prevArr.includes(next)) return prev || {};
+                                                                                    const merged = uniqueInterests([...prevArr, next]);
+                                                                                    return {
+                                                                                        ...(prev || {}),
+                                                                                        interests: arrayToInterestsString(merged),
+                                                                                    };
+                                                                                });
+                                                                            }}
+                                                                            style={{
+                                                                                flex: 1,
+                                                                                padding: "12px 16px",
+                                                                                background: "var(--bg-input)",
+                                                                                border: "1px solid var(--border-default)",
+                                                                                borderRadius: 8,
+                                                                                color: "var(--text-primary)",
+                                                                            }}
+                                                                        >
+                                                                            <option value="">Select interest</option>
+                                                                            {INTEREST_OPTIONS.map((opt) => (
+                                                                                <option key={opt} value={opt}>
+                                                                                    {opt}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                // no-op: selection is handled onChange; keep button to match UX
+                                                                            }}
+                                                                            disabled
+                                                                            style={{
+                                                                                padding: "12px 16px",
+                                                                                background: "transparent",
+                                                                                border: "1px solid rgba(59,130,246,0.25)",
+                                                                                borderRadius: 8,
+                                                                                color: "rgba(59,130,246,0.6)",
+                                                                                fontWeight: 900,
+                                                                                cursor: "not-allowed",
+                                                                            }}
+                                                                        >
+                                                                            Add
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                                                                        {interestsArr.length === 0 ? (
+                                                                            <div style={{ color: "var(--text-muted)", fontWeight: 700 }}>
+                                                                                Select at least one interest.
+                                                                            </div>
+                                                                        ) : (
+                                                                            interestsArr.map((interest) => (
+                                                                                <span
+                                                                                    key={interest}
+                                                                                    style={{
+                                                                                        display: "inline-flex",
+                                                                                        alignItems: "center",
+                                                                                        gap: 8,
+                                                                                        padding: "8px 12px",
+                                                                                        borderRadius: 999,
+                                                                                        background:
+                                                                                            "linear-gradient(135deg, rgba(59,130,246,0.18), rgba(59,130,246,0.06))",
+                                                                                        border: "1px solid var(--border-subtle)",
+                                                                                        color: "var(--text-primary)",
+                                                                                        fontWeight: 800,
+                                                                                        fontSize: "0.8rem",
+                                                                                    }}
+                                                                                >
+                                                                                    {interest}
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        aria-label={`Remove ${interest}`}
+                                                                                        onClick={() => {
+                                                                                            setDraft((prev) => {
+                                                                                                const prevArr = interestsToArray(prev?.interests);
+                                                                                                const nextArr = removeInterestAt(prevArr, interest);
+                                                                                                return {
+                                                                                                    ...(prev || {}),
+                                                                                                    interests: arrayToInterestsString(nextArr),
+                                                                                                };
+                                                                                            });
+                                                                                        }}
+                                                                                        style={{
+                                                                                            width: 20,
+                                                                                            height: 20,
+                                                                                            borderRadius: "50%",
+                                                                                            border: "1px solid rgba(255,255,255,0.18)",
+                                                                                            background: "rgba(0,0,0,0.12)",
+                                                                                            color: "#fff",
+                                                                                            cursor: "pointer",
+                                                                                            display: "flex",
+                                                                                            alignItems: "center",
+                                                                                            justifyContent: "center",
+                                                                                            fontWeight: 1000,
+                                                                                            lineHeight: 1,
+                                                                                        }}
+                                                                                    >
+                                                                                        ×
+                                                                                    </button>
+                                                                                </span>
+                                                                            ))
+                                                                        )}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
 
                                                     <div style={{ flex: "1 1 260px" }}>
@@ -775,7 +994,7 @@ export function ProfilePage() {
                                                         >
                                                             Relationship Goal
                                                         </div>
-                                                        <input
+                                                        <select
                                                             value={draft.relationship_goal ?? ""}
                                                             onChange={(e) =>
                                                                 setDraft((prev) => ({
@@ -783,7 +1002,6 @@ export function ProfilePage() {
                                                                     relationship_goal: e.target.value || null,
                                                                 }))
                                                             }
-                                                            placeholder="e.g. Long-term"
                                                             style={{
                                                                 width: "100%",
                                                                 padding: "12px 16px",
@@ -792,7 +1010,14 @@ export function ProfilePage() {
                                                                 borderRadius: 8,
                                                                 color: "var(--text-primary)",
                                                             }}
-                                                        />
+                                                        >
+                                                            <option value="">Select relationship goal</option>
+                                                            {RELATIONSHIP_GOAL_OPTIONS.map((opt) => (
+                                                                <option key={opt} value={opt}>
+                                                                    {opt}
+                                                                </option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
 

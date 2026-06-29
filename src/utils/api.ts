@@ -348,11 +348,15 @@ export interface Event {
     capacity: number;
     creator_id: number;
     creator_name?: string;
+    host_name?: string | null;
+    entry_fee?: number | null;
+    application_deadline?: string | null;
     status: 'active' | 'cancelled' | 'completed';
     created_at: string;
     participant_count: number;
     joined?: number; // 1 or 0
 }
+
 
 export interface EventParticipant {
     id: number;
@@ -365,17 +369,18 @@ export const eventApi = {
     getEvents: (role: string) =>
         request<Event[]>(`/${role}/events`),
 
-    createEvent: (payload: { title: string; description: string; date_time: string; location: string; capacity: number }) =>
+    createEvent: (payload: { title: string; description: string; date_time: string; location: string; capacity: number; host_name: string; entry_fee: number; application_deadline: string }) =>
         request<Event>('/provider/events', {
             method: 'POST',
             body: JSON.stringify(payload),
         }),
 
-    updateEvent: (id: number, payload: { title: string; description: string; date_time: string; location: string; capacity: number; status: string }) =>
+    updateEvent: (id: number, payload: { title: string; description: string; date_time: string; location: string; capacity: number; status: string; host_name: string; entry_fee: number; application_deadline: string }) =>
         request<Event>(`/provider/events/${id}`, {
             method: 'PUT',
             body: JSON.stringify(payload),
         }),
+
 
     deleteEvent: (id: number) =>
         request<{ message: string }>(`/provider/events/${id}`, {

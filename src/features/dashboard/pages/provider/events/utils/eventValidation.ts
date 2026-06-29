@@ -4,6 +4,10 @@ export interface EventFormErrors {
     date_time?: string;
     location?: string;
     capacity?: string;
+
+    host_name?: string;
+    entry_fee?: string;
+    application_deadline?: string;
 }
 
 export function validateEventForm(values: {
@@ -12,7 +16,12 @@ export function validateEventForm(values: {
     date_time: string;
     location: string;
     capacity: number | string;
+
+    host_name: string;
+    entry_fee: number | string;
+    application_deadline: string;
 }): EventFormErrors {
+
     const errors: EventFormErrors = {};
 
     if (!values.title || !values.title.trim()) {
@@ -47,5 +56,34 @@ export function validateEventForm(values: {
         errors.capacity = 'Capacity must be a non-negative integer';
     }
 
+    if (!values.host_name || !values.host_name.trim()) {
+        errors.host_name = 'Host name is required';
+    } else if (values.host_name.length > 150) {
+        errors.host_name = 'Host name must be 150 characters or less';
+    }
+
+    const feeNum = Number(values.entry_fee);
+    if (values.entry_fee === '' || isNaN(feeNum)) {
+        errors.entry_fee = 'Entry fee is required';
+    } else if (feeNum < 0) {
+        errors.entry_fee = 'Entry fee cannot be negative';
+    }
+
+    if (!values.application_deadline) {
+        errors.application_deadline = 'Application deadline is required';
+    } else {
+        const deadlineDate = new Date(values.application_deadline);
+        const eventDate = new Date(values.date_time);
+
+        if (isNaN(deadlineDate.getTime())) {
+            errors.application_deadline = 'Invalid application deadline';
+        } else if (isNaN(eventDate.getTime())) {
+            // date_time validation will show its own error
+        } else if (deadlineDate.getTime() >= eventDate.getTime()) {
+            errors.application_deadline = 'Application deadline must be before the event start time';
+        }
+    }
+
     return errors;
 }
+

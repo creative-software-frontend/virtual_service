@@ -3,6 +3,7 @@ import { eventApi } from '../../../../../utils/api';
 import { formatEventDate, getStatusLabel, getStatusStyle, getCapacityText } from './utils/eventHelpers';
 import type { Event, EventParticipant } from './types/event';
 
+
 interface EventDetailsModalProps {
     isOpen: boolean;
     event: Event | null;
@@ -31,6 +32,9 @@ export function EventDetailsModal({ isOpen, event, onClose, role }: EventDetails
     if (!isOpen || !event) return null;
 
     const statusStyle = getStatusStyle(event.status);
+
+    const isApplicationsClosed = !!event.application_deadline && new Date().getTime() > new Date(event.application_deadline).getTime();
+
 
     return (
         <div style={{
@@ -68,16 +72,17 @@ export function EventDetailsModal({ isOpen, event, onClose, role }: EventDetails
                     <span style={{
                         fontSize: '0.62rem',
                         letterSpacing: '0.1em',
-                        background: statusStyle.background,
-                        border: statusStyle.border,
-                        color: statusStyle.color,
+                        background: isApplicationsClosed ? 'rgba(239,68,68,0.15)' : statusStyle.background,
+                        border: isApplicationsClosed ? '1px solid rgba(239,68,68,0.4)' : statusStyle.border,
+                        color: isApplicationsClosed ? '#f87171' : statusStyle.color,
                         padding: '3px 10px',
                         borderRadius: 20,
                         fontWeight: 700,
                         textTransform: 'uppercase'
                     }}>
-                        {getStatusLabel(event.status)}
+                        {isApplicationsClosed ? 'Expired' : getStatusLabel(event.status)}
                     </span>
+
                     <button
                         onClick={onClose}
                         style={{
@@ -118,6 +123,32 @@ export function EventDetailsModal({ isOpen, event, onClose, role }: EventDetails
                         flexDirection: 'column',
                         gap: 10
                     }}>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <span style={{ color: '#818cf8', marginTop: 1 }}>🏷️</span>
+                            <div>
+                                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>HOST</p>
+                                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>{event.host_name || 'Host'}</p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <span style={{ color: '#818cf8', marginTop: 1 }}>💳</span>
+                            <div>
+                                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>ENTRY FEE</p>
+                                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                                    {event.entry_fee === 0 ? 'Free' : `৳ ${event.entry_fee ?? 0}`}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                            <span style={{ color: '#818cf8', marginTop: 1 }}>⏳</span>
+                            <div>
+                                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>APPLICATION DEADLINE</p>
+                                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 500 }}>{event.application_deadline ? formatEventDate(event.application_deadline) : 'N/A'}</p>
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                             <span style={{ color: '#818cf8', marginTop: 1 }}>📅</span>
                             <div>

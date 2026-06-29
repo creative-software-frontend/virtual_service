@@ -99,10 +99,31 @@ module.exports = async (db) => {
                 capacity INT NOT NULL DEFAULT 0,
                 creator_id INT NOT NULL,
                 status VARCHAR(50) DEFAULT 'active',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                host_name VARCHAR(150) NULL,
+                application_deadline DATETIME NULL,
+                entry_fee DECIMAL(10,2) DEFAULT 0
             )
         `);
+
+        // Backward-compatible column adds (in case events table existed earlier)
+        const [eventCols] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'events'"
+        );
+        const eventColNames = eventCols.map(c => c.COLUMN_NAME.toLowerCase());
+
+        if (!eventColNames.includes('host_name')) {
+            await db.query("ALTER TABLE events ADD COLUMN host_name VARCHAR(150) NULL");
+        }
+        if (!eventColNames.includes('application_deadline')) {
+            await db.query("ALTER TABLE events ADD COLUMN application_deadline DATETIME NULL");
+        }
+        if (!eventColNames.includes('entry_fee')) {
+            await db.query("ALTER TABLE events ADD COLUMN entry_fee DECIMAL(10,2) DEFAULT 0");
+        }
+
         console.log("Events table setup verified");
+
 
         // Create event participants table
         await db.query(`

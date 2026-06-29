@@ -7,11 +7,17 @@ export interface Event {
     capacity: number;
     creator_id: number;
     creator_name?: string;
+
+    host_name?: string | null;
+    entry_fee?: number | null;
+    application_deadline?: string | null;
+
     status: 'active' | 'cancelled' | 'completed';
     created_at: string;
     participant_count: number;
     joined?: number; // 1 = true, 0 = false (for user joined status)
 }
+
 
 export interface EventParticipant {
     id: number;

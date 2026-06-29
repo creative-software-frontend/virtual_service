@@ -1,4 +1,5 @@
 import { formatEventDate, getStatusLabel, getStatusStyle, getCapacityText, isEventFull } from './utils/eventHelpers';
+
 import type { Event } from './types/event';
 
 interface EventCardProps {
@@ -29,7 +30,10 @@ export function EventCard({
     const isFull = isEventFull(event.participant_count, event.capacity);
     const isLoading = actionLoading === event.id;
 
+    const isApplicationsClosed = !!event.application_deadline && new Date().getTime() > new Date(event.application_deadline).getTime();
+
     const statusStyle = getStatusStyle(event.status);
+
 
     return (
         <div style={{
@@ -72,6 +76,37 @@ export function EventCard({
                     {getCapacityText(event.participant_count, event.capacity)}
                 </span>
             </div>
+
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+                padding: '8px 10px',
+                background: 'rgba(255,255,255,0.02)',
+                borderRadius: 8,
+                fontSize: '0.76rem',
+                color: 'var(--text-secondary)'
+            }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span>🏷️</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {event.host_name || 'Host'}
+                    </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span>💳</span>
+                    <span>
+                        {event.entry_fee === 0 ? 'Free' : `৳ ${event.entry_fee ?? 0}`}
+                    </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <span>⏳</span>
+                    <span>{event.application_deadline ? formatEventDate(event.application_deadline) : 'N/A'}</span>
+                </div>
+            </div>
+
 
             <div>
                 <h3 style={{
@@ -185,26 +220,43 @@ export function EventCard({
                                 {isLoading ? 'Leaving...' : 'Leave Event'}
                             </button>
                         ) : (
-                            <button
-                                onClick={() => onJoin(event.id)}
-                                disabled={isLoading || isFull}
-                                style={{
-                                    background: isFull ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#6366f1,#818cf8)',
-                                    border: 'none',
-                                    borderRadius: 8,
-                                    color: isFull ? 'var(--text-muted)' : '#fff',
-                                    padding: '7px 14px',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    cursor: isLoading || isFull ? 'not-allowed' : 'pointer',
-                                    boxShadow: isFull ? 'none' : '0 0 10px rgba(99,102,241,0.3)'
-                                }}
-                            >
-                                {isLoading ? 'Joining...' : isFull ? 'Event Full' : 'Join Event'}
-                            </button>
+                            <>
+                                {isApplicationsClosed && (
+                                    <span style={{
+                                        background: 'rgba(239,68,68,0.15)',
+                                        border: '1px solid rgba(239,68,68,0.35)',
+                                        color: '#f87171',
+                                        padding: '2px 8px',
+                                        borderRadius: 20,
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        Applications Closed
+                                    </span>
+                                )}
+                                <button
+                                    onClick={() => onJoin(event.id)}
+                                    disabled={isLoading || isFull || isApplicationsClosed}
+                                    style={{
+                                        background: isFull || isApplicationsClosed ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg,#6366f1,#818cf8)',
+                                        border: 'none',
+                                        borderRadius: 8,
+                                        color: isFull || isApplicationsClosed ? 'var(--text-muted)' : '#fff',
+                                        padding: '7px 14px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        cursor: isLoading || isFull || isApplicationsClosed ? 'not-allowed' : 'pointer',
+                                        boxShadow: isFull || isApplicationsClosed ? 'none' : '0 0 10px rgba(99,102,241,0.3)'
+                                    }}
+                                >
+                                    {isLoading ? 'Joining...' : isApplicationsClosed ? 'Applications Closed' : isFull ? 'Event Full' : 'Join Event'}
+                                </button>
+                            </>
                         )
                     )
                 ) : null}
+
 
                 <button
                     onClick={() => onViewDetails(event)}

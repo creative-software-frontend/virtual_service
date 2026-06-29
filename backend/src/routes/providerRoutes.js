@@ -203,14 +203,53 @@ router.post(
     authMiddleware,
     roleMiddleware(["provider"]),
     (req, res) => {
-        const { title, description, date_time, location, capacity } = req.body;
+        const { title, description, date_time, location, capacity, host_name, entry_fee, application_deadline } = req.body;
+
         if (!title || !date_time || !location) {
             return res.status(400).json({ message: "Title, date/time, and location are required." });
         }
+
+        if (!host_name || typeof host_name !== 'string' || host_name.trim().length < 1) {
+            return res.status(400).json({ message: "host_name is required" });
+        }
+        if (host_name.trim().length > 150) {
+            return res.status(400).json({ message: "host_name must be 150 characters or less" });
+        }
+
+        const feeNum = Number(entry_fee);
+        if (entry_fee === undefined || entry_fee === null || Number.isNaN(feeNum)) {
+            return res.status(400).json({ message: "entry_fee is required" });
+        }
+        if (feeNum < 0) {
+            return res.status(400).json({ message: "entry_fee cannot be negative" });
+        }
+
+        if (!application_deadline) {
+            return res.status(400).json({ message: "application_deadline is required" });
+        }
+        const appDeadline = new Date(application_deadline);
+        const eventStart = new Date(date_time);
+        if (isNaN(appDeadline.getTime()) || isNaN(eventStart.getTime())) {
+            return res.status(400).json({ message: "Invalid application_deadline or date_time" });
+        }
+        if (appDeadline.getTime() >= eventStart.getTime()) {
+            return res.status(400).json({ message: "application_deadline must be before the event start time" });
+        }
+
         const creatorId = req.user.id;
         db.query(
-            `INSERT INTO events (title, description, date_time, location, capacity, creator_id) VALUES (?, ?, ?, ?, ?, ?)`,
-            [title.trim(), description ? description.trim() : null, date_time, location.trim(), capacity || 0, creatorId],
+            `INSERT INTO events (title, description, date_time, location, capacity, creator_id, host_name, entry_fee, application_deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                title.trim(),
+                description ? description.trim() : null,
+                date_time,
+                location.trim(),
+                capacity || 0,
+                creatorId,
+                host_name.trim(),
+                feeNum,
+                application_deadline
+            ],
             (err, result) => {
                 if (err) return res.status(500).json({ message: "Database error: " + err.message });
                 res.status(201).json({
@@ -220,6 +259,9 @@ router.post(
                     date_time,
                     location,
                     capacity: capacity || 0,
+                    host_name: host_name,
+                    entry_fee: feeNum,
+                    application_deadline,
                     creator_id: creatorId,
                     status: 'active'
                 });
@@ -228,29 +270,73 @@ router.post(
     }
 );
 
+
 // Edit Event
 router.put(
     "/events/:id",
     authMiddleware,
     roleMiddleware(["provider"]),
     (req, res) => {
-        const { title, description, date_time, location, capacity, status } = req.body;
+        const { title, description, date_time, location, capacity, status, host_name, entry_fee, application_deadline } = req.body;
         const eventId = req.params.id;
         const providerId = req.user.id;
 
+        if (!title || !date_time || !location) {
+            return res.status(400).json({ message: "Title, date/time, and location are required." });
+        }
+        if (!host_name || typeof host_name !== 'string' || host_name.trim().length < 1) {
+            return res.status(400).json({ message: "host_name is required" });
+        }
+        if (host_name.trim().length > 150) {
+            return res.status(400).json({ message: "host_name must be 150 characters or less" });
+        }
+
+        const feeNum = Number(entry_fee);
+        if (entry_fee === undefined || entry_fee === null || Number.isNaN(feeNum)) {
+            return res.status(400).json({ message: "entry_fee is required" });
+        }
+        if (feeNum < 0) {
+            return res.status(400).json({ message: "entry_fee cannot be negative" });
+        }
+
+        if (!application_deadline) {
+            return res.status(400).json({ message: "application_deadline is required" });
+        }
+        const appDeadline = new Date(application_deadline);
+        const eventStart = new Date(date_time);
+        if (isNaN(appDeadline.getTime()) || isNaN(eventStart.getTime())) {
+            return res.status(400).json({ message: "Invalid application_deadline or date_time" });
+        }
+        if (appDeadline.getTime() >= eventStart.getTime()) {
+            return res.status(400).json({ message: "application_deadline must be before the event start time" });
+        }
+
         db.query(
-            `UPDATE events SET title = ?, description = ?, date_time = ?, location = ?, capacity = ?, status = ? WHERE id = ? AND creator_id = ?`,
-            [title.trim(), description ? description.trim() : null, date_time, location.trim(), capacity || 0, status || 'active', eventId, providerId],
+            `UPDATE events SET title = ?, description = ?, date_time = ?, location = ?, capacity = ?, status = ?, host_name = ?, entry_fee = ?, application_deadline = ? WHERE id = ? AND creator_id = ?`,
+            [
+                title.trim(),
+                description ? description.trim() : null,
+                date_time,
+                location.trim(),
+                capacity || 0,
+                status || 'active',
+                host_name.trim(),
+                feeNum,
+                application_deadline,
+                eventId,
+                providerId
+            ],
             (err, result) => {
                 if (err) return res.status(500).json({ message: "Database error: " + err.message });
                 if (result.affectedRows === 0) {
                     return res.status(404).json({ message: "Event not found or you are not authorized to edit it." });
                 }
-                res.json({ id: eventId, title, description, date_time, location, capacity, status });
+                res.json({ id: eventId, title, description, date_time, location, capacity, status, host_name, entry_fee: feeNum, application_deadline });
             }
         );
     }
 );
+
 
 // Delete Event
 router.delete(

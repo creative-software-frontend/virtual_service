@@ -125,7 +125,87 @@ export function EventForm({ eventToEdit, onSuccess, onCancel }: EventFormProps) 
                 </div>
             </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                    <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>
+                        HOST NAME
+                    </label>
+                    <input
+                        type="text"
+                        name="host_name"
+                        value={values.host_name}
+                        onChange={handleChange}
+                        placeholder="E.g., Blue Lounge Team"
+                        style={{
+                            width: '100%',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: errors.host_name ? '1px solid #f87171' : '1px solid rgba(99,102,241,0.25)',
+                            borderRadius: 10,
+                            color: 'var(--text-primary)',
+                            padding: '10px 12px',
+                            fontSize: '0.9rem',
+                            fontFamily: "'Inter', sans-serif",
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                    {errors.host_name && <span style={{ color: '#f87171', fontSize: '0.72rem', marginTop: 4, display: 'block' }}>{errors.host_name}</span>}
+                </div>
+
+                <div>
+                    <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>
+                        ENTRY FEE
+                    </label>
+                    <input
+                        type="number"
+                        name="entry_fee"
+                        value={values.entry_fee}
+                        onChange={handleChange}
+                        placeholder="0"
+                        style={{
+                            width: '100%',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: errors.entry_fee ? '1px solid #f87171' : '1px solid rgba(99,102,241,0.25)',
+                            borderRadius: 10,
+                            color: 'var(--text-primary)',
+                            padding: '10px 12px',
+                            fontSize: '0.9rem',
+                            fontFamily: "'Inter', sans-serif",
+                            outline: 'none',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                    {errors.entry_fee && <span style={{ color: '#f87171', fontSize: '0.72rem', marginTop: 4, display: 'block' }}>{errors.entry_fee}</span>}
+                </div>
+            </div>
+
             <div>
+                <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>
+                    APPLICATION DEADLINE
+                </label>
+                <input
+                    type="datetime-local"
+                    name="application_deadline"
+                    value={values.application_deadline}
+                    onChange={handleChange}
+                    style={{
+                        width: '100%',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: errors.application_deadline ? '1px solid #f87171' : '1px solid rgba(99,102,241,0.25)',
+                        borderRadius: 10,
+                        color: 'var(--text-primary)',
+                        padding: '10px 12px',
+                        fontSize: '0.9rem',
+                        fontFamily: "'Inter', sans-serif",
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                    }}
+                />
+                {errors.application_deadline && <span style={{ color: '#f87171', fontSize: '0.72rem', marginTop: 4, display: 'block' }}>{errors.application_deadline}</span>}
+            </div>
+
+            <div>
+
                 <label style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, marginBottom: 6 }}>
                     LOCATION
                 </label>

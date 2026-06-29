@@ -16,8 +16,14 @@ export function useCreateEvent({ eventToEdit, onSuccess }: UseCreateEventOptions
         date_time: '',
         location: '',
         capacity: '' as string | number,
+
+        host_name: '',
+        entry_fee: 0 as number,
+        application_deadline: '',
+
         status: 'active'
     });
+
 
     const [errors, setErrors] = useState<EventFormErrors>({});
     const [submitting, setSubmitting] = useState(false);
@@ -37,12 +43,25 @@ export function useCreateEvent({ eventToEdit, onSuccess }: UseCreateEventOptions
                 }
             }
 
+            const formattedApplicationDeadline = (() => {
+                if (!eventToEdit.application_deadline) return '';
+                const d = new Date(eventToEdit.application_deadline);
+                if (isNaN(d.getTime())) return '';
+                const tzOffset = d.getTimezoneOffset() * 60000; // in ms
+                return (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
+            })();
+
             setValues({
                 title: eventToEdit.title || '',
                 description: eventToEdit.description || '',
                 date_time: formattedDate,
                 location: eventToEdit.location || '',
                 capacity: eventToEdit.capacity || '',
+
+                host_name: eventToEdit.host_name || '',
+                entry_fee: eventToEdit.entry_fee ?? 0,
+                application_deadline: formattedApplicationDeadline,
+
                 status: eventToEdit.status || 'active'
             });
         } else {
@@ -52,9 +71,15 @@ export function useCreateEvent({ eventToEdit, onSuccess }: UseCreateEventOptions
                 date_time: '',
                 location: '',
                 capacity: '',
+
+                host_name: '',
+                entry_fee: 0,
+                application_deadline: '',
+
                 status: 'active'
             });
         }
+
         setErrors({});
         setSubmitError(null);
     }, [eventToEdit]);
@@ -78,7 +103,8 @@ export function useCreateEvent({ eventToEdit, onSuccess }: UseCreateEventOptions
         e.preventDefault();
         setSubmitError(null);
 
-        const formErrors = validateEventForm(values);
+        const formErrors = validateEventForm(values as any);
+
         if (Object.keys(formErrors).length > 0) {
             setErrors(formErrors);
             return;
@@ -92,8 +118,12 @@ export function useCreateEvent({ eventToEdit, onSuccess }: UseCreateEventOptions
             date_time: values.date_time,
             location: values.location.trim(),
             capacity: values.capacity === '' ? 0 : Number(values.capacity),
+            host_name: values.host_name.trim(),
+            entry_fee: Number(values.entry_fee),
+            application_deadline: values.application_deadline,
             status: values.status
         };
+
 
         let res;
         if (eventToEdit) {

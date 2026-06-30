@@ -71,6 +71,21 @@ export const router = createBrowserRouter([
                 }
             },
             {
+    path: "wallet",
+    lazy: async () => {
+        const { WalletPage } = await import(
+            "../features/dashboard/pages/WalletPage"
+        );
+
+        return {
+            element: <WalletPage />
+        };
+    }
+},
+
+            
+
+            {
                 path: "assets",
                 lazy: async () => {
                     const { AssetsPage } = await import("../features/dashboard/pages/AssetsPage");

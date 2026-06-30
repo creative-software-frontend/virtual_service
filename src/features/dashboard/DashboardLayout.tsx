@@ -66,6 +66,13 @@ newsfeed: (
     </svg>
 ),
 
+wallet: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M3 7h18v10H3z" />
+        <path d="M16 11h.01" />
+    </svg>
+),
+
     social: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -84,7 +91,7 @@ newsfeed: (
 const USER_NAV = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
-    
+    { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.services },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed }, // Replaced 'NETWORK' with 'NEWSFEED'
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
@@ -96,11 +103,13 @@ const ADMIN_NAV = [
     { to: '/reports', end: false, label: 'REPORTS', icon: ICONS.reports },
     { to: '/settings', end: false, label: 'SETTINGS', icon: ICONS.settings },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
+    
 ];
 
 const PROVIDER_NAV = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.social },
+
     { to: '/earnings', end: false, label: 'EARNINGS', icon: ICONS.earnings },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed }, // Replaced 'NETWORK' with 'NEWSFEED'
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },

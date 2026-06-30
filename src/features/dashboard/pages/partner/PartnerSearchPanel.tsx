@@ -334,22 +334,70 @@ function SearchFilters({
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                                 <div>
                                     <label style={labelStyle}>Profession</label>
-                                    <input value={filters.profession ?? ""} onChange={(e) => set("profession", e.target.value || undefined)} style={fieldStyle} placeholder="Doctor, Engineer…" />
+                                   <select
+    value={filters.profession ?? ""}
+    onChange={(e) => set("profession", e.target.value || undefined)}
+    style={{ ...fieldStyle, cursor: "pointer" }}
+>
+    <option value="">Any Profession</option>
+    <option value="Student">Student</option>
+    <option value="Engineer">Engineer</option>
+    <option value="Doctor">Doctor</option>
+    <option value="Teacher">Teacher</option>
+    <option value="Lawyer">Lawyer</option>
+    <option value="Business">Business</option>
+    <option value="Government Job">Government Job</option>
+    <option value="Private Job">Private Job</option>
+    <option value="Freelancer">Freelancer</option>
+    <option value="Entrepreneur">Entrepreneur</option>
+    <option value="Other">Other</option>
+</select>
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Education</label>
-                                    <input value={filters.education ?? ""} onChange={(e) => set("education", e.target.value || undefined)} style={fieldStyle} placeholder="HSC, Bachelor…" />
+                                    <select
+    value={filters.education ?? ""}
+    onChange={(e) => set("education", e.target.value || undefined)}
+    style={{ ...fieldStyle, cursor: "pointer" }}
+>
+    <option value="">Any Education</option>
+    <option value="SSC">SSC</option>
+    <option value="HSC">HSC</option>
+    <option value="Diploma">Diploma</option>
+    <option value="Bachelor">Bachelor</option>
+    <option value="Master">Master</option>
+    <option value="PhD">PhD</option>
+</select>
                                 </div>
                             </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                                 <div>
                                     <label style={labelStyle}>Relationship goal</label>
-                                    <input value={filters.relationship_goal ?? ""} onChange={(e) => set("relationship_goal", e.target.value || undefined)} style={fieldStyle} placeholder="Marriage, Friendship…" />
+                                    <select
+    value={filters.relationship_goal ?? ""}
+    onChange={(e) => set("relationship_goal", e.target.value || undefined)}
+    style={{ ...fieldStyle, cursor: "pointer" }}
+>
+    <option value="">Any Goal</option>
+    <option value="Marriage">Marriage</option>
+    <option value="Serious Relationship">Serious Relationship</option>
+    <option value="Friendship">Friendship</option>
+</select>
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Marital status</label>
-                                    <input value={filters.marital_status ?? ""} onChange={(e) => set("marital_status", e.target.value || undefined)} style={fieldStyle} placeholder="Single, Divorced…" />
+                                   <select
+    value={filters.marital_status ?? ""}
+    onChange={(e) => set("marital_status", e.target.value || undefined)}
+    style={{ ...fieldStyle, cursor: "pointer" }}
+>
+    <option value="">Any Status</option>
+    <option value="Single">Single</option>
+    <option value="Divorced">Divorced</option>
+    <option value="Widowed">Widowed</option>
+    <option value="Separated">Separated</option>
+</select>
                                 </div>
                             </div>
 

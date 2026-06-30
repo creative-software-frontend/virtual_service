@@ -84,7 +84,7 @@ newsfeed: (
 const USER_NAV = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
-    { to: '/partner', end: false, label: 'PARTNER', icon: ICONS.social },
+    
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.services },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed }, // Replaced 'NETWORK' with 'NEWSFEED'
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },

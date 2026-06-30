@@ -9,6 +9,7 @@ import { JoinedEvents } from './JoinedEvents';
 import { CreateEventModal } from './CreateEventModal';
 import { EventDetailsModal } from './EventDetailsModal';
 import type { Event } from './types/event';
+import { PartnerSearchPanel } from '../../partner/PartnerSearchPanel';
 
 export function EventPage() {
     const { role = 'user' } = useParams<{ role: string }>();
@@ -29,7 +30,7 @@ export function EventPage() {
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [activeTab, setActiveTab] = useState<'browse' | 'my-events' | 'joined-events'>('browse');
+    const [activeTab, setActiveTab] = useState<'browse' | 'my-events' | 'joined-events' | 'partner'>('browse');
 
     // Modals
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -133,52 +134,72 @@ export function EventPage() {
                 )}
 
                 {role === 'user' && (
-                    <button
-                        onClick={() => setActiveTab('joined-events')}
-                        style={{
-                            flex: 1,
-                            background: 'none',
-                            border: 'none',
-                            color: activeTab === 'joined-events' ? '#818cf8' : 'var(--text-secondary)',
-                            padding: '12px 0',
-                            fontSize: '0.85rem',
-                            fontWeight: activeTab === 'joined-events' ? 700 : 500,
-                            cursor: 'pointer',
-                            position: 'relative',
-                            transition: 'color 0.2s'
-                        }}
-                    >
-                        Joined Events
-                        {activeTab === 'joined-events' && (
-                            <span style={{
-                                position: 'absolute',
-                                bottom: -1,
-                                left: '25%',
-                                right: '25%',
-                                height: 2,
-                                background: 'linear-gradient(90deg,#6366f1,#818cf8)',
-                                borderRadius: 4
-                            }} />
-                        )}
-                    </button>
+                    <>
+                        <button
+                            onClick={() => setActiveTab('joined-events')}
+                            style={{
+                                flex: 1,
+                                background: 'none',
+                                border: 'none',
+                                color: activeTab === 'joined-events' ? '#818cf8' : 'var(--text-secondary)',
+                                padding: '12px 0',
+                                fontSize: '0.85rem',
+                                fontWeight: activeTab === 'joined-events' ? 700 : 500,
+                                cursor: 'pointer',
+                                position: 'relative',
+                                transition: 'color 0.2s'
+                            }}
+                        >
+                            Joined Events
+                            {activeTab === 'joined-events' && (
+                                <span style={{
+                                    position: 'absolute',
+                                    bottom: -1,
+                                    left: '25%',
+                                    right: '25%',
+                                    height: 2,
+                                    background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                    borderRadius: 4
+                                }} />
+                            )}
+                        </button>
+
+                        <button
+                            onClick={() => setActiveTab('partner')}
+                            style={{
+                                flex: 1,
+                                background: 'none',
+                                border: 'none',
+                                color: activeTab === 'partner' ? '#818cf8' : 'var(--text-secondary)',
+                                padding: '12px 0',
+                                fontSize: '0.85rem',
+                                fontWeight: activeTab === 'partner' ? 700 : 500,
+                                cursor: 'pointer',
+                                position: 'relative',
+                                transition: 'color 0.2s'
+                            }}
+                        >
+                            Partner
+                            {activeTab === 'partner' && (
+                                <span style={{
+                                    position: 'absolute',
+                                    bottom: -1,
+                                    left: '25%',
+                                    right: '25%',
+                                    height: 2,
+                                    background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                    borderRadius: 4
+                                }} />
+                            )}
+                        </button>
+                    </>
                 )}
             </div>
 
-            {/* Filter controls */}
-            <EventFilters
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                showCreateButton={role === 'provider'}
-                onCreateClick={() => {
-                    setEventToEdit(null);
-                    setIsCreateOpen(true);
-                }}
-            />
-
             {/* Event Lists depending on active tab */}
-            {loading ? (
+            {activeTab === 'partner' ? (
+                <PartnerSearchPanel />
+            ) : loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
                     Loading experiences...
                 </div>
@@ -188,6 +209,17 @@ export function EventPage() {
                 </div>
             ) : (
                 <>
+                    <EventFilters
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        statusFilter={statusFilter}
+                        setStatusFilter={setStatusFilter}
+                        showCreateButton={role === 'provider'}
+                        onCreateClick={() => {
+                            setEventToEdit(null);
+                            setIsCreateOpen(true);
+                        }}
+                    />
                     {activeTab === 'browse' && (
                         <EventList
                             events={filteredEvents}

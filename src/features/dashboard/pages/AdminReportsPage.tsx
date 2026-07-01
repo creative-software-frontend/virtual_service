@@ -9,6 +9,8 @@ const fmt = (n: number) =>
         deposit: { label: 'Deposit', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
         withdraw: { label: 'Withdraw', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
         earning: { label: 'Earning', color: '#818cf8', bg: 'rgba(129,140,248,0.12)' },
+        event_payment: { label: 'Event Payment', color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+        event_income: { label: 'Event Income', color: '#818cf8', bg: 'rgba(129,140,248,0.12)' },
     };
 
     const Icon = ({
@@ -143,7 +145,7 @@ export default function AdminReportsPage() {
     const [data, setData] = useState<ReportsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning'>('all');
+    const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning' | 'event_payment' | 'event_income'>('all');
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [pendingRequests, setPendingRequests] = useState<{ deposits: PendingWalletRequest[]; withdrawals: PendingWalletRequest[] }>({ deposits: [], withdrawals: [] });
@@ -405,7 +407,7 @@ export default function AdminReportsPage() {
 
                     {/* Type Filter Tabs */}
                     <div style={{ display: 'flex', gap: 6 }}>
-                        {(['all', 'deposit', 'withdraw', 'earning'] as const).map(f => (
+                        {(['all', 'deposit', 'withdraw', 'earning', 'event_payment', 'event_income'] as const).map(f => (
                             <button
                                 key={f}
                                 onClick={() => handleFilterChange(f)}
@@ -464,7 +466,7 @@ export default function AdminReportsPage() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '10px 14px', fontWeight: 700, color: typeInfo.color, whiteSpace: 'nowrap' }}>
-                                                {e.type === 'withdraw' ? '-' : '+'}{fmt(Number(e.amount))}
+                                                {e.type === 'withdraw' || e.type === 'event_payment' ? '-' : '+'}{fmt(Number(e.amount))}
                                             </td>
                                             <td style={{ padding: '10px 14px' }}>
                                                 <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: e.status === 'completed' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.12)', color: e.status === 'completed' ? '#22c55e' : '#f59e0b', textTransform: 'capitalize' }}>

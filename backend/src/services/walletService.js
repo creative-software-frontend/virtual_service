@@ -3,6 +3,10 @@ const db = require("../config/db");
 const ALLOWED_PAYMENT_METHODS = ["bKash", "Nagad"];
 const ALLOWED_STATUSES = ["Pending", "Approved", "Rejected"];
 
+async function createProviderWithdrawRequest(userId, payload = {}) {
+    return createWithdrawRequest(userId, payload);
+}
+
 function normalizeMethod(method) {
     if (typeof method !== "string") return null;
     const trimmed = method.trim();
@@ -311,7 +315,7 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
         }
 
         const [userRows] = await connection.query(
-            `SELECT id, balance FROM users WHERE id = ? FOR UPDATE`,
+            `SELECT id, balance, earnings, role FROM users WHERE id = ? FOR UPDATE`,
             [withdraw.user_id]
         );
 
@@ -321,14 +325,23 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
             throw error;
         }
 
-        if (Number(userRows[0].balance) < Number(withdraw.amount)) {
-            const error = new Error("Insufficient balance for withdrawal approval");
+        const user = userRows[0];
+        const isProvider = user.role === "provider";
+        const fundsField = isProvider ? "earnings" : "balance";
+        const fundsAmount = Number(user[fundsField] || 0);
+
+        if (fundsAmount < Number(withdraw.amount)) {
+            const error = new Error(
+                isProvider
+                    ? "Insufficient earnings for withdrawal approval"
+                    : "Insufficient balance for withdrawal approval"
+            );
             error.statusCode = 409;
             throw error;
         }
 
         await connection.query(
-            `UPDATE users SET balance = balance - ? WHERE id = ?`,
+            `UPDATE users SET ${fundsField} = ${fundsField} - ? WHERE id = ?`,
             [Number(withdraw.amount), withdraw.user_id]
         );
 
@@ -389,6 +402,7 @@ module.exports = {
     createDepositRequest,
     getUserDepositHistory,
     createWithdrawRequest,
+    createProviderWithdrawRequest,
     getUserWithdrawHistory,
     getWalletSummary,
     getAdminDepositRequests,

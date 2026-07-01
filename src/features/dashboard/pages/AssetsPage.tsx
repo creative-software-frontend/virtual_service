@@ -87,8 +87,9 @@ export function AssetsPage() {
             setModalError('Please enter a valid positive amount.');
             return;
         }
-        if (amt > balance) {
-            setModalError('Insufficient balance to withdraw.');
+        const limit = role === 'provider' ? earnings : balance;
+        if (amt > limit) {
+            setModalError(role === 'provider' ? 'Insufficient earnings to withdraw.' : 'Insufficient balance to withdraw.');
             return;
         }
 
@@ -145,11 +146,11 @@ export function AssetsPage() {
                                 // Provider Earning Cards Deck
                                 <div style={{
                                     display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                    gridTemplateColumns: '1fr',
                                     gap: '16px',
                                     width: '100%'
                                 }}>
-                                    {/* Total Earnings Card */}
+                                    {/* Current Earnings Card */}
                                     <div style={{
                                         background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
                                         border: '1px solid var(--border-gold)',
@@ -159,44 +160,10 @@ export function AssetsPage() {
                                         boxShadow: 'var(--shadow-gold)'
                                     }}>
                                         <p style={{ fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold-mid)', fontWeight: 700, marginBottom: '8px' }}>
-                                            ★ TOTAL EARNINGS
+                                            ★ CURRENT EARNINGS
                                         </p>
                                         <p style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--gold-mid)', fontFamily: "'Inter', sans-serif" }}>
                                             ৳ {Number(earnings).toFixed(2)}
-                                        </p>
-                                    </div>
-
-                                    {/* Liquid Balance Card */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                                        border: '1px solid var(--border-subtle)',
-                                        borderRadius: '16px',
-                                        padding: '24px',
-                                        textAlign: 'center',
-                                        boxShadow: 'var(--shadow-md)'
-                                    }}>
-                                        <p style={{ fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '8px' }}>
-                                            CURRENT BALANCE
-                                        </p>
-                                        <p style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
-                                            ৳ {Number(balance).toFixed(2)}
-                                        </p>
-                                    </div>
-
-                                    {/* Liquidated Card */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                                        border: '1px solid var(--border-subtle)',
-                                        borderRadius: '16px',
-                                        padding: '24px',
-                                        textAlign: 'center',
-                                        boxShadow: 'var(--shadow-md)'
-                                    }}>
-                                        <p style={{ fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px' }}>
-                                            WITHDRAWN PAYOUTS
-                                        </p>
-                                        <p style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
-                                            ৳ {withdrawnAmount.toFixed(2)}
                                         </p>
                                     </div>
                                 </div>
@@ -247,12 +214,12 @@ export function AssetsPage() {
                         {/* Column 2: Action Buttons Layout Framework */}
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
+                            gridTemplateColumns: role === 'provider' ? '1fr' : '1fr 1fr',
                             gap: '24px',
                             width: '100%'
                         }}>
                             {[
-                                {
+                                ...(role !== 'provider' ? [{
                                     label: depositLabel,
                                     sub: depositSub,
                                     onClick: () => {
@@ -265,7 +232,7 @@ export function AssetsPage() {
                                             <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
                                         </svg>
                                     ),
-                                },
+                                }] : []),
                                 {
                                     label: withdrawLabel,
                                     sub: withdrawSub,
@@ -379,7 +346,7 @@ export function AssetsPage() {
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {transactions.map((tx) => {
-                                    const isPositive = tx.type === 'deposit' || tx.type === 'earning';
+                                    const isPositive = tx.type === 'deposit' || tx.type === 'earning' || tx.type === 'event_income';
                                     return (
                                         <div key={tx.id} style={{
                                             display: 'flex',
@@ -399,19 +366,19 @@ export function AssetsPage() {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    background: tx.type === 'withdraw'
+                                                    background: tx.type === 'withdraw' || tx.type === 'event_payment'
                                                         ? 'rgba(239, 68, 68, 0.15)'
                                                         : tx.type === 'deposit'
                                                             ? 'rgba(59, 130, 246, 0.15)'
                                                             : 'rgba(245, 158, 11, 0.15)',
-                                                    color: tx.type === 'withdraw'
+                                                    color: tx.type === 'withdraw' || tx.type === 'event_payment'
                                                         ? 'var(--red-status)'
                                                         : tx.type === 'deposit'
                                                             ? 'var(--blue-vivid)'
                                                             : 'var(--gold-mid)',
                                                     fontWeight: 800,
                                                 }}>
-                                                    {tx.type === 'withdraw' ? '↓' : tx.type === 'deposit' ? '↑' : '★'}
+                                                    {tx.type === 'withdraw' || tx.type === 'event_payment' ? '↓' : tx.type === 'deposit' ? '↑' : '★'}
                                                 </div>
                                                 <div>
                                                     <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
@@ -517,7 +484,7 @@ export function AssetsPage() {
                                 {withdrawLabel} FUNDS
                             </h3>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Enter the amount to withdraw. Available balance: ৳{Number(balance).toFixed(2)}.
+                                Enter the amount to withdraw. Available {role === 'provider' ? 'earnings' : 'balance'}: ৳{Number(role === 'provider' ? earnings : balance).toFixed(2)}.
                             </p>
                         </div>
 

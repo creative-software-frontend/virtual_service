@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const db = require("../config/db");
 const walletService = require("../services/walletService");
+const { validateEventJoin } = require("../services/eventJoinService");
 
 const { getProfile, updateProfile } = require("../controllers/profileController");
 
@@ -445,60 +446,110 @@ router.get("/events", authMiddleware, (req, res) => {
 });
 
 // Join Event
-router.post("/events/:id/join", authMiddleware, (req, res) => {
+router.post("/events/:id/join", authMiddleware, async (req, res) => {
     const userId = req.user.id;
-    const eventId = req.params.id;
+    const eventId = Number(req.params.id);
 
-    // Check event exists and capacity
-    db.query(
-        "SELECT * FROM events WHERE id = ?",
-        [eventId],
-        (err, eventRows) => {
-            if (err) return res.status(500).json({ message: "Database error: " + err.message });
-            if (eventRows.length === 0) return res.status(404).json({ message: "Event not found" });
+    if (!Number.isFinite(eventId)) {
+        return res.status(400).json({ message: "Invalid event id" });
+    }
 
-            const event = eventRows[0];
-            if (event.status !== 'active') {
-                return res.status(400).json({ message: "This event is not active" });
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const [eventRows] = await connection.query(
+            "SELECT id, title, creator_id, status, capacity, entry_fee FROM events WHERE id = ? FOR UPDATE",
+            [eventId]
+        );
+
+        if (!eventRows.length) {
+            await connection.rollback();
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        const event = eventRows[0];
+        const [participantRows] = await connection.query(
+            "SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ? LIMIT 1 FOR UPDATE",
+            [eventId, userId]
+        );
+
+        const [userRows] = await connection.query(
+            "SELECT id, name, balance, role FROM users WHERE id = ? FOR UPDATE",
+            [userId]
+        );
+
+        if (!userRows.length) {
+            await connection.rollback();
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const user = userRows[0];
+        const hasJoined = participantRows.length > 0;
+        const currentParticipantCount = (await connection.query(
+            "SELECT COUNT(*) as count FROM event_participants WHERE event_id = ?",
+            [eventId]
+        ))[0][0].count;
+
+        try {
+            validateEventJoin({
+                event,
+                currentParticipantCount,
+                hasJoined,
+                userBalance: user.balance,
+            });
+        } catch (validationError) {
+            await connection.rollback();
+            return res.status(validationError.statusCode || 400).json({ message: validationError.message });
+        }
+
+        const fee = Number(event.entry_fee || 0);
+        if (fee > 0) {
+            await connection.query(
+                "UPDATE users SET balance = balance - ? WHERE id = ?",
+                [fee, userId]
+            );
+
+            await connection.query(
+                "INSERT INTO transactions (user_id, type, amount, status, description) VALUES (?, 'event_payment', ?, 'completed', ?)",
+                [userId, fee, `Entry fee for ${event.title}`]
+            );
+
+            const [providerRows] = await connection.query(
+                "SELECT id, name, earnings FROM users WHERE id = ? FOR UPDATE",
+                [event.creator_id]
+            );
+
+            if (!providerRows.length) {
+                await connection.rollback();
+                return res.status(404).json({ message: "Event provider not found" });
             }
 
-            // Check if already joined
-            db.query(
-                "SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ?",
-                [eventId, userId],
-                (err2, participantRows) => {
-                    if (err2) return res.status(500).json({ message: err2.message });
-                    if (participantRows.length > 0) {
-                        return res.status(400).json({ message: "You have already joined this event" });
-                    }
+            await connection.query(
+                "UPDATE users SET earnings = earnings + ? WHERE id = ?",
+                [fee, event.creator_id]
+            );
 
-                    // Check capacity
-                    db.query(
-                        "SELECT COUNT(*) as count FROM event_participants WHERE event_id = ?",
-                        [eventId],
-                        (err3, countRows) => {
-                            if (err3) return res.status(500).json({ message: err3.message });
-                            const currentCount = countRows[0].count;
-
-                            if (event.capacity > 0 && currentCount >= event.capacity) {
-                                return res.status(400).json({ message: "This event has reached its capacity limit" });
-                            }
-
-                            // Join
-                            db.query(
-                                "INSERT INTO event_participants (event_id, user_id) VALUES (?, ?)",
-                                [eventId, userId],
-                                (err4) => {
-                                    if (err4) return res.status(500).json({ message: "Database error: " + err4.message });
-                                    res.json({ message: "Successfully joined the event" });
-                                }
-                            );
-                        }
-                    );
-                }
+            await connection.query(
+                "INSERT INTO transactions (user_id, type, amount, status, description) VALUES (?, 'event_income', ?, 'completed', ?)",
+                [event.creator_id, fee, `Entry fee received from ${user.name}`]
             );
         }
-    );
+
+        await connection.query(
+            "INSERT INTO event_participants (event_id, user_id) VALUES (?, ?)",
+            [eventId, userId]
+        );
+
+        await connection.commit();
+        res.json({ message: "Successfully joined the event" });
+    } catch (error) {
+        await connection.rollback();
+        res.status(500).json({ message: "Database error: " + error.message });
+    } finally {
+        connection.release();
+    }
 });
 
 // Leave Event

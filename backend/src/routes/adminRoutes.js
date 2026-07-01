@@ -149,7 +149,7 @@ router.get("/reports",
 
             // Total earnings (all providers)
             const [earningRows] = await db.query(
-                "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type = 'earning'"
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE type IN ('earning', 'event_income')"
             );
 
             // Total users and providers count
@@ -176,7 +176,7 @@ router.get("/reports",
                 SELECT u.id, u.name, u.role,
                        COALESCE(SUM(t.amount), 0) AS total_earned
                 FROM users u
-                INNER JOIN transactions t ON t.user_id = u.id AND t.type = 'earning'
+                INNER JOIN transactions t ON t.user_id = u.id AND t.type IN ('earning', 'event_income')
                 GROUP BY u.id, u.name, u.role
                 ORDER BY total_earned DESC
                 LIMIT 5

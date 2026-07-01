@@ -79,7 +79,7 @@ module.exports = async (db) => {
             CREATE TABLE IF NOT EXISTS transactions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
-                type ENUM('deposit', 'withdraw', 'earning') NOT NULL,
+                type ENUM('deposit', 'withdraw', 'earning', 'event_payment', 'event_income') NOT NULL,
                 amount DECIMAL(15,2) NOT NULL,
                 status VARCHAR(20) DEFAULT 'completed',
                 description VARCHAR(255),
@@ -87,6 +87,13 @@ module.exports = async (db) => {
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
+
+        const [transactionCols] = await db.query(
+            "SHOW COLUMNS FROM transactions LIKE 'type'"
+        );
+        if (transactionCols && transactionCols.length && !String(transactionCols[0].Type).includes('event_payment')) {
+            await db.query("ALTER TABLE transactions MODIFY COLUMN type ENUM('deposit', 'withdraw', 'earning', 'event_payment', 'event_income') NOT NULL");
+        }
         console.log("Transactions table setup verified");
 
         await db.query(`

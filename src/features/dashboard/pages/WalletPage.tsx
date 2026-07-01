@@ -104,8 +104,12 @@ export function WalletPage() {
             setModalStatus({ type: 'error', message: 'Please enter a valid positive amount.' });
             return;
         }
-        if (amt > wallet.balance) {
-            setModalStatus({ type: 'error', message: 'Insufficient balance to withdraw.' });
+        const availableFunds = wallet.role === 'provider' ? wallet.earnings : wallet.balance;
+        if (amt > availableFunds) {
+            setModalStatus({
+                type: 'error',
+                message: wallet.role === 'provider' ? 'Insufficient earnings to withdraw.' : 'Insufficient balance to withdraw.'
+            });
             return;
         }
         if (!withdrawAccountNumber.trim()) {
@@ -434,7 +438,7 @@ export function WalletPage() {
                         ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                 {transactions.map((tx) => {
-                                    const isPositive = tx.type === "deposit" || tx.type === "earning";
+                                    const isPositive = tx.type === "deposit" || tx.type === "earning" || tx.type === "event_income";
                                     return (
                                         <div
                                             key={tx.id}
@@ -459,13 +463,13 @@ export function WalletPage() {
                                                         alignItems: "center",
                                                         justifyContent: "center",
                                                         background:
-                                                            tx.type === "withdraw"
+                                                            tx.type === "withdraw" || tx.type === "event_payment"
                                                                 ? "rgba(239, 68, 68, 0.15)"
                                                                 : tx.type === "deposit"
                                                                 ? "rgba(59, 130, 246, 0.15)"
                                                                 : "rgba(245, 158, 11, 0.15)",
                                                         color:
-                                                            tx.type === "withdraw"
+                                                            tx.type === "withdraw" || tx.type === "event_payment"
                                                                 ? "var(--red-status)"
                                                                 : tx.type === "deposit"
                                                                 ? "var(--blue-vivid)"
@@ -473,7 +477,7 @@ export function WalletPage() {
                                                         fontWeight: 800,
                                                     }}
                                                 >
-                                                    {tx.type === "withdraw" ? "↓" : tx.type === "deposit" ? "↑" : "★"}
+                                                    {tx.type === "withdraw" || tx.type === "event_payment" ? "↓" : tx.type === "deposit" ? "↑" : "★"}
                                                 </div>
                                                 <div>
                                                     <p style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "2px" }}>
@@ -719,7 +723,7 @@ export function WalletPage() {
                                 WITHDRAW FUNDS
                             </h3>
                             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                Enter the amount to withdraw. Available balance: ৳{Number(wallet.balance).toFixed(2)}.
+                                Enter the amount to withdraw. Available {wallet.role === 'provider' ? 'earnings' : 'balance'}: ৳{Number(wallet.role === 'provider' ? wallet.earnings : wallet.balance).toFixed(2)}.
                             </p>
                         </div>
 

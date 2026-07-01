@@ -142,13 +142,8 @@ export const router = createBrowserRouter([
                     return { element: <ProviderServicePage /> };
                 }
             },
-            {
-                path: "partner",
-                lazy: async () => {
-                    const { PartnerSearchPage } = await import("../features/dashboard/pages/partner/PartnerSearchPage");
-                    return { element: <PartnerSearchPage /> };
-                },
-            },
+           
+            
             {
                 path: "reports",
                 lazy: async () => {

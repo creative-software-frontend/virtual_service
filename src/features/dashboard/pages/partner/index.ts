@@ -1,2 +1,2 @@
-export { PartnerSearchPage } from './PartnerSearchPage';
+export { PartnerSearchPanel as PartnerSearchPage } from './PartnerSearchPanel';
 

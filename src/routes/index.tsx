@@ -150,7 +150,7 @@ export const router = createBrowserRouter([
                     const { default: AdminReportsPage } = await import("../features/dashboard/pages/AdminReportsPage");
                     return { element: <AdminReportsPage /> };
                 }
-            }
+            },
         ]
     }
 ]);

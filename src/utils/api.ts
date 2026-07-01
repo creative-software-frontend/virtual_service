@@ -99,6 +99,46 @@ export interface WalletResponse {
     transactions: Transaction[];
 }
 
+export interface DepositRequestPayload {
+    amount: number;
+    method: 'bKash' | 'Nagad';
+    trx_id: string;
+    screenshot_url: string;
+}
+
+export interface WithdrawRequestPayload {
+    amount: number;
+    method: 'bKash' | 'Nagad';
+    account_number: string;
+}
+
+export interface DepositRequestItem {
+    id: number;
+    user_id: number;
+    amount: number;
+    method: string;
+    trx_id: string;
+    screenshot_url: string;
+    status: string;
+    admin_note?: string | null;
+    approved_by?: number | null;
+    approved_at?: string | null;
+    created_at: string;
+}
+
+export interface WithdrawRequestItem {
+    id: number;
+    user_id: number;
+    amount: number;
+    method: string;
+    account_number: string;
+    status: string;
+    admin_note?: string | null;
+    approved_by?: number | null;
+    approved_at?: string | null;
+    created_at: string;
+}
+
 // ── User endpoints ────────────────────────────────────────────────────────────
 export interface UserProfile {
     id: number;
@@ -206,19 +246,54 @@ export const userApi = {
             body: JSON.stringify(payload),
         }),
 
-    getWallet: () => request<WalletResponse>('/user/wallet'),
+    getWallet: () => request<WalletResponse>('/user-wallet/wallet'),
 
-    deposit: (amount: number) =>
-        request<{ message: string; amount: number }>('/user/deposit', {
+    depositRequest: (payload: DepositRequestPayload) =>
+        request<DepositRequestItem>('/user/deposit', {
             method: 'POST',
-            body: JSON.stringify({ amount }),
+            body: JSON.stringify(payload),
         }),
 
-    withdraw: (amount: number) =>
-        request<{ message: string; amount: number }>('/user/withdraw', {
+    getDepositHistory: () => request<DepositRequestItem[]>('/user-wallet/deposit-history'),
+
+    deposit: (payloadOrAmount: number | DepositRequestPayload) => {
+        const payload = typeof payloadOrAmount === 'number'
+            ? {
+                amount: payloadOrAmount,
+                method: 'bKash' as const,
+                trx_id: `legacy-${Date.now()}`,
+                screenshot_url: 'legacy-ui',
+            }
+            : payloadOrAmount;
+
+        return request<DepositRequestItem>('/user/deposit', {
             method: 'POST',
-            body: JSON.stringify({ amount }),
+            body: JSON.stringify(payload),
+        });
+    },
+
+    withdraw: (payloadOrAmount: number | WithdrawRequestPayload) => {
+        const payload = typeof payloadOrAmount === 'number'
+            ? {
+                amount: payloadOrAmount,
+                method: 'bKash' as const,
+                account_number: 'legacy-ui',
+            }
+            : payloadOrAmount;
+
+        return request<WithdrawRequestItem>('/user/withdraw', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+    },
+
+    withdrawRequest: (payload: WithdrawRequestPayload) =>
+        request<WithdrawRequestItem>('/user/withdraw', {
+            method: 'POST',
+            body: JSON.stringify(payload),
         }),
+
+    getWithdrawHistory: () => request<WithdrawRequestItem[]>('/user-wallet/withdraw-history'),
 
     searchPartners: (filters: PartnerSearchFilters & { page?: number; pageSize?: number }) => {
         const params = new URLSearchParams();
@@ -257,7 +332,6 @@ export const userApi = {
             method: 'POST',
         }),
 };
-
 
 // ── Provider endpoints ────────────────────────────────────────────────────────
 export const providerApi = {
@@ -401,6 +475,11 @@ export interface ReportsData {
     ledger: LedgerEntry[];
 }
 
+export interface PendingWalletRequestsResponse {
+    deposits: Array<DepositRequestItem & { user_name?: string; user_email?: string }>;
+    withdrawals: Array<WithdrawRequestItem & { user_name?: string; user_email?: string }>;
+}
+
 export const adminApi = {
     getUsersSummary: () =>
         request<UsersSummaryData>('/admin/users-summary'),
@@ -437,6 +516,45 @@ export const adminApi = {
 
     getReports: () =>
         request<ReportsData>('/admin/reports'),
+
+    getPendingWalletRequests: async () => {
+        const [depositRes, withdrawRes] = await Promise.all([
+            request<DepositRequestItem[]>('/admin-wallet/deposit-requests'),
+            request<WithdrawRequestItem[]>('/admin-wallet/withdraw-requests'),
+        ]);
+
+        return {
+            status: 200,
+            data: {
+                deposits: (depositRes.data || []).filter((item) => item.status === 'Pending'),
+                withdrawals: (withdrawRes.data || []).filter((item) => item.status === 'Pending'),
+            },
+        } as ApiResponse<PendingWalletRequestsResponse>;
+    },
+
+    approveDepositRequest: (id: number, adminNote = '') =>
+        request<DepositRequestItem>(`/admin-wallet/deposit/${id}/approve`, {
+            method: 'PATCH',
+            body: JSON.stringify({ admin_note: adminNote }),
+        }),
+
+    rejectDepositRequest: (id: number, adminNote = '') =>
+        request<DepositRequestItem>(`/admin-wallet/deposit/${id}/reject`, {
+            method: 'PATCH',
+            body: JSON.stringify({ admin_note: adminNote }),
+        }),
+
+    approveWithdrawRequest: (id: number, adminNote = '') =>
+        request<WithdrawRequestItem>(`/admin-wallet/withdraw/${id}/approve`, {
+            method: 'PATCH',
+            body: JSON.stringify({ admin_note: adminNote }),
+        }),
+
+    rejectWithdrawRequest: (id: number, adminNote = '') =>
+        request<WithdrawRequestItem>(`/admin-wallet/withdraw/${id}/reject`, {
+            method: 'PATCH',
+            body: JSON.stringify({ admin_note: adminNote }),
+        }),
 };
 
 // ── Event endpoints ────────────────────────────────────────────────────────────
@@ -482,7 +600,6 @@ export const eventApi = {
             method: 'PUT',
             body: JSON.stringify(payload),
         }),
-
 
     deleteEvent: (id: number) =>
         request<{ message: string }>(`/provider/events/${id}`, {

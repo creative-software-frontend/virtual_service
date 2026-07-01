@@ -27,7 +27,12 @@ export function WalletPage() {
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
     const [amountInput, setAmountInput] = useState("");
-    const [modalError, setModalError] = useState("");
+    const [depositMethod, setDepositMethod] = useState<'bKash' | 'Nagad'>('bKash');
+    const [depositTrxId, setDepositTrxId] = useState("");
+    const [depositScreenshot, setDepositScreenshot] = useState("");
+    const [withdrawMethod, setWithdrawMethod] = useState<'bKash' | 'Nagad'>('bKash');
+    const [withdrawAccountNumber, setWithdrawAccountNumber] = useState("");
+    const [modalStatus, setModalStatus] = useState<{ type: 'error' | 'success'; message: string }>({ type: 'error', message: '' });
     const [modalLoading, setModalLoading] = useState(false);
 
     async function loadWallet() {
@@ -56,25 +61,36 @@ export function WalletPage() {
 
     const handleDeposit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setModalError("");
+        setModalStatus({ type: 'error', message: '' });
         const amt = parseFloat(amountInput);
         if (isNaN(amt) || amt <= 0) {
-            setModalError("Please enter a valid positive amount.");
+            setModalStatus({ type: 'error', message: 'Please enter a valid positive amount.' });
             return;
         }
-
+        if (!depositTrxId.trim()) {
+            setModalStatus({ type: 'error', message: 'Transaction ID is required.' });
+            return;
+        }
         try {
             setModalLoading(true);
-            const res = await userApi.deposit(amt);
+            const res = await userApi.deposit({
+                amount: amt,
+                method: depositMethod,
+                trx_id: depositTrxId.trim(),
+                screenshot_url: depositScreenshot.trim(),
+            });
             if (res.error) {
-                setModalError(res.error);
+                setModalStatus({ type: 'error', message: res.error });
             } else {
                 setAmountInput("");
-                setShowDepositModal(false);
+                setDepositMethod('bKash');
+                setDepositTrxId("");
+                setDepositScreenshot("");
+                setModalStatus({ type: 'success', message: 'Waiting for admin approval.' });
                 await loadWallet();
             }
         } catch (err: any) {
-            setModalError(err.message || "Deposit failed");
+            setModalStatus({ type: 'error', message: err.message || 'Deposit failed' });
         } finally {
             setModalLoading(false);
         }
@@ -82,29 +98,39 @@ export function WalletPage() {
 
     const handleWithdraw = async (e: React.FormEvent) => {
         e.preventDefault();
-        setModalError("");
+        setModalStatus({ type: 'error', message: '' });
         const amt = parseFloat(amountInput);
         if (isNaN(amt) || amt <= 0) {
-            setModalError("Please enter a valid positive amount.");
+            setModalStatus({ type: 'error', message: 'Please enter a valid positive amount.' });
             return;
         }
         if (amt > wallet.balance) {
-            setModalError("Insufficient balance to withdraw.");
+            setModalStatus({ type: 'error', message: 'Insufficient balance to withdraw.' });
+            return;
+        }
+        if (!withdrawAccountNumber.trim()) {
+            setModalStatus({ type: 'error', message: 'Account number is required.' });
             return;
         }
 
         try {
             setModalLoading(true);
-            const res = await userApi.withdraw(amt);
+            const res = await userApi.withdraw({
+                amount: amt,
+                method: withdrawMethod,
+                account_number: withdrawAccountNumber.trim(),
+            });
             if (res.error) {
-                setModalError(res.error);
+                setModalStatus({ type: 'error', message: res.error });
             } else {
                 setAmountInput("");
-                setShowWithdrawModal(false);
+                setWithdrawMethod('bKash');
+                setWithdrawAccountNumber("");
+                setModalStatus({ type: 'success', message: 'Waiting for admin approval.' });
                 await loadWallet();
             }
         } catch (err: any) {
-            setModalError(err.message || "Withdrawal failed");
+            setModalStatus({ type: 'error', message: err.message || 'Withdrawal failed' });
         } finally {
             setModalLoading(false);
         }
@@ -269,7 +295,10 @@ export function WalletPage() {
                                     sub: "Deposit funds to wallet",
                                     onClick: () => {
                                         setAmountInput("");
-                                        setModalError("");
+                                        setDepositMethod('bKash');
+                                        setDepositTrxId("");
+                                        setDepositScreenshot("");
+                                        setModalStatus({ type: 'error', message: '' });
                                         setShowDepositModal(true);
                                     },
                                     icon: (
@@ -283,7 +312,9 @@ export function WalletPage() {
                                     sub: "Withdraw your earnings",
                                     onClick: () => {
                                         setAmountInput("");
-                                        setModalError("");
+                                        setWithdrawMethod('bKash');
+                                        setWithdrawAccountNumber("");
+                                        setModalStatus({ type: 'error', message: '' });
                                         setShowWithdrawModal(true);
                                     },
                                     icon: (
@@ -520,24 +551,24 @@ export function WalletPage() {
                                 DEPOSIT FUNDS
                             </h3>
                             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                Enter the amount in Taka to deposit into your account wallet.
+                                Enter the amount in Taka to deposit into your account wallet. Screenshot is optional.
                             </p>
                         </div>
 
-                        {modalError && (
+                        {modalStatus.message ? (
                             <div
                                 style={{
                                     padding: "8px 12px",
-                                    background: "rgba(239,68,68,0.1)",
-                                    border: "1px solid rgba(239,68,68,0.3)",
+                                    background: modalStatus.type === 'success' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)',
+                                    border: `1px solid ${modalStatus.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                                     borderRadius: "6px",
-                                    color: "#fca5a5",
+                                    color: modalStatus.type === 'success' ? '#86efac' : '#fca5a5',
                                     fontSize: "0.78rem",
                                 }}
                             >
-                                {modalError}
+                                {modalStatus.message}
                             </div>
-                        )}
+                        ) : null}
 
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", fontWeight: 700, color: "var(--text-muted)" }}>
@@ -563,6 +594,44 @@ export function WalletPage() {
                                 autoFocus
                             />
                         </div>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Payment Method
+                            <select
+                                value={depositMethod}
+                                onChange={(e) => setDepositMethod(e.target.value as 'bKash' | 'Nagad')}
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            >
+                                <option value="bKash">bKash</option>
+                                <option value="Nagad">Nagad</option>
+                            </select>
+                        </label>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Transaction ID
+                            <input
+                                value={depositTrxId}
+                                onChange={(e) => setDepositTrxId(e.target.value)}
+                                placeholder="Enter transaction ID"
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            />
+                        </label>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Screenshot (optional)
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const reader = new FileReader();
+                                    reader.onload = () => setDepositScreenshot(String(reader.result || ''));
+                                    reader.readAsDataURL(file);
+                                }}
+                                style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            />
+                        </label>
 
                         <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                             <button
@@ -654,20 +723,20 @@ export function WalletPage() {
                             </p>
                         </div>
 
-                        {modalError && (
+                        {modalStatus.message ? (
                             <div
                                 style={{
                                     padding: "8px 12px",
-                                    background: "rgba(239,68,68,0.1)",
-                                    border: "1px solid rgba(239,68,68,0.3)",
+                                    background: modalStatus.type === 'success' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.1)',
+                                    border: `1px solid ${modalStatus.type === 'success' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
                                     borderRadius: "6px",
-                                    color: "#fca5a5",
+                                    color: modalStatus.type === 'success' ? '#86efac' : '#fca5a5',
                                     fontSize: "0.78rem",
                                 }}
                             >
-                                {modalError}
+                                {modalStatus.message}
                             </div>
-                        )}
+                        ) : null}
 
                         <div style={{ position: "relative" }}>
                             <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", fontWeight: 700, color: "var(--text-muted)" }}>
@@ -693,6 +762,28 @@ export function WalletPage() {
                                 autoFocus
                             />
                         </div>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Method
+                            <select
+                                value={withdrawMethod}
+                                onChange={(e) => setWithdrawMethod(e.target.value as 'bKash' | 'Nagad')}
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            >
+                                <option value="bKash">bKash</option>
+                                <option value="Nagad">Nagad</option>
+                            </select>
+                        </label>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Account Number
+                            <input
+                                value={withdrawAccountNumber}
+                                onChange={(e) => setWithdrawAccountNumber(e.target.value)}
+                                placeholder="Enter account/mobile number"
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            />
+                        </label>
 
                         <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                             <button

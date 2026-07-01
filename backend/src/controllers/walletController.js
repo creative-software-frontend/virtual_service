@@ -1,0 +1,114 @@
+const walletService = require("../services/walletService");
+
+async function createDepositRequest(req, res) {
+    try {
+        const result = await walletService.createDepositRequest(req.user.id, req.body || {});
+        return res.status(201).json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function getDepositHistory(req, res) {
+    try {
+        const result = await walletService.getUserDepositHistory(req.user.id);
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function createWithdrawRequest(req, res) {
+    try {
+        const result = await walletService.createWithdrawRequest(req.user.id, req.body || {});
+        return res.status(201).json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function getWithdrawHistory(req, res) {
+    try {
+        const result = await walletService.getUserWithdrawHistory(req.user.id);
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function getWallet(req, res) {
+    try {
+        const result = await walletService.getWalletSummary(req.user.id);
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function getAdminDepositRequests(req, res) {
+    try {
+        const result = await walletService.getAdminDepositRequests();
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function approveDeposit(req, res) {
+    try {
+        const result = await walletService.approveDepositRequest(req.user.id, req.params.id, req.body?.admin_note || "");
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function rejectDeposit(req, res) {
+    try {
+        const result = await walletService.rejectDepositRequest(req.user.id, req.params.id, req.body?.admin_note || "");
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function getAdminWithdrawRequests(req, res) {
+    try {
+        const result = await walletService.getAdminWithdrawRequests();
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function approveWithdraw(req, res) {
+    try {
+        const result = await walletService.approveWithdrawRequest(req.user.id, req.params.id, req.body?.admin_note || "");
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+async function rejectWithdraw(req, res) {
+    try {
+        const result = await walletService.rejectWithdrawRequest(req.user.id, req.params.id, req.body?.admin_note || "");
+        return res.json(result);
+    } catch (error) {
+        return res.status(error.statusCode || 500).json({ message: error.message });
+    }
+}
+
+module.exports = {
+    createDepositRequest,
+    getDepositHistory,
+    createWithdrawRequest,
+    getWithdrawHistory,
+    getWallet,
+    getAdminDepositRequests,
+    approveDeposit,
+    rejectDeposit,
+    getAdminWithdrawRequests,
+    approveWithdraw,
+    rejectWithdraw,
+};

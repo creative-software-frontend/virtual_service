@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const db = require("../config/db");
+const walletService = require("../services/walletService");
 
 const { getProfile, updateProfile } = require("../controllers/profileController");
 
@@ -403,73 +404,25 @@ router.get("/wallet", authMiddleware, (req, res) => {
 });
 
 // POST /api/user/deposit
-router.post("/deposit", authMiddleware, (req, res) => {
-    const userId = req.user.id;
-    const { amount } = req.body;
-    const numAmount = parseFloat(amount);
-
-    if (isNaN(numAmount) || numAmount <= 0) {
-        return res.status(400).json({ message: "Invalid deposit amount" });
+router.post("/deposit", authMiddleware, async (req, res) => {
+    try {
+        const result = await walletService.createDepositRequest(req.user.id, req.body || {});
+        res.status(201).json(result);
+    } catch (error) {
+        const status = error.statusCode || 500;
+        res.status(status).json({ message: error.message || "Deposit request failed" });
     }
-
-    db.query(
-        "UPDATE users SET balance = balance + ? WHERE id = ?",
-        [numAmount, userId],
-        (err) => {
-            if (err) return res.status(500).json({ message: "Database error updating balance" });
-
-            db.query(
-                "INSERT INTO transactions (user_id, type, amount, status, description) VALUES (?, 'deposit', ?, 'completed', 'Deposit to wallet')",
-                [userId, numAmount],
-                (err2) => {
-                    if (err2) return res.status(500).json({ message: "Database error recording transaction" });
-                    res.json({ message: "Deposit successful", amount: numAmount });
-                }
-            );
-        }
-    );
 });
 
 // POST /api/user/withdraw
-router.post("/withdraw", authMiddleware, (req, res) => {
-    const userId = req.user.id;
-    const { amount } = req.body;
-    const numAmount = parseFloat(amount);
-
-    if (isNaN(numAmount) || numAmount <= 0) {
-        return res.status(400).json({ message: "Invalid withdrawal amount" });
+router.post("/withdraw", authMiddleware, async (req, res) => {
+    try {
+        const result = await walletService.createWithdrawRequest(req.user.id, req.body || {});
+        res.status(201).json(result);
+    } catch (error) {
+        const status = error.statusCode || 500;
+        res.status(status).json({ message: error.message || "Withdrawal request failed" });
     }
-
-    db.query(
-        "SELECT balance, role FROM users WHERE id = ?",
-        [userId],
-        (err, result) => {
-            if (err) return res.status(500).json({ message: "Database error checking balance" });
-            if (result.length === 0) return res.status(404).json({ message: "User not found" });
-
-            const user = result[0];
-            if (user.balance < numAmount) {
-                return res.status(400).json({ message: "Insufficient balance for withdrawal" });
-            }
-
-            db.query(
-                "UPDATE users SET balance = balance - ? WHERE id = ?",
-                [numAmount, userId],
-                (err2) => {
-                    if (err2) return res.status(500).json({ message: "Database error updating balance" });
-
-                    db.query(
-                        "INSERT INTO transactions (user_id, type, amount, status, description) VALUES (?, 'withdraw', ?, 'completed', 'Liquidate payout')",
-                        [userId, numAmount],
-                        (err3) => {
-                            if (err3) return res.status(500).json({ message: "Database error recording transaction" });
-                            res.json({ message: "Withdrawal successful", amount: numAmount });
-                        }
-                    );
-                }
-            );
-        }
-    );
 });
 
 // Get User Events

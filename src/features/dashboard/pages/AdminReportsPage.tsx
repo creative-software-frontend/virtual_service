@@ -125,6 +125,20 @@ const fmt = (n: number) =>
 
 const PAGE_SIZE = 20;
 
+type PendingWalletRequest = {
+    id: number;
+    user_id: number;
+    amount: number;
+    method: string;
+    trx_id?: string;
+    screenshot_url?: string;
+    account_number?: string;
+    status: string;
+    created_at: string;
+    user_name?: string;
+    user_email?: string;
+};
+
 export default function AdminReportsPage() {
     const [data, setData] = useState<ReportsData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -132,6 +146,25 @@ export default function AdminReportsPage() {
     const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning'>('all');
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [pendingRequests, setPendingRequests] = useState<{ deposits: PendingWalletRequest[]; withdrawals: PendingWalletRequest[] }>({ deposits: [], withdrawals: [] });
+    const [pendingLoading, setPendingLoading] = useState(false);
+    const [pendingMessage, setPendingMessage] = useState('');
+
+    const loadPendingRequests = async () => {
+        setPendingLoading(true);
+        setPendingMessage('');
+        try {
+            const res = await adminApi.getPendingWalletRequests();
+            if (res.error) {
+                throw new Error(res.error);
+            }
+            setPendingRequests(res.data ?? { deposits: [], withdrawals: [] });
+        } catch (e: any) {
+            setPendingMessage(e?.message || 'Failed to load pending requests');
+        } finally {
+            setPendingLoading(false);
+        }
+    };
 
     useEffect(() => {
         (async () => {
@@ -147,6 +180,7 @@ export default function AdminReportsPage() {
                 setLoading(false);
             }
         })();
+        loadPendingRequests();
     }, []);
 
     const filteredLedger = useMemo(() => {
@@ -165,6 +199,23 @@ export default function AdminReportsPage() {
 
     const totalPages = Math.ceil(filteredLedger.length / PAGE_SIZE);
     const pagedLedger = filteredLedger.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    const handlePendingAction = async (type: 'deposit' | 'withdraw', id: number, action: 'approve' | 'reject') => {
+        setPendingMessage('');
+        try {
+            const res = action === 'approve'
+                ? (type === 'deposit' ? await adminApi.approveDepositRequest(id) : await adminApi.approveWithdrawRequest(id))
+                : (type === 'deposit' ? await adminApi.rejectDepositRequest(id) : await adminApi.rejectWithdrawRequest(id));
+
+            if (res.error) {
+                throw new Error(res.error);
+            }
+            setPendingMessage(`${type === 'deposit' ? 'Deposit' : 'Withdrawal'} ${action === 'approve' ? 'approved' : 'rejected'}.`);
+            await loadPendingRequests();
+        } catch (e: any) {
+            setPendingMessage(e?.message || 'Action failed');
+        }
+    };
 
     const handleFilterChange = (f: typeof ledgerFilter) => {
         setLedgerFilter(f);
@@ -234,6 +285,46 @@ export default function AdminReportsPage() {
                         <div style={{ fontSize: 17, fontWeight: 700, color: card.color, letterSpacing: '-0.3px' }}>{card.value}</div>
                     </div>
                 ))}
+            </div>
+
+            <div style={{ background: 'var(--card-bg, rgba(30,30,50,0.85))', borderRadius: 14, padding: '18px 16px', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)', marginBottom: 28 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                    <h2 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Pending Wallet Requests</h2>
+                    {pendingLoading ? <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Loading…</span> : null}
+                </div>
+                {pendingMessage ? <div style={{ marginBottom: 12, padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontSize: 12 }}>{pendingMessage}</div> : null}
+                <div style={{ display: 'grid', gap: 12 }}>
+                    {pendingRequests.deposits.length === 0 && pendingRequests.withdrawals.length === 0 ? (
+                        <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>No pending deposit or withdrawal requests.</p>
+                    ) : null}
+                    {pendingRequests.deposits.map((req) => (
+                        <div key={`deposit-${req.id}`} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 12, background: 'rgba(255,255,255,0.03)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                                <strong style={{ color: 'var(--text-primary)' }}>Deposit • {req.user_name || 'User'}</strong>
+                                <span style={{ color: '#22c55e', fontWeight: 700 }}>৳ {Number(req.amount).toFixed(2)}</span>
+                            </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>{req.method} • {req.trx_id}</div>
+                            {req.screenshot_url ? <a href={req.screenshot_url} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', fontSize: 12, display: 'inline-block', marginBottom: 8 }}>View screenshot</a> : null}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <button onClick={() => handlePendingAction('deposit', req.id, 'approve')} style={{ border: 'none', borderRadius: 8, padding: '8px 10px', background: '#22c55e', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Approve</button>
+                                <button onClick={() => handlePendingAction('deposit', req.id, 'reject')} style={{ border: 'none', borderRadius: 8, padding: '8px 10px', background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Reject</button>
+                            </div>
+                        </div>
+                    ))}
+                    {pendingRequests.withdrawals.map((req) => (
+                        <div key={`withdraw-${req.id}`} style={{ border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 12, background: 'rgba(255,255,255,0.03)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                                <strong style={{ color: 'var(--text-primary)' }}>Withdraw • {req.user_name || 'User'}</strong>
+                                <span style={{ color: '#f59e0b', fontWeight: 700 }}>৳ {Number(req.amount).toFixed(2)}</span>
+                            </div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>{req.method} • {req.account_number}</div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <button onClick={() => handlePendingAction('withdraw', req.id, 'approve')} style={{ border: 'none', borderRadius: 8, padding: '8px 10px', background: '#22c55e', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Approve</button>
+                                <button onClick={() => handlePendingAction('withdraw', req.id, 'reject')} style={{ border: 'none', borderRadius: 8, padding: '8px 10px', background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>Reject</button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Leaderboard Row */}

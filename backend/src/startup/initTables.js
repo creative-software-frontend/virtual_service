@@ -83,10 +83,47 @@ module.exports = async (db) => {
                 amount DECIMAL(15,2) NOT NULL,
                 status VARCHAR(20) DEFAULT 'completed',
                 description VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
         console.log("Transactions table setup verified");
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS deposit_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                amount DECIMAL(15,2) NOT NULL,
+                method VARCHAR(20) NOT NULL,
+                trx_id VARCHAR(100) NOT NULL UNIQUE,
+                screenshot_url TEXT NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+                admin_note TEXT,
+                approved_by INT NULL,
+                approved_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `);
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS withdraw_requests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                amount DECIMAL(15,2) NOT NULL,
+                method VARCHAR(20) NOT NULL,
+                account_number VARCHAR(100) NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+                admin_note TEXT,
+                approved_by INT NULL,
+                approved_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `);
+        console.log("Manual payment request tables setup verified");
 
         // Create events table
         await db.query(`

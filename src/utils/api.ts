@@ -83,14 +83,22 @@ export const authApi = {
         }),
 };
 
+export type TransactionType =
+    | 'deposit'
+    | 'withdraw'
+    | 'earning'
+    | 'event_payment'
+    | 'event_income';
+
 export interface Transaction {
     id: number;
-    type: 'deposit' | 'withdraw' | 'earning';
+    type: TransactionType;
     amount: number;
     status: string;
     description: string;
     created_at: string;
 }
+
 
 export interface WalletResponse {
     balance: number;

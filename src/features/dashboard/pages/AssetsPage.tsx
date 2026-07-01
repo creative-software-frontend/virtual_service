@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { TopNav } from './TopNav';
 import { userApi, type Transaction } from '../../../utils/api';
@@ -47,11 +47,7 @@ export function AssetsPage() {
         fetchWallet();
     }, []);
 
-    const withdrawnAmount = useMemo(() => {
-        return transactions
-            .filter((t) => t.type === 'withdraw')
-            .reduce((acc, t) => acc + Number(t.amount), 0);
-    }, [transactions]);
+
 
     const handleDeposit = async (e: React.FormEvent) => {
         e.preventDefault();

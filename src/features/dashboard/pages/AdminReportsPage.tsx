@@ -466,7 +466,7 @@ export default function AdminReportsPage() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '10px 14px', fontWeight: 700, color: typeInfo.color, whiteSpace: 'nowrap' }}>
-                                                {e.type === 'withdraw' || e.type === 'event_payment' ? '-' : '+'}{fmt(Number(e.amount))}
+                                                {((e.type as string) === 'withdraw' || (e.type as string) === 'event_payment') ? '-' : '+'}{fmt(Number(e.amount))}
                                             </td>
                                             <td style={{ padding: '10px 14px' }}>
                                                 <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: e.status === 'completed' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.12)', color: e.status === 'completed' ? '#22c55e' : '#f59e0b', textTransform: 'capitalize' }}>

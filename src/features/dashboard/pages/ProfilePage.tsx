@@ -438,13 +438,10 @@ export function ProfilePage() {
                     >
                         <motion.div
                             variants={fadeUp}
+                            className="card"
                             style={{
                                 flex: "1 1 500px",
-                                background: "linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))",
-                                border: "1px solid var(--border-subtle)",
-                                borderRadius: "16px",
                                 padding: "32px",
-                                boxShadow: "var(--shadow-md)",
                             }}
                         >
                             <span
@@ -471,20 +468,8 @@ export function ProfilePage() {
                                         <div style={{ marginBottom: 18 }}>
                                             <button
                                                 onClick={startEdit}
-                                                style={{
-                                                    width: "100%",
-                                                    padding: "14px 16px",
-                                                    background: "var(--blue-glow)",
-                                                    border: "1px solid var(--border-subtle)",
-                                                    borderRadius: 10,
-                                                    color: "var(--text-primary)",
-                                                    fontWeight: 800,
-                                                    cursor: "pointer",
-                                                    fontFamily: "'Inter', sans-serif",
-                                                    transition: "all 0.2s ease",
-                                                }}
-                                                onMouseEnter={(e) => (e.currentTarget.style.filter = "brightness(1.1)")}
-                                                onMouseLeave={(e) => (e.currentTarget.style.filter = "brightness(1)")}
+                                                className="btn btn-primary"
+                                                style={{ width: "100%", padding: "14px 16px" }}
                                             >
                                                 Edit Profile
                                             </button>
@@ -1132,17 +1117,14 @@ export function ProfilePage() {
 
                         <motion.div
                             variants={fadeUp}
+                            className="card"
                             style={{
                                 flex: "1 1 380px",
-                                background: "linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))",
-                                border: "1px solid var(--border-subtle)",
-                                borderRadius: "16px",
                                 padding: "32px",
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: "16px",
                                 justifyContent: "center",
-                                boxShadow: "var(--shadow-md)",
                             }}
                         >
                             <span

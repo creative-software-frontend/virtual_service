@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserInfo {
     id: number;
@@ -18,6 +19,16 @@ interface Summary {
     users: UserInfo[];
     providers: UserInfo[];
 }
+
+const fadeUp = {
+    hidden: { opacity: 0, y: 15 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
+const containerAnim = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.05 } },
+};
 
 export function AdminUsersPage() {
     const [summary, setSummary] = useState<Summary | null>(null);
@@ -76,58 +87,53 @@ export function AdminUsersPage() {
             minHeight: '100vh',
             background: 'var(--bg-main)',
             width: '100%',
-            color: 'var(--text-primary)'
         }}>
             <TopNav />
 
-            <div style={{
-                padding: 'clamp(90px, 22vw, 108px) clamp(12px, 4vw, 16px) clamp(32px, 8vw, 80px)',
-                width: '100%',
-                boxSizing: 'border-box',
+            <motion.div initial="hidden" animate="visible" variants={containerAnim} className="container" style={{
+                paddingTop: '108px',
+                paddingBottom: '80px',
             }}>
 
-                {/* ── Page Title ── */}
-                <div style={{ marginBottom: '24px' }}>
+                {/* Page Title */}
+                <motion.div variants={fadeUp} style={{ marginBottom: 'var(--space-6)' }}>
                     <h2 style={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontSize: 'clamp(1.1rem, 5vw, 1.4rem)',
-                        fontWeight: 700,
+                        margin: 0,
+                        fontSize: '1.5rem',
+                        fontWeight: 600,
                         color: 'var(--text-primary)',
-                        marginBottom: '4px'
                     }}>
                         User Management
                     </h2>
                     <p style={{
-                        fontSize: '0.75rem',
+                        margin: '4px 0 0',
+                        fontSize: '0.85rem',
                         color: 'var(--text-muted)',
-                        fontFamily: "'Inter', sans-serif"
                     }}>
                         Overview of all registered users and providers
                     </p>
-                </div>
+                </motion.div>
 
-                {/* ── Loading ── */}
+                {/* Loading */}
                 {loading && (
                     <div style={{
-                        textAlign: 'center',
-                        padding: '60px 0',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.9rem'
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 'var(--space-4)'
                     }}>
-                        Loading...
+                        <div className="spinner" style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid var(--border-subtle)', borderTop: '3px solid var(--blue-neon)', animation: 'spin 0.8s linear infinite' }} />
+                        <p style={{ color: 'var(--text-muted)' }}>Loading Users...</p>
                     </div>
                 )}
 
-                {/* ── Error ── */}
+                {/* Error */}
                 {error && (
                     <div style={{
-                        padding: '12px 16px',
+                        padding: '16px',
                         background: 'rgba(239,68,68,0.1)',
                         border: '1px solid rgba(239,68,68,0.3)',
-                        borderRadius: '8px',
-                        color: '#fca5a5',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'var(--red-status)',
                         fontSize: '0.85rem',
-                        marginBottom: '20px'
+                        marginBottom: 'var(--space-5)'
                     }}>
                         {error}
                     </div>
@@ -135,76 +141,52 @@ export function AdminUsersPage() {
 
                 {summary && (
                     <>
-                        {/* ── Stats Cards ── */}
+                        {/* Stats Cards */}
                         <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(2, 1fr)',
-                            gap: 'clamp(10px, 3vw, 16px)',
-                            marginBottom: '24px'
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                            gap: 'var(--space-4)',
+                            marginBottom: 'var(--space-6)'
                         }}>
                             {/* Total Users Card */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: '14px',
-                                padding: 'clamp(16px, 4vw, 24px)',
-                                textAlign: 'center',
-                                boxShadow: 'var(--shadow-blue)'
-                            }}>
-                                <div style={{ fontSize: '2rem', marginBottom: '6px' }}>👤</div>
-                                <p style={{
-                                    fontSize: 'clamp(1.8rem, 8vw, 2.5rem)',
-                                    fontWeight: 800,
+                            <motion.div variants={fadeUp} className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+                                <div style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>👤</div>
+                                <div style={{
+                                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                                    fontWeight: 700,
                                     color: 'var(--blue-vivid)',
-                                    fontFamily: "'Inter', sans-serif",
-                                    marginBottom: '4px'
+                                    fontFamily: 'var(--font-display)',
+                                    marginBottom: 'var(--space-1)',
+                                    lineHeight: 1
                                 }}>
                                     {summary.totalUsers}
-                                </p>
-                                <p style={{
-                                    fontSize: '0.6rem',
-                                    letterSpacing: '0.15em',
-                                    textTransform: 'uppercase',
-                                    color: 'var(--text-muted)',
-                                    fontWeight: 700
-                                }}>
+                                </div>
+                                <div className="eyebrow" style={{ color: 'var(--text-muted)' }}>
                                     Total Users
-                                </p>
-                            </div>
+                                </div>
+                            </motion.div>
 
                             {/* Total Providers Card */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: '14px',
-                                padding: 'clamp(16px, 4vw, 24px)',
-                                textAlign: 'center',
-                                boxShadow: '0 0 30px rgba(52, 211, 153, 0.15)'
-                            }}>
-                                <div style={{ fontSize: '2rem', marginBottom: '6px' }}>🏢</div>
-                                <p style={{
-                                    fontSize: 'clamp(1.8rem, 8vw, 2.5rem)',
-                                    fontWeight: 800,
-                                    color: '#34d399',
-                                    fontFamily: "'Inter', sans-serif",
-                                    marginBottom: '4px'
+                            <motion.div variants={fadeUp} className="card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+                                <div style={{ fontSize: '2rem', marginBottom: 'var(--space-2)' }}>🏢</div>
+                                <div style={{
+                                    fontSize: 'clamp(2rem, 5vw, 3rem)',
+                                    fontWeight: 700,
+                                    color: 'var(--green-status)',
+                                    fontFamily: 'var(--font-display)',
+                                    marginBottom: 'var(--space-1)',
+                                    lineHeight: 1
                                 }}>
                                     {summary.totalProviders}
-                                </p>
-                                <p style={{
-                                    fontSize: '0.6rem',
-                                    letterSpacing: '0.15em',
-                                    textTransform: 'uppercase',
-                                    color: 'var(--text-muted)',
-                                    fontWeight: 700
-                                }}>
+                                </div>
+                                <div className="eyebrow" style={{ color: 'var(--text-muted)' }}>
                                     Total Providers
-                                </p>
-                            </div>
+                                </div>
+                            </motion.div>
                         </div>
 
-                        {/* ── Search Bar ── */}
-                        <div style={{ position: 'relative', marginBottom: '20px' }}>
+                        {/* Search Bar */}
+                        <motion.div variants={fadeUp} style={{ position: 'relative', marginBottom: 'var(--space-5)' }}>
                             <span style={{
                                 position: 'absolute',
                                 left: '16px',
@@ -226,26 +208,7 @@ export function AdminUsersPage() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 style={{
-                                    width: '100%',
-                                    padding: '14px 16px 14px 48px',
-                                    background: 'var(--bg-input)',
-                                    border: '1px solid var(--border-subtle)',
-                                    borderRadius: '12px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.85rem',
-                                    fontFamily: "'Inter', sans-serif",
-                                    outline: 'none',
-                                    transition: 'all 0.2s',
-                                    boxSizing: 'border-box',
-                                    boxShadow: 'var(--shadow-sm)'
-                                }}
-                                onFocus={(e) => {
-                                    e.currentTarget.style.borderColor = 'var(--blue-neon)';
-                                    e.currentTarget.style.boxShadow = '0 0 15px var(--blue-glow)';
-                                }}
-                                onBlur={(e) => {
-                                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                    paddingLeft: '44px'
                                 }}
                             />
                             {searchQuery && (
@@ -261,7 +224,6 @@ export function AdminUsersPage() {
                                         color: 'var(--text-muted)',
                                         cursor: 'pointer',
                                         fontSize: '0.9rem',
-                                        padding: '4px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
@@ -270,33 +232,34 @@ export function AdminUsersPage() {
                                     ✕
                                 </button>
                             )}
-                        </div>
+                        </motion.div>
 
-                        {/* ── Tabs ── */}
-                        <div style={{
+                        {/* Tabs */}
+                        <motion.div variants={fadeUp} style={{
                             display: 'flex',
-                            background: 'var(--bg-nav)',
-                            borderRadius: '8px',
+                            background: 'var(--bg-input)',
+                            borderRadius: 'var(--radius-md)',
                             padding: '4px',
                             border: '1px solid var(--border-subtle)',
-                            marginBottom: '20px'
+                            marginBottom: 'var(--space-6)'
                         }}>
                             <button
                                 onClick={() => setActiveTab('users')}
                                 style={{
                                     flex: 1,
-                                    padding: '10px',
+                                    padding: '12px',
                                     border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '0.65rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontSize: '0.75rem',
                                     letterSpacing: '0.15em',
                                     textTransform: 'uppercase',
                                     fontWeight: 700,
-                                    fontFamily: "'Inter', sans-serif",
+                                    fontFamily: 'var(--font-display)',
                                     cursor: 'pointer',
-                                    background: activeTab === 'users' ? 'var(--blue-glow)' : 'transparent',
-                                    color: activeTab === 'users' ? 'var(--text-primary)' : 'var(--text-muted)',
-                                    transition: 'all 0.2s'
+                                    background: activeTab === 'users' ? 'var(--blue-dim)' : 'transparent',
+                                    color: activeTab === 'users' ? '#fff' : 'var(--text-muted)',
+                                    transition: 'all var(--duration-fast)',
+                                    borderBottom: activeTab === 'users' ? '2px solid var(--blue-vivid)' : '2px solid transparent'
                                 }}
                             >
                                 👤 Users ({summary.totalUsers})
@@ -305,154 +268,161 @@ export function AdminUsersPage() {
                                 onClick={() => setActiveTab('providers')}
                                 style={{
                                     flex: 1,
-                                    padding: '10px',
+                                    padding: '12px',
                                     border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '0.65rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontSize: '0.75rem',
                                     letterSpacing: '0.15em',
                                     textTransform: 'uppercase',
                                     fontWeight: 700,
-                                    fontFamily: "'Inter', sans-serif",
+                                    fontFamily: 'var(--font-display)',
                                     cursor: 'pointer',
-                                    background: activeTab === 'providers' ? 'rgba(52,211,153,0.1)' : 'transparent',
-                                    color: activeTab === 'providers' ? '#34d399' : 'var(--text-muted)',
-                                    transition: 'all 0.2s'
+                                    background: activeTab === 'providers' ? 'rgba(16,185,129,0.1)' : 'transparent',
+                                    color: activeTab === 'providers' ? 'var(--green-status)' : 'var(--text-muted)',
+                                    transition: 'all var(--duration-fast)',
+                                    borderBottom: activeTab === 'providers' ? '2px solid var(--green-status)' : '2px solid transparent'
                                 }}
                             >
                                 🏢 Providers ({summary.totalProviders})
                             </button>
-                        </div>
+                        </motion.div>
 
-                        {/* ── List ── */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {filteredPeople.length === 0 ? (
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '40px',
-                                    color: 'var(--text-muted)',
-                                    fontSize: '0.9rem'
-                                }}>
-                                    No {activeTab} found
-                                </div>
-                            ) : (
-                                filteredPeople.map((person) => (
-                                    <div key={person.id} style={{
-                                        background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                                        border: '1px solid var(--border-subtle)',
-                                        borderRadius: '12px',
-                                        padding: 'clamp(12px, 3vw, 16px)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        boxShadow: 'var(--shadow-sm)'
-                                    }}>
-                                        {/* Avatar */}
-                                        <div style={{
-                                            width: '42px',
-                                            height: '42px',
-                                            borderRadius: '50%',
-                                            background: activeTab === 'users'
-                                                ? 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))'
-                                                : 'linear-gradient(135deg, #059669, #34d399)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: '#fff',
-                                            fontWeight: 700,
-                                            fontSize: '1rem',
-                                            flexShrink: 0
-                                        }}>
-                                            {person.name.charAt(0).toUpperCase()}
-                                        </div>
-
-                                        {/* Info */}
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <p style={{
-                                                fontWeight: 700,
-                                                fontSize: '0.9rem',
-                                                color: 'var(--text-primary)',
-                                                fontFamily: "'Inter', sans-serif",
-                                                marginBottom: '2px',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
-                                            }}>
-                                                {person.name}
-                                            </p>
-                                            <p style={{
-                                                fontSize: '0.75rem',
-                                                color: 'var(--text-muted)',
-                                                fontFamily: "'Inter', sans-serif",
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                                marginBottom: '2px'
-                                            }}>
-                                                {person.email}
-                                            </p>
-                                            <p style={{
-                                                fontSize: '0.7rem',
-                                                color: 'var(--text-muted)',
-                                                fontFamily: "'Inter', sans-serif"
-                                            }}>
-                                                📱 {person.phone} · Joined {new Date(person.created_at).toLocaleDateString()}
-                                            </p>
-                                        </div>
-
-                                        {/* Status Badge */}
-                                        <div style={{
-                                            flexShrink: 0,
-                                            padding: '4px 10px',
-                                            borderRadius: '20px',
-                                            fontSize: '0.55rem',
-                                            letterSpacing: '0.1em',
-                                            textTransform: 'uppercase',
-                                            fontWeight: 700,
-                                            background: person.is_active
-                                                ? 'rgba(16,185,129,0.1)'
-                                                : 'rgba(239,68,68,0.1)',
-                                            color: person.is_active
-                                                ? 'var(--green-status)'
-                                                : 'var(--red-status)',
-                                            border: `1px solid ${person.is_active ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
-                                        }}>
-                                            {person.is_active ? '● Active' : '● Blocked'}
-                                        </div>
-
-                                        {/* Block / Unblock Action Button */}
-                                        <button
-                                            onClick={() => handleToggleActive(person.id, person.is_active)}
+                        {/* List */}
+                        <motion.div layout style={{ display: 'grid', gap: 'var(--space-3)' }}>
+                            <AnimatePresence>
+                                {filteredPeople.length === 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        style={{
+                                            textAlign: 'center',
+                                            padding: '40px',
+                                            color: 'var(--text-muted)',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        No {activeTab} found
+                                    </motion.div>
+                                ) : (
+                                    filteredPeople.map((person) => (
+                                        <motion.div
+                                            key={person.id}
+                                            layout
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="card"
                                             style={{
-                                                flexShrink: 0,
-                                                padding: '6px 12px',
-                                                borderRadius: '6px',
-                                                fontSize: '0.6rem',
-                                                letterSpacing: '0.05em',
-                                                textTransform: 'uppercase',
-                                                fontWeight: 700,
-                                                cursor: 'pointer',
-                                                background: person.is_active ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
-                                                color: person.is_active ? 'var(--red-status)' : 'var(--green-status)',
-                                                border: `1px solid ${person.is_active ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
-                                                fontFamily: "'Inter', sans-serif",
-                                                transition: 'all 0.2s',
-                                            }}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.filter = 'brightness(1.2)';
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.filter = 'none';
+                                                padding: 'var(--space-4)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 'var(--space-4)',
                                             }}
                                         >
-                                            {person.is_active ? 'Block' : 'Unblock'}
-                                        </button>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                                            {/* Avatar */}
+                                            <div style={{
+                                                width: '48px',
+                                                height: '48px',
+                                                borderRadius: '50%',
+                                                background: activeTab === 'users'
+                                                    ? 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))'
+                                                    : 'linear-gradient(135deg, var(--green-status), #059669)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: '#fff',
+                                                fontWeight: 700,
+                                                fontSize: '1.2rem',
+                                                flexShrink: 0,
+                                                boxShadow: activeTab === 'users' ? 'var(--shadow-blue)' : '0 0 15px rgba(16,185,129,0.3)'
+                                            }}>
+                                                {person.name.charAt(0).toUpperCase()}
+                                            </div>
+
+                                            {/* Info */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <p style={{
+                                                    fontWeight: 600,
+                                                    fontSize: '1rem',
+                                                    color: 'var(--text-primary)',
+                                                    margin: '0 0 2px 0',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {person.name}
+                                                </p>
+                                                <p style={{
+                                                    fontSize: '0.8rem',
+                                                    color: 'var(--text-secondary)',
+                                                    margin: '0 0 4px 0',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap'
+                                                }}>
+                                                    {person.email}
+                                                </p>
+                                                <p style={{
+                                                    fontSize: '0.75rem',
+                                                    color: 'var(--text-muted)',
+                                                    margin: 0
+                                                }}>
+                                                    📱 {person.phone} · Joined {new Date(person.created_at).toLocaleDateString()}
+                                                </p>
+                                            </div>
+
+                                            {/* Status Badge */}
+                                            <div className="badge" style={{
+                                                background: person.is_active
+                                                    ? 'rgba(16,185,129,0.1)'
+                                                    : 'rgba(239,68,68,0.1)',
+                                                color: person.is_active
+                                                    ? 'var(--green-status)'
+                                                    : 'var(--red-status)',
+                                                borderColor: person.is_active
+                                                    ? 'rgba(16,185,129,0.3)'
+                                                    : 'rgba(239,68,68,0.3)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}>
+                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+                                                {person.is_active ? 'Active' : 'Blocked'}
+                                            </div>
+
+                                            {/* Block / Unblock Action Button */}
+                                            <button
+                                                className="btn btn-sm"
+                                                onClick={() => handleToggleActive(person.id, person.is_active)}
+                                                style={{
+                                                    flexShrink: 0,
+                                                    background: person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
+                                                    color: person.is_active ? 'var(--red-status)' : 'var(--green-status)',
+                                                    border: `1px solid ${person.is_active ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = person.is_active ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)';
+                                                }}
+                                            >
+                                                {person.is_active ? 'Block' : 'Unblock'}
+                                            </button>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
                     </>
                 )}
-            </div>
+            </motion.div>
+            
+            <style>{`
+              @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
         </div>
     );
 }

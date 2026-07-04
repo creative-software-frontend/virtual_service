@@ -102,6 +102,15 @@ async function getUserDepositHistory(userId) {
     return rows;
 }
 
+/**
+ * createWithdrawRequest
+ * ──────────────────────
+ * Before inserting the request, calculate the user's AVAILABLE funds:
+ *   available = actual_balance/earnings - sum(pending_withdraw_requests)
+ *
+ * If the requested amount exceeds available funds, reject with 409.
+ * This prevents double-spending of already-reserved funds.
+ */
 async function createWithdrawRequest(userId, payload = {}) {
     const amount = payload.amount;
     const method = normalizeMethod(payload.method);
@@ -124,6 +133,42 @@ async function createWithdrawRequest(userId, payload = {}) {
         error.statusCode = 400;
         throw error;
     }
+
+    // ── Available balance check ─────────────────────────────────────────────
+    const [userRows] = await db.query(
+        "SELECT balance, earnings, role FROM users WHERE id = ? LIMIT 1",
+        [userId]
+    );
+
+    if (!userRows || !userRows.length) {
+        const error = new Error("User not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const user = userRows[0];
+    const isProvider = user.role === "provider";
+    const fundsField = isProvider ? "earnings" : "balance";
+    const totalFunds = Number(user[fundsField] || 0);
+
+    // Sum all currently Pending withdrawal requests for this user
+    const [pendingRows] = await db.query(
+        "SELECT COALESCE(SUM(amount), 0) AS reserved FROM withdraw_requests WHERE user_id = ? AND status = 'Pending'",
+        [userId]
+    );
+    const reserved = Number(pendingRows[0].reserved || 0);
+    const available = totalFunds - reserved;
+
+    if (Number(amount) > available) {
+        const error = new Error(
+            available <= 0
+                ? "Insufficient available balance. All funds are reserved for a pending withdrawal."
+                : `Insufficient available balance. Available: ৳${available.toFixed(2)} (pending: ৳${reserved.toFixed(2)}).`
+        );
+        error.statusCode = 409;
+        throw error;
+    }
+    // ───────────────────────────────────────────────────────────────────────
 
     const [result] = await db.query(
         `INSERT INTO withdraw_requests (user_id, amount, method, account_number, status)
@@ -149,6 +194,23 @@ async function getUserWithdrawHistory(userId) {
     return rows;
 }
 
+/**
+ * getWalletSummary
+ * ─────────────────
+ * Returns:
+ *   balance          — raw balance from users table
+ *   earnings         — raw earnings from users table
+ *   available_balance  — balance minus sum of pending withdrawal requests
+ *   available_earnings — earnings minus sum of pending withdrawal requests (provider)
+ *   role
+ *   transactions     — UNIFIED list of all activity:
+ *                        • completed transactions (from transactions table)
+ *                        • Pending deposit requests
+ *                        • Rejected deposit requests
+ *                        • Pending withdraw requests
+ *                        • Rejected withdraw requests
+ *                      (Approved requests are already in transactions as completed rows)
+ */
 async function getWalletSummary(userId) {
     const [userRows] = await db.query(
         "SELECT balance, earnings, role FROM users WHERE id = ? LIMIT 1",
@@ -161,17 +223,90 @@ async function getWalletSummary(userId) {
         throw error;
     }
 
+    const user = userRows[0];
+
+    // ── Completed transactions ──────────────────────────────────────────────
     const [txRows] = await db.query(
         `SELECT id, type, amount, status, description, created_at
-         FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
+         FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 100`,
         [userId]
     );
 
+    // ── Pending & Rejected deposit requests ─────────────────────────────────
+    const [depositReqRows] = await db.query(
+        `SELECT id, amount, method, trx_id, status, admin_note, created_at
+         FROM deposit_requests
+         WHERE user_id = ? AND status IN ('Pending', 'Rejected')
+         ORDER BY created_at DESC`,
+        [userId]
+    );
+
+    // ── Pending & Rejected withdraw requests ────────────────────────────────
+    const [withdrawReqRows] = await db.query(
+        `SELECT id, amount, method, account_number, status, admin_note, created_at
+         FROM withdraw_requests
+         WHERE user_id = ? AND status IN ('Pending', 'Rejected')
+         ORDER BY created_at DESC`,
+        [userId]
+    );
+
+    // ── Calculate available funds (deduct pending withdrawals) ──────────────
+    const [pendingRows] = await db.query(
+        "SELECT COALESCE(SUM(amount), 0) AS reserved FROM withdraw_requests WHERE user_id = ? AND status = 'Pending'",
+        [userId]
+    );
+    const reserved = Number(pendingRows[0].reserved || 0);
+    const balance = Number(user.balance || 0);
+    const earnings = Number(user.earnings || 0);
+    const isProvider = user.role === "provider";
+
+    const available_balance = isProvider
+        ? balance  // providers withdraw from earnings, not balance
+        : Math.max(0, balance - reserved);
+
+    const available_earnings = isProvider
+        ? Math.max(0, earnings - reserved)
+        : earnings;
+
+    // ── Map request rows to unified Transaction shape ───────────────────────
+    const depositReqTx = depositReqRows.map((r) => ({
+        id: `dep_req_${r.id}`,
+        type: "deposit",
+        amount: r.amount,
+        status: r.status.toLowerCase(),   // 'pending' | 'rejected'
+        description: `Deposit request via ${r.method} (TXN: ${r.trx_id})${r.admin_note ? ` — ${r.admin_note}` : ""}`,
+        created_at: r.created_at,
+        _source: "request",
+    }));
+
+    const withdrawReqTx = withdrawReqRows.map((r) => ({
+        id: `wd_req_${r.id}`,
+        type: "withdraw",
+        amount: r.amount,
+        status: r.status.toLowerCase(),   // 'pending' | 'rejected'
+        description: `Withdrawal request via ${r.method} to ${r.account_number}${r.admin_note ? ` — ${r.admin_note}` : ""}`,
+        created_at: r.created_at,
+        _source: "request",
+    }));
+
+    // Completed txs already have the right shape; normalise status to lowercase
+    const completedTx = (txRows || []).map((tx) => ({
+        ...tx,
+        status: (tx.status || "completed").toLowerCase(),
+    }));
+
+    // Merge and sort newest-first
+    const allTransactions = [...depositReqTx, ...withdrawReqTx, ...completedTx].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+
     return {
-        balance: userRows[0].balance || 0,
-        earnings: userRows[0].earnings || 0,
-        role: userRows[0].role,
-        transactions: txRows || [],
+        balance,
+        earnings,
+        available_balance,
+        available_earnings,
+        role: user.role,
+        transactions: allTransactions,
     };
 }
 
@@ -330,6 +465,7 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
         const fundsField = isProvider ? "earnings" : "balance";
         const fundsAmount = Number(user[fundsField] || 0);
 
+        // Safety net: ensure actual stored funds cover the withdrawal
         if (fundsAmount < Number(withdraw.amount)) {
             const error = new Error(
                 isProvider
@@ -375,6 +511,14 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
     }
 }
 
+/**
+ * rejectWithdrawRequest
+ * ──────────────────────
+ * Simply marks the request as Rejected.
+ * No balance change is needed — the funds were NEVER deducted at submission time.
+ * The next available-balance calculation will naturally exclude this request
+ * because it's no longer 'Pending', so reserved amount drops.
+ */
 async function rejectWithdrawRequest(adminId, withdrawId, adminNote = "") {
     const [result] = await db.query(
         `UPDATE withdraw_requests

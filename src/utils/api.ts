@@ -103,9 +103,14 @@ export interface Transaction {
 export interface WalletResponse {
     balance: number;
     earnings: number;
+    /** balance minus sum of all Pending withdrawal requests (for users) */
+    available_balance: number;
+    /** earnings minus sum of all Pending withdrawal requests (for providers) */
+    available_earnings: number;
     role: string;
     transactions: Transaction[];
 }
+
 
 export interface DepositRequestPayload {
     amount: number;

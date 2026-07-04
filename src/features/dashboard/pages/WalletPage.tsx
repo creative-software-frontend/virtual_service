@@ -19,6 +19,8 @@ export function WalletPage() {
     const [wallet, setWallet] = useState({
         balance: 0,
         earnings: 0,
+        available_balance: 0,
+        available_earnings: 0,
         role: "",
     });
 
@@ -47,6 +49,9 @@ export function WalletPage() {
             setWallet({
                 balance: res.data.balance,
                 earnings: res.data.earnings,
+                // Fall back to raw totals for older backend versions
+                available_balance: res.data.available_balance ?? res.data.balance,
+                available_earnings: res.data.available_earnings ?? res.data.earnings,
                 role: res.data.role,
             });
             setTransactions(res.data.transactions || []);
@@ -104,11 +109,14 @@ export function WalletPage() {
             setModalStatus({ type: 'error', message: 'Please enter a valid positive amount.' });
             return;
         }
-        const availableFunds = wallet.role === 'provider' ? wallet.earnings : wallet.balance;
+        // Use server-calculated available amount (balance/earnings minus pending withdrawals)
+        const availableFunds = wallet.role === 'provider' ? wallet.available_earnings : wallet.available_balance;
         if (amt > availableFunds) {
             setModalStatus({
                 type: 'error',
-                message: wallet.role === 'provider' ? 'Insufficient earnings to withdraw.' : 'Insufficient balance to withdraw.'
+                message: wallet.role === 'provider'
+                    ? `Insufficient available earnings. Available: ৳${Number(availableFunds).toFixed(2)}`
+                    : `Insufficient available balance. Available: ৳${Number(availableFunds).toFixed(2)}`
             });
             return;
         }
@@ -439,6 +447,38 @@ export function WalletPage() {
                             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                                 {transactions.map((tx) => {
                                     const isPositive = tx.type === "deposit" || tx.type === "earning" || tx.type === "event_income";
+                                    const isPending = tx.status === "pending";
+                                    const isRejected = tx.status === "rejected";
+
+                                    // Status badge colors
+                                    const statusBg = isPending
+                                        ? "rgba(245,158,11,0.15)"
+                                        : isRejected
+                                        ? "rgba(239,68,68,0.15)"
+                                        : "rgba(16,185,129,0.15)";
+                                    const statusColor = isPending
+                                        ? "var(--gold-mid)"
+                                        : isRejected
+                                        ? "var(--red-status)"
+                                        : "var(--green-status)";
+                                    const statusLabel = isPending ? "Pending" : isRejected ? "Rejected" : "Completed";
+
+                                    // Icon color is muted for pending/rejected
+                                    const iconBg =
+                                        tx.type === "withdraw" || tx.type === "event_payment"
+                                            ? `rgba(239, 68, 68, ${isPending ? "0.08" : "0.15"})`
+                                            : tx.type === "deposit"
+                                            ? `rgba(59, 130, 246, ${isPending ? "0.08" : "0.15"})`
+                                            : `rgba(245, 158, 11, ${isPending ? "0.08" : "0.15"})`;
+                                    const iconColor =
+                                        isPending || isRejected
+                                            ? "var(--text-muted)"
+                                            : tx.type === "withdraw" || tx.type === "event_payment"
+                                            ? "var(--red-status)"
+                                            : tx.type === "deposit"
+                                            ? "var(--blue-vivid)"
+                                            : "var(--gold-mid)";
+
                                     return (
                                         <div
                                             key={tx.id}
@@ -446,11 +486,12 @@ export function WalletPage() {
                                                 display: "flex",
                                                 alignItems: "center",
                                                 justifyContent: "space-between",
-                                                background: "var(--bg-input)",
-                                                border: "1px solid var(--border-subtle)",
+                                                background: isPending ? "rgba(245,158,11,0.03)" : isRejected ? "rgba(239,68,68,0.03)" : "var(--bg-input)",
+                                                border: isPending ? "1px solid rgba(245,158,11,0.25)" : isRejected ? "1px solid rgba(239,68,68,0.2)" : "1px solid var(--border-subtle)",
                                                 borderRadius: "12px",
                                                 padding: "16px 20px",
                                                 transition: "border-color 0.2s",
+                                                opacity: isRejected ? 0.75 : 1,
                                             }}
                                         >
                                             <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
@@ -462,38 +503,48 @@ export function WalletPage() {
                                                         display: "flex",
                                                         alignItems: "center",
                                                         justifyContent: "center",
-                                                        background:
-                                                            tx.type === "withdraw" || tx.type === "event_payment"
-                                                                ? "rgba(239, 68, 68, 0.15)"
-                                                                : tx.type === "deposit"
-                                                                ? "rgba(59, 130, 246, 0.15)"
-                                                                : "rgba(245, 158, 11, 0.15)",
-                                                        color:
-                                                            tx.type === "withdraw" || tx.type === "event_payment"
-                                                                ? "var(--red-status)"
-                                                                : tx.type === "deposit"
-                                                                ? "var(--blue-vivid)"
-                                                                : "var(--gold-mid)",
+                                                        background: iconBg,
+                                                        color: iconColor,
                                                         fontWeight: 800,
                                                     }}
                                                 >
                                                     {tx.type === "withdraw" || tx.type === "event_payment" ? "↓" : tx.type === "deposit" ? "↑" : "★"}
                                                 </div>
                                                 <div>
-                                                    <p style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "2px" }}>
+                                                    <p style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
                                                         {tx.description}
                                                     </p>
-                                                    <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-                                                        {new Date(tx.created_at).toLocaleString()} •{" "}
-                                                        <span style={{ textTransform: "uppercase", fontWeight: 600 }}>{tx.status}</span>
-                                                    </p>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                                            {new Date(tx.created_at).toLocaleString()}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: "0.65rem",
+                                                            fontWeight: 700,
+                                                            textTransform: "uppercase",
+                                                            letterSpacing: "0.06em",
+                                                            padding: "2px 7px",
+                                                            borderRadius: "20px",
+                                                            background: statusBg,
+                                                            color: statusColor,
+                                                        }}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div
                                                 style={{
                                                     fontSize: "1rem",
                                                     fontWeight: 800,
-                                                    color: isPositive ? "var(--green-status)" : "var(--red-status)",
+                                                    color: isPending
+                                                        ? "var(--text-muted)"
+                                                        : isRejected
+                                                        ? "var(--text-muted)"
+                                                        : isPositive
+                                                        ? "var(--green-status)"
+                                                        : "var(--red-status)",
+                                                    textDecoration: isRejected ? "line-through" : "none",
                                                 }}
                                             >
                                                 {isPositive ? "+" : "-"}৳{Number(tx.amount).toFixed(2)}
@@ -723,7 +774,15 @@ export function WalletPage() {
                                 WITHDRAW FUNDS
                             </h3>
                             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                Enter the amount to withdraw. Available {wallet.role === 'provider' ? 'earnings' : 'balance'}: ৳{Number(wallet.role === 'provider' ? wallet.earnings : wallet.balance).toFixed(2)}.
+                                Enter the amount to withdraw.<br />
+                                <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>
+                                    Available {wallet.role === 'provider' ? 'earnings' : 'balance'}:{" "}
+                                    ৳{Number(wallet.role === 'provider' ? wallet.available_earnings : wallet.available_balance).toFixed(2)}
+                                </span>
+                                {wallet.role === 'provider'
+                                    ? wallet.earnings !== wallet.available_earnings && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total earnings: ৳{Number(wallet.earnings).toFixed(2)} (৳{(wallet.earnings - wallet.available_earnings).toFixed(2)} reserved)</span></>
+                                    : wallet.balance !== wallet.available_balance && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total balance: ৳{Number(wallet.balance).toFixed(2)} (৳{(wallet.balance - wallet.available_balance).toFixed(2)} reserved)</span></>
+                                }
                             </p>
                         </div>
 

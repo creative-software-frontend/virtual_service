@@ -422,66 +422,184 @@ export default function AdminReportsPage() {
                     </div>
                 </div>
 
-                {/* Table */}
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                        <thead>
-                            <tr style={{ background: 'var(--bg-card-hover)', borderBottom: '1px solid var(--border-subtle)' }}>
-                                {['#', 'User', 'Role', 'Type', 'Amount', 'Status', 'Note', 'Date'].map(h => (
-                                    <th key={h} className="eyebrow" style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'left', borderBottom: 'none' }}>{h}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pagedLedger.length === 0
-                                ? (
-                                    <tr><td colSpan={8} style={{ textAlign: 'center', padding: 'var(--space-10)', color: 'var(--text-muted)' }}>No transactions found</td></tr>
-                                )
-                                : pagedLedger.map((e, idx) => {
-                                    const typeInfo = typeLabel[e.type] ?? { label: e.type, color: 'var(--text-secondary)', bg: 'transparent' };
-                                    const globalIdx = (page - 1) * PAGE_SIZE + idx + 1;
-                                    return (
-                                        <tr key={e.id} style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background var(--duration-fast)' }}
-                                            onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--bg-input)')}
-                                            onMouseLeave={ev => (ev.currentTarget.style.background = 'transparent')}
-                                        >
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--text-muted)' }}>{globalIdx}</td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{e.user_name}</td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                                                <span className={`badge ${e.user_role === 'admin' ? 'badge-gold' : e.user_role === 'provider' ? 'badge-blue' : ''}`} style={{
-                                                    background: e.user_role === 'admin' ? 'var(--gold-glow)' : e.user_role === 'provider' ? 'var(--blue-glow)' : 'rgba(16,185,129,0.1)',
-                                                    color: e.user_role === 'admin' ? 'var(--gold-mid)' : e.user_role === 'provider' ? 'var(--blue-vivid)' : 'var(--green-status)',
-                                                    borderColor: e.user_role === 'admin' ? 'var(--border-gold)' : e.user_role === 'provider' ? 'rgba(59,130,246,0.3)' : 'rgba(16,185,129,0.3)',
-                                                }}>
-                                                    {e.user_role}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                                                <span className="badge" style={{ background: typeInfo.bg, color: typeInfo.color, borderColor: typeInfo.color.replace('var(', '').replace(')', '') === 'var(--text-secondary)' ? 'var(--border-subtle)' : 'currentColor' }}>
-                                                    {typeInfo.label}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 600, color: typeInfo.color, whiteSpace: 'nowrap' }}>
-                                                {((e.type as string) === 'withdraw' || (e.type as string) === 'event_payment') ? '-' : '+'}{fmt(Number(e.amount))}
-                                            </td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)' }}>
-                                                <span className="badge" style={{
-                                                    background: e.status === 'completed' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                                                    color: e.status === 'completed' ? 'var(--green-status)' : 'var(--gold-mid)',
-                                                    borderColor: e.status === 'completed' ? 'rgba(16,185,129,0.3)' : 'var(--border-gold)'
-                                                }}>
-                                                    {e.status}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.description || '—'}</td>
-                                            <td style={{ padding: 'var(--space-3) var(--space-4)', color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
+                {/* Cards (Global Ledger) */}
+                <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    {pagedLedger.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: 'var(--space-10)', color: 'var(--text-muted)' }}>
+                            No transactions found
+                        </div>
+                    ) : (
+                        pagedLedger.map((e, idx) => {
+                            const typeInfo = typeLabel[e.type] ?? { label: e.type, color: 'var(--text-secondary)', bg: 'transparent' };
+                            const globalIdx = (page - 1) * PAGE_SIZE + idx + 1;
+
+                            const amountIsNegative = ((e.type as string) === 'withdraw' || (e.type as string) === 'event_payment');
+                            const amountSigned = `${amountIsNegative ? '-' : '+'}${fmt(Number(e.amount))}`;
+                            const amountColor = amountIsNegative ? 'var(--red-status)' : 'var(--green-status)';
+
+                            const statusBg =
+                                e.status === 'completed' || e.status === 'approved'
+                                    ? 'rgba(16,185,129,0.1)'
+                                    : e.status === 'pending'
+                                        ? 'rgba(245,158,11,0.1)'
+                                        : 'rgba(239,68,68,0.1)';
+
+                            const statusColor =
+                                e.status === 'completed' || e.status === 'approved'
+                                    ? 'var(--green-status)'
+                                    : e.status === 'pending'
+                                        ? 'var(--gold-mid)'
+                                        : 'var(--red-status)';
+
+                            const statusBorder =
+                                e.status === 'completed' || e.status === 'approved'
+                                    ? 'rgba(16,185,129,0.3)'
+                                    : e.status === 'pending'
+                                        ? 'var(--border-gold)'
+                                        : 'rgba(239,68,68,0.35)';
+
+                            return (
+                                <motion.div
+                                    key={e.id}
+                                    variants={fadeUp}
+                                    whileHover={{ y: -2, transition: { duration: 0.18 } }}
+                                    style={{
+                                        border: '1px solid var(--border-subtle)',
+                                        borderRadius: 'var(--radius-lg)',
+                                        background: 'rgba(255,255,255,0.04)',
+                                        boxShadow: 'var(--shadow-gold)',
+                                        backdropFilter: 'blur(10px)',
+                                        WebkitBackdropFilter: 'blur(10px)',
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    {/* Card Header */}
+                                    <div
+                                        style={{
+                                            padding: 'var(--space-4) var(--space-5)',
+                                            borderBottom: '1px solid var(--border-subtle)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: 'var(--space-3)',
+                                            flexWrap: 'wrap',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                                <span style={{ fontWeight: 800, color: 'var(--text-secondary)' }}>#{globalIdx}</span>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+                                            <span
+                                                className="badge"
+                                                style={{
+                                                    background: statusBg,
+                                                    color: statusColor,
+                                                    borderColor: statusBorder,
+                                                    fontWeight: 800,
+                                                }}
+                                            >
+                                                {e.status}
+                                            </span>
+
+                                            <div style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', fontSize: '0.75rem' }}>
                                                 {new Date(e.created_at).toLocaleString('en-BD', { dateStyle: 'short', timeStyle: 'short' })}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                        </tbody>
-                    </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Card Body */}
+                                    <div style={{ padding: 'var(--space-5)' }}>
+                                        <div
+                                            style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: '1.2fr 1fr',
+                                                gap: 'var(--space-5)',
+                                            }}
+                                        >
+                                            {/* Left */}
+                                            <div style={{ minWidth: 0 }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{e.user_name}</div>
+                                                        <span
+                                                            className={`badge ${e.user_role === 'admin' ? 'badge-gold' : e.user_role === 'provider' ? 'badge-blue' : ''}`}
+                                                            style={{
+                                                                background: e.user_role === 'admin' ? 'var(--gold-glow)' : e.user_role === 'provider' ? 'var(--blue-glow)' : 'rgba(16,185,129,0.1)',
+                                                                color: e.user_role === 'admin' ? 'var(--gold-mid)' : e.user_role === 'provider' ? 'var(--blue-vivid)' : 'var(--green-status)',
+                                                                borderColor: e.user_role === 'admin' ? 'var(--border-gold)' : e.user_role === 'provider' ? 'rgba(59,130,246,0.3)' : 'rgba(16,185,129,0.3)',
+                                                                fontWeight: 800,
+                                                            }}
+                                                        >
+                                                            {e.user_role}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Role</span>: {e.user_role}
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                                            <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Transaction Type</span>
+                                                        </div>
+                                                        <span
+                                                            className="badge"
+                                                            style={{
+                                                                background: typeInfo.bg,
+                                                                color: typeInfo.color,
+                                                                borderColor: typeInfo.color.replace('var(', '').replace(')', '') === 'var(--text-secondary)' ? 'var(--border-subtle)' : 'currentColor',
+                                                                fontWeight: 800,
+                                                            }}
+                                                        >
+                                                            {typeInfo.label}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Right */}
+                                            <div style={{ minWidth: 0 }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                                                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: amountColor, lineHeight: 1.1 }}>
+                                                        {amountSigned}
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+                                                        <span
+                                                            className="badge"
+                                                            style={{
+                                                                background: statusBg,
+                                                                color: statusColor,
+                                                                borderColor: statusBorder,
+                                                                fontWeight: 800,
+                                                            }}
+                                                        >
+                                                            {e.status}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                                                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Date</span>: {new Date(e.created_at).toLocaleString('en-BD', { dateStyle: 'short', timeStyle: 'short' })}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Note */}
+                                        <div style={{ marginTop: 'var(--space-4)', color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                                            <div style={{ marginBottom: 'var(--space-1)' }}>
+                                                <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Note</span>
+                                            </div>
+                                            {e.description || '—'}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            );
+                        })
+                    )}
                 </div>
 
                 {/* Pagination */}

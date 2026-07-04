@@ -1,0 +1,6 @@
+- [ ] Read `src/features/dashboard/pages/AdminReportsPage.tsx` and identify the Global Ledger table section to replace.
+- [ ] Replace only the Global Ledger HTML table with premium horizontal glassmorphism transaction cards.
+- [ ] Ensure cards are full-width, stack vertically, wrap long notes, and do not introduce horizontal scrolling.
+- [ ] Preserve existing search/filter/pagination/data mapping and admin workflow (pending requests section must remain unchanged).
+- [ ] Verify that every transaction field (#, User, Role, Type, Amount, Status, Note, Date) is still displayed.
+- [ ] Provide modified files + UI summary + confirmation that only presentation changed.

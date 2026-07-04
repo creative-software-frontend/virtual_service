@@ -120,8 +120,27 @@ export function WalletPage() {
             });
             return;
         }
-        if (!withdrawAccountNumber.trim()) {
-            setModalStatus({ type: 'error', message: 'Account number is required.' });
+
+        const mobile = withdrawAccountNumber.trim();
+
+        if (!mobile) {
+            setModalStatus({ type: 'error', message: 'Mobile number is required.' });
+            return;
+        }
+
+        // Frontend should have already stripped non-digits, but keep strict UX safety
+        if (!/^\d+$/.test(mobile)) {
+            setModalStatus({ type: 'error', message: 'Only numbers are allowed.' });
+            return;
+        }
+
+        if (mobile.length !== 11) {
+            setModalStatus({ type: 'error', message: 'Mobile number must be exactly 11 digits.' });
+            return;
+        }
+
+        if (!/^01[3-9][0-9]{8}$/.test(mobile)) {
+            setModalStatus({ type: 'error', message: 'Please enter a valid Bangladesh mobile number.' });
             return;
         }
 
@@ -130,7 +149,7 @@ export function WalletPage() {
             const res = await userApi.withdraw({
                 amount: amt,
                 method: withdrawMethod,
-                account_number: withdrawAccountNumber.trim(),
+                account_number: mobile,
             });
             if (res.error) {
                 setModalStatus({ type: 'error', message: res.error });
@@ -842,8 +861,14 @@ export function WalletPage() {
                             Account Number
                             <input
                                 value={withdrawAccountNumber}
-                                onChange={(e) => setWithdrawAccountNumber(e.target.value)}
+                                onChange={(e) => {
+                                    // Numeric-only UX: strip everything non-digit and cap at 11 digits
+                                    const digitsOnly = (e.target.value || "").replace(/\D/g, "").slice(0, 11);
+                                    setWithdrawAccountNumber(digitsOnly);
+                                }}
                                 placeholder="Enter account/mobile number"
+                                inputMode="numeric"
+                                autoComplete="off"
                                 style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
                             />
                         </label>

@@ -105,11 +105,14 @@ async function getUserDepositHistory(userId) {
 /**
  * createWithdrawRequest
  * ──────────────────────
- * Before inserting the request, calculate the user's AVAILABLE funds:
- *   available = actual_balance/earnings - sum(pending_withdraw_requests)
+ * Reserved-funds approach:
+ * - Lock the user row (FOR UPDATE)
+ * - Validate against the user's current available funds (users.balance for users,
+ *   users.earnings for providers)
+ * - Immediately deduct the amount from the correct column
+ * - Insert the withdrawal request as Pending
  *
- * If the requested amount exceeds available funds, reject with 409.
- * This prevents double-spending of already-reserved funds.
+ * Approval does NOT deduct again. Rejection refunds the reserved amount.
  */
 async function createWithdrawRequest(userId, payload = {}) {
     const amount = payload.amount;
@@ -128,61 +131,94 @@ async function createWithdrawRequest(userId, payload = {}) {
         throw error;
     }
 
+    // bKash / Nagad: Mobile number validation
+    // - Required
+    // - Digits only
+    // - Exactly 11 digits
+    // - Bangladesh mobile format: ^01[3-9][0-9]{8}$
     if (!accountNumber) {
-        const error = new Error("Account number is required");
+        const error = new Error("Mobile number is required.");
         error.statusCode = 400;
         throw error;
     }
 
-    // ── Available balance check ─────────────────────────────────────────────
-    const [userRows] = await db.query(
-        "SELECT balance, earnings, role FROM users WHERE id = ? LIMIT 1",
-        [userId]
-    );
-
-    if (!userRows || !userRows.length) {
-        const error = new Error("User not found");
-        error.statusCode = 404;
+    if (!/^\d+$/.test(accountNumber)) {
+        const error = new Error("Only numbers are allowed.");
+        error.statusCode = 400;
         throw error;
     }
 
-    const user = userRows[0];
-    const isProvider = user.role === "provider";
-    const fundsField = isProvider ? "earnings" : "balance";
-    const totalFunds = Number(user[fundsField] || 0);
+    if (accountNumber.length !== 11) {
+        const error = new Error("Mobile number must be exactly 11 digits.");
+        error.statusCode = 400;
+        throw error;
+    }
 
-    // Sum all currently Pending withdrawal requests for this user
-    const [pendingRows] = await db.query(
-        "SELECT COALESCE(SUM(amount), 0) AS reserved FROM withdraw_requests WHERE user_id = ? AND status = 'Pending'",
-        [userId]
-    );
-    const reserved = Number(pendingRows[0].reserved || 0);
-    const available = totalFunds - reserved;
+    if (!/^01[3-9][0-9]{8}$/.test(accountNumber)) {
+        const error = new Error("Please enter a valid Bangladesh mobile number.");
+        error.statusCode = 400;
+        throw error;
+    }
 
-    if (Number(amount) > available) {
-        const error = new Error(
-            available <= 0
-                ? "Insufficient available balance. All funds are reserved for a pending withdrawal."
-                : `Insufficient available balance. Available: ৳${available.toFixed(2)} (pending: ৳${reserved.toFixed(2)}).`
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // Lock user row so reservation + request creation are atomic and race-safe
+        const [userRows] = await connection.query(
+            "SELECT id, balance, earnings, role FROM users WHERE id = ? FOR UPDATE",
+            [userId]
         );
-        error.statusCode = 409;
+
+        if (!userRows.length) {
+            const error = new Error("User not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const user = userRows[0];
+        const isProvider = user.role === "provider";
+        const fundsField = isProvider ? "earnings" : "balance";
+
+        const available = Number(user[fundsField] || 0);
+        if (Number(amount) > available) {
+            const error = new Error(
+                available <= 0
+                    ? "Insufficient available balance. Funds are already reserved."
+                    : `Insufficient available balance. Available: ৳${available.toFixed(2)}.`
+            );
+            error.statusCode = 409;
+            throw error;
+        }
+
+        // Reserve funds immediately by deducting from balance/earnings
+        await connection.query(
+            `UPDATE users SET ${fundsField} = ${fundsField} - ? WHERE id = ?`,
+            [Number(amount).toFixed(2), userId]
+        );
+
+        const [result] = await connection.query(
+            `INSERT INTO withdraw_requests (user_id, amount, method, account_number, status)
+             VALUES (?, ?, ?, ?, 'Pending')`,
+            [userId, Number(amount).toFixed(2), method, accountNumber]
+        );
+
+        await connection.commit();
+
+        const [rows] = await db.query(
+            `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
+             FROM withdraw_requests WHERE id = ? LIMIT 1`,
+            [result.insertId]
+        );
+
+        return rows[0];
+    } catch (error) {
+        await connection.rollback();
         throw error;
+    } finally {
+        connection.release();
     }
-    // ───────────────────────────────────────────────────────────────────────
-
-    const [result] = await db.query(
-        `INSERT INTO withdraw_requests (user_id, amount, method, account_number, status)
-         VALUES (?, ?, ?, ?, 'Pending')`,
-        [userId, Number(amount).toFixed(2), method, accountNumber]
-    );
-
-    const [rows] = await db.query(
-        `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
-         FROM withdraw_requests WHERE id = ? LIMIT 1`,
-        [result.insertId]
-    );
-
-    return rows[0];
 }
 
 async function getUserWithdrawHistory(userId) {
@@ -200,8 +236,8 @@ async function getUserWithdrawHistory(userId) {
  * Returns:
  *   balance          — raw balance from users table
  *   earnings         — raw earnings from users table
- *   available_balance  — balance minus sum of pending withdrawal requests
- *   available_earnings — earnings minus sum of pending withdrawal requests (provider)
+ *   available_balance  — equals current users.balance (reservation already deducted at Pending creation)
+ *   available_earnings — equals current users.earnings for providers (reservation already deducted at Pending creation)
  *   role
  *   transactions     — UNIFIED list of all activity:
  *                        • completed transactions (from transactions table)
@@ -250,23 +286,14 @@ async function getWalletSummary(userId) {
         [userId]
     );
 
-    // ── Calculate available funds (deduct pending withdrawals) ──────────────
-    const [pendingRows] = await db.query(
-        "SELECT COALESCE(SUM(amount), 0) AS reserved FROM withdraw_requests WHERE user_id = ? AND status = 'Pending'",
-        [userId]
-    );
-    const reserved = Number(pendingRows[0].reserved || 0);
     const balance = Number(user.balance || 0);
     const earnings = Number(user.earnings || 0);
     const isProvider = user.role === "provider";
 
-    const available_balance = isProvider
-        ? balance  // providers withdraw from earnings, not balance
-        : Math.max(0, balance - reserved);
-
-    const available_earnings = isProvider
-        ? Math.max(0, earnings - reserved)
-        : earnings;
+    // Reservation is applied immediately on Pending creation by deducting
+    // from users.balance / users.earnings. Therefore available funds equal current values.
+    const available_balance = isProvider ? balance : Math.max(0, balance);
+    const available_earnings = isProvider ? Math.max(0, earnings) : earnings;
 
     // ── Map request rows to unified Transaction shape ───────────────────────
     const depositReqTx = depositReqRows.map((r) => ({
@@ -449,37 +476,8 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
             throw error;
         }
 
-        const [userRows] = await connection.query(
-            `SELECT id, balance, earnings, role FROM users WHERE id = ? FOR UPDATE`,
-            [withdraw.user_id]
-        );
-
-        if (!userRows.length) {
-            const error = new Error("User not found");
-            error.statusCode = 404;
-            throw error;
-        }
-
-        const user = userRows[0];
-        const isProvider = user.role === "provider";
-        const fundsField = isProvider ? "earnings" : "balance";
-        const fundsAmount = Number(user[fundsField] || 0);
-
-        // Safety net: ensure actual stored funds cover the withdrawal
-        if (fundsAmount < Number(withdraw.amount)) {
-            const error = new Error(
-                isProvider
-                    ? "Insufficient earnings for withdrawal approval"
-                    : "Insufficient balance for withdrawal approval"
-            );
-            error.statusCode = 409;
-            throw error;
-        }
-
-        await connection.query(
-            `UPDATE users SET ${fundsField} = ${fundsField} - ? WHERE id = ?`,
-            [Number(withdraw.amount), withdraw.user_id]
-        );
+        // Money is already reserved/deducted at Pending creation time.
+        // Approval should only finalize request and create transaction record.
 
         await connection.query(
             `INSERT INTO transactions (user_id, type, amount, status, description)
@@ -514,32 +512,76 @@ async function approveWithdrawRequest(adminId, withdrawId, adminNote = "") {
 /**
  * rejectWithdrawRequest
  * ──────────────────────
- * Simply marks the request as Rejected.
- * No balance change is needed — the funds were NEVER deducted at submission time.
- * The next available-balance calculation will naturally exclude this request
- * because it's no longer 'Pending', so reserved amount drops.
+ * Refund the reserved funds back to the user's wallet/earnings and mark request as Rejected.
  */
 async function rejectWithdrawRequest(adminId, withdrawId, adminNote = "") {
-    const [result] = await db.query(
-        `UPDATE withdraw_requests
-         SET status = 'Rejected', admin_note = ?, approved_by = ?, approved_at = NOW()
-         WHERE id = ?`,
-        [adminNote.trim(), adminId, withdrawId]
-    );
+    const connection = await db.getConnection();
 
-    if (result.affectedRows === 0) {
-        const error = new Error("Withdrawal request not found");
-        error.statusCode = 404;
+    try {
+        await connection.beginTransaction();
+
+        const [withdrawRows] = await connection.query(
+            `SELECT id, user_id, amount, status FROM withdraw_requests WHERE id = ? FOR UPDATE`,
+            [withdrawId]
+        );
+
+        if (!withdrawRows.length) {
+            const error = new Error("Withdrawal request not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const withdraw = withdrawRows[0];
+        if (withdraw.status !== "Pending") {
+            const error = new Error("Withdrawal request is no longer pending");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        // Lock user row so refund + status update are atomic
+        const [userRows] = await connection.query(
+            `SELECT id, balance, earnings, role FROM users WHERE id = ? FOR UPDATE`,
+            [withdraw.user_id]
+        );
+
+        if (!userRows.length) {
+            const error = new Error("User not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const user = userRows[0];
+        const isProvider = user.role === "provider";
+        const fundsField = isProvider ? "earnings" : "balance";
+
+        // Refund reserved funds
+        await connection.query(
+            `UPDATE users SET ${fundsField} = ${fundsField} + ? WHERE id = ?`,
+            [Number(withdraw.amount).toFixed(2), withdraw.user_id]
+        );
+
+        await connection.query(
+            `UPDATE withdraw_requests
+             SET status = 'Rejected', admin_note = ?, approved_by = ?, approved_at = NOW()
+             WHERE id = ?`,
+            [adminNote.trim(), adminId, withdrawId]
+        );
+
+        await connection.commit();
+
+        const [rows] = await db.query(
+            `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
+             FROM withdraw_requests WHERE id = ? LIMIT 1`,
+            [withdrawId]
+        );
+
+        return rows[0];
+    } catch (error) {
+        await connection.rollback();
         throw error;
+    } finally {
+        connection.release();
     }
-
-    const [rows] = await db.query(
-        `SELECT id, user_id, amount, method, account_number, status, admin_note, approved_by, approved_at, created_at
-         FROM withdraw_requests WHERE id = ? LIMIT 1`,
-        [withdrawId]
-    );
-
-    return rows[0];
 }
 
 module.exports = {

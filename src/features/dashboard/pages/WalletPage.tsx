@@ -12,6 +12,9 @@ type Transaction = {
     created_at: string;
 };
 
+const allowedScreenshotExt = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+const allowedScreenshotMime = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 export function WalletPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -31,11 +34,18 @@ export function WalletPage() {
     const [amountInput, setAmountInput] = useState("");
     const [depositMethod, setDepositMethod] = useState<'bKash' | 'Nagad'>('bKash');
     const [depositTrxId, setDepositTrxId] = useState("");
-    const [depositScreenshot, setDepositScreenshot] = useState("");
+
+    // Must upload payment screenshot before submitting deposit request.
+    const [depositScreenshotUrl, setDepositScreenshotUrl] = useState<string>('');
+    const [uploadProgress, setUploadProgress] = useState<string>('');
+    const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+
+
     const [withdrawMethod, setWithdrawMethod] = useState<'bKash' | 'Nagad'>('bKash');
     const [withdrawAccountNumber, setWithdrawAccountNumber] = useState("");
     const [modalStatus, setModalStatus] = useState<{ type: 'error' | 'success'; message: string }>({ type: 'error', message: '' });
     const [modalLoading, setModalLoading] = useState(false);
+
 
     async function loadWallet() {
         setLoading(true);
@@ -76,13 +86,20 @@ export function WalletPage() {
             setModalStatus({ type: 'error', message: 'Transaction ID is required.' });
             return;
         }
+
+        // REQUIRED: Screenshot upload must be successful before submit.
+        if (!depositScreenshotUrl.trim()) {
+            setModalStatus({ type: 'error', message: 'Please upload your payment screenshot.' });
+            return;
+        }
+
         try {
             setModalLoading(true);
             const res = await userApi.deposit({
                 amount: amt,
                 method: depositMethod,
                 trx_id: depositTrxId.trim(),
-                screenshot_url: depositScreenshot.trim(),
+                screenshot_url: depositScreenshotUrl.trim(),
             });
             if (res.error) {
                 setModalStatus({ type: 'error', message: res.error });
@@ -90,7 +107,8 @@ export function WalletPage() {
                 setAmountInput("");
                 setDepositMethod('bKash');
                 setDepositTrxId("");
-                setDepositScreenshot("");
+                setDepositScreenshotUrl('');
+                setUploadProgress('');
                 setModalStatus({ type: 'success', message: 'Waiting for admin approval.' });
                 await loadWallet();
             }
@@ -328,7 +346,8 @@ export function WalletPage() {
                                         setAmountInput("");
                                         setDepositMethod('bKash');
                                         setDepositTrxId("");
-                                        setDepositScreenshot("");
+                                        setDepositScreenshotUrl('');
+                                        setUploadProgress('');
                                         setModalStatus({ type: 'error', message: '' });
                                         setShowDepositModal(true);
                                     },
@@ -624,9 +643,10 @@ export function WalletPage() {
                             <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", marginBottom: "4px" }}>
                                 DEPOSIT FUNDS
                             </h3>
-                            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                Enter the amount in Taka to deposit into your account wallet. Screenshot is optional.
+                        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                Enter the amount in Taka to deposit into your account wallet. Screenshot upload is required.
                             </p>
+
                         </div>
 
                         {modalStatus.message ? (
@@ -692,20 +712,71 @@ export function WalletPage() {
                         </label>
 
                         <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            Screenshot (optional)
+                            Payment Screenshot
                             <input
                                 type="file"
-                                accept="image/*"
-                                onChange={(e) => {
+                                accept="image/jpeg,image/png,image/webp"
+                                disabled={uploadingScreenshot}
+                                onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
-                                    const reader = new FileReader();
-                                    reader.onload = () => setDepositScreenshot(String(reader.result || ''));
-                                    reader.readAsDataURL(file);
+
+                                    if (uploadingScreenshot) return;
+
+                                    const ext = file.name?.toLowerCase().includes('.')
+                                        ? file.name.slice(file.name.lastIndexOf('.'))
+                                        : '';
+
+                                    const extOk = allowedScreenshotExt.has(ext);
+                                    const mimeOk = allowedScreenshotMime.has(file.type);
+                                    if (!extOk || !mimeOk) {
+                                        setModalStatus({ type: 'error', message: 'Only jpg, jpeg, png, webp images are allowed.' });
+                                        return;
+                                    }
+                                    if (file.size > 5 * 1024 * 1024) {
+                                        setModalStatus({ type: 'error', message: 'Maximum file size is 5MB.' });
+                                        return;
+                                    }
+
+                                    try {
+                                        setModalStatus({ type: 'error', message: '' });
+                                        setUploadProgress('Uploading…');
+                                        setUploadingScreenshot(true);
+
+                                        const uploadRes = await userApi.uploadImage(file, 'deposits');
+
+                                        if (uploadRes.error || !uploadRes.data?.url) {
+                                            throw new Error(uploadRes.error || 'Upload failed');
+                                        }
+
+                                        setDepositScreenshotUrl(uploadRes.data.url);
+                                        setUploadProgress('');
+                                    } catch (err: any) {
+                                        setDepositScreenshotUrl('');
+                                        setUploadProgress('');
+                                        setModalStatus({ type: 'error', message: err?.message || 'Upload failed' });
+                                    } finally {
+                                        setUploadingScreenshot(false);
+                                    }
                                 }}
                                 style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
                             />
+
+                            {uploadingScreenshot ? (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>
+                                    {uploadProgress || 'Uploading…'}
+                                </div>
+                            ) : depositScreenshotUrl ? (
+                                <div style={{ color: 'var(--green-status)', fontSize: '0.75rem', fontWeight: 800 }}>
+                                    Screenshot uploaded ✓
+                                </div>
+                            ) : (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                    Please upload your payment screenshot.
+                                </div>
+                            )}
                         </label>
+
 
                         <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
                             <button
@@ -726,7 +797,8 @@ export function WalletPage() {
                             </button>
                             <button
                                 type="submit"
-                                disabled={modalLoading}
+                                disabled={modalLoading || uploadingScreenshot}
+
                                 style={{
                                     padding: "10px 20px",
                                     background: "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",

@@ -4,6 +4,7 @@ const multer = require("multer");
 
 const ALLOWED_MIME = new Set([
     "image/jpeg",
+    "image/jpg",
     "image/png",
     "image/webp",
 ]);

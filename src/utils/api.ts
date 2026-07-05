@@ -259,11 +259,14 @@ export const userApi = {
             body: JSON.stringify(payload),
         }),
 
-    uploadAvatar: async (file: File): Promise<ApiResponse<{ url: string }>> => {
+    uploadImage: async (
+        file: File,
+        folder: "avatars" | "deposits"
+    ): Promise<ApiResponse<{ url: string }>> => {
         const token = localStorage.getItem('bluedise_token');
 
         const form = new FormData();
-        form.append('folder', 'avatars');
+        form.append('folder', folder);
         form.append('image', file);
 
         try {
@@ -285,6 +288,9 @@ export const userApi = {
             return { status: 0, error: 'Network error — is the backend running?' };
         }
     },
+
+
+
 
     getWallet: () => request<WalletResponse>('/user-wallet/wallet'),
 

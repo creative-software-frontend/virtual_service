@@ -1057,7 +1057,8 @@ export function ProfilePage() {
                                                                 setSaving(true);
                                                                 try {
                                                                     // Upload immediately and set URL in draft
-                                                                    const uploadRes = await userApi.uploadAvatar(file);
+const uploadRes = await userApi.uploadImage(file, 'avatars');
+
                                                                     if (uploadRes.error || !uploadRes.data?.url) {
                                                                         throw new Error(uploadRes.error || "Upload failed");
                                                                     }

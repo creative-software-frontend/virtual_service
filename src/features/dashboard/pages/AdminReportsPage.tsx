@@ -1,7 +1,13 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { adminApi } from '../../../utils/api';
 import type { ReportsData } from '../../../utils/api';
 import { motion } from 'framer-motion';
+
+// Build screenshot URLs using the same API base used for other backend requests.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+
+
 
 const fmt = (n: number) =>
     '৳ ' + Number(n).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -148,6 +154,12 @@ type PendingWalletRequest = {
 
 export default function AdminReportsPage() {
     const [data, setData] = useState<ReportsData | null>(null);
+
+    // Screenshot preview modal state (frontend-only)
+    const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
+    const [screenshotImgUrl, setScreenshotImgUrl] = useState<string>('');
+    const [screenshotLoadState, setScreenshotLoadState] = useState<'idle' | 'loading' | 'loaded' | 'failed'>('idle');
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [ledgerFilter, setLedgerFilter] = useState<'all' | 'deposit' | 'withdraw' | 'earning' | 'event_payment' | 'event_income'>('all');
@@ -229,6 +241,50 @@ export default function AdminReportsPage() {
         setPage(1);
     };
 
+    const buildScreenshotUrl = useCallback((screenshotUrl?: string) => {
+        if (!screenshotUrl) return '';
+
+        // backend stores paths like: /uploads/deposits/abc123.png
+        if (screenshotUrl.startsWith('http://') || screenshotUrl.startsWith('https://')) return screenshotUrl;
+
+        // api base includes /api (e.g. http://localhost:5000/api), but static files are served from /uploads
+        // so we must use the origin without the /api suffix.
+        const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
+        if (screenshotUrl.startsWith('/')) return `${API_ORIGIN}${screenshotUrl}`;
+        // fallback: treat as relative to API origin
+        return `${API_ORIGIN}/${screenshotUrl}`;
+    }, []);
+
+
+    const openScreenshotPreview = useCallback((screenshotUrl?: string) => {
+        const fullUrl = buildScreenshotUrl(screenshotUrl);
+        console.log('screenshot_url:', screenshotUrl);
+        console.log('previewUrl:', fullUrl);
+        setScreenshotImgUrl(fullUrl);
+        setScreenshotLoadState(fullUrl ? 'loading' : 'failed');
+        setScreenshotModalOpen(true);
+    }, [buildScreenshotUrl]);
+
+
+    const closeScreenshotPreview = useCallback(() => {
+        setScreenshotModalOpen(false);
+        setScreenshotImgUrl('');
+        setScreenshotLoadState('idle');
+    }, []);
+
+    useEffect(() => {
+        if (!screenshotModalOpen) return;
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') closeScreenshotPreview();
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [screenshotModalOpen, closeScreenshotPreview]);
+
+
     if (loading) {
         return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -306,7 +362,29 @@ export default function AdminReportsPage() {
                                 <span style={{ color: 'var(--green-status)', fontWeight: 600 }}>৳ {Number(req.amount).toFixed(2)}</span>
                             </div>
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-1)' }}>{req.method} • {req.trx_id}</div>
-                            {req.screenshot_url ? <a href={req.screenshot_url} target="_blank" rel="noreferrer" style={{ color: 'var(--blue-vivid)', fontSize: '0.75rem', display: 'inline-block', marginBottom: 'var(--space-2)' }}>View screenshot</a> : null}
+                                    {req.screenshot_url ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => openScreenshotPreview(req.screenshot_url)}
+                                            style={{
+                                                color: 'var(--blue-vivid)',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                padding: 0,
+                                                cursor: 'pointer',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 800,
+                                                marginBottom: 'var(--space-2)'
+                                            }}
+                                        >
+                                            View Screenshot
+                                        </button>
+                                    ) : (
+                                        <div style={{ color: 'var(--red-status)', fontSize: '0.75rem', fontWeight: 700, marginBottom: 'var(--space-2)' }}>
+                                            Screenshot required
+                                        </div>
+                                    )}
+
                             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                                 <button className="btn btn-sm" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--green-status)', border: '1px solid rgba(16,185,129,0.3)' }} onClick={() => handlePendingAction('deposit', req.id, 'approve')}>Approve</button>
                                 <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red-status)', border: '1px solid rgba(239,68,68,0.3)' }} onClick={() => handlePendingAction('deposit', req.id, 'reject')}>Reject</button>
@@ -619,6 +697,98 @@ export default function AdminReportsPage() {
             <style>{`
               @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
-        </motion.div>
+        {/* Screenshot Preview Modal (frontend only) */}
+        {screenshotModalOpen ? (
+            <div
+                role="dialog"
+                aria-modal="true"
+                onMouseDown={(e) => {
+                    // Close only when clicking backdrop, not the dialog content.
+                    if (e.target === e.currentTarget) closeScreenshotPreview();
+                }}
+                style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.65)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    padding: 16,
+                }}
+            >
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <button
+                        type="button"
+                        aria-label="Close"
+                        onClick={closeScreenshotPreview}
+                        style={{
+                            alignSelf: 'flex-end',
+                            background: 'rgba(255,255,255,0.12)',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                            color: '#fff',
+                            width: 36,
+                            height: 36,
+                            borderRadius: 999,
+                            cursor: 'pointer',
+                            fontSize: 22,
+                            lineHeight: '34px',
+                        }}
+                    >
+                        ×
+                    </button>
+
+                    {/* Centered image container */}
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '100%',
+                            maxWidth: '90vw',
+                            maxHeight: '90vh',
+                            borderRadius: 'var(--radius-lg)',
+                            overflow: 'hidden',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            padding: 8,
+                        }}
+                    >
+                        {screenshotLoadState === 'loading' ? (
+                            <div style={{ color: 'var(--text-muted)', padding: 24, fontWeight: 700 }}>Loading…</div>
+                        ) : null}
+
+                        {(!screenshotImgUrl && screenshotLoadState !== 'loading') ? (
+                            <div style={{ color: 'var(--text-muted)', padding: 24, fontWeight: 700 }}>No screenshot available.</div>
+                        ) : null}
+
+                        {screenshotImgUrl ? (
+                            <img
+                                src={screenshotImgUrl}
+                                alt="Screenshot"
+                                style={{
+                                    maxWidth: '90vw',
+                                    maxHeight: '90vh',
+                                    objectFit: 'contain',
+                                    display: screenshotLoadState === 'failed' ? 'none' : 'block',
+                                }}
+                                onLoad={() => setScreenshotLoadState('loaded')}
+                                onError={() => setScreenshotLoadState('failed')}
+                            />
+                        ) : null}
+
+                        {screenshotLoadState === 'failed' ? (
+                            <div style={{ color: 'var(--text-muted)', padding: 24, fontWeight: 700 }}>Failed to load screenshot.</div>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+        ) : null}
+
+        <style>{`
+              @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
+    </motion.div>
     );
 }
+

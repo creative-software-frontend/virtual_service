@@ -61,10 +61,15 @@ async function createDepositRequest(userId, payload = {}) {
         throw error;
     }
 
-    if (screenshotUrl && !isValidScreenshot(screenshotUrl)) {
-        const error = new Error("A valid image screenshot was provided but is invalid");
-        error.statusCode = 400;
-        throw error;
+    // Accept both data URLs (base64) and stored public URLs like /uploads/...
+    // Upload middleware returns a URL, not a base64 data URL.
+    if (screenshotUrl) {
+        const looksLikeUploadedUrl = screenshotUrl.startsWith("/uploads/") || screenshotUrl.startsWith("http://") || screenshotUrl.startsWith("https://");
+        if (!looksLikeUploadedUrl && !isValidScreenshot(screenshotUrl)) {
+            const error = new Error("A valid image screenshot was provided but is invalid");
+            error.statusCode = 400;
+            throw error;
+        }
     }
 
     const [existing] = await db.query(

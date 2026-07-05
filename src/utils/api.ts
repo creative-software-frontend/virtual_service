@@ -185,7 +185,7 @@ export interface UpdateUserProfilePayload {
     interests?: string | null;
     relationship_goal?: string | null;
     marital_status?: string | null;
-    avatar_url?: string | null; // base64 data URL
+    avatar_url?: string | null; // base64 data URL OR /uploads/.. URL
 }
 
 export interface PartnerSearchFilters {
@@ -258,6 +258,33 @@ export const userApi = {
             method: 'PUT',
             body: JSON.stringify(payload),
         }),
+
+    uploadAvatar: async (file: File): Promise<ApiResponse<{ url: string }>> => {
+        const token = localStorage.getItem('bluedise_token');
+
+        const form = new FormData();
+        form.append('folder', 'avatars');
+        form.append('image', file);
+
+        try {
+            const res = await fetch(`${BASE_URL.replace(/\/$/, '')}/upload/image`, {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                body: form,
+                credentials: 'include',
+            });
+
+            const json = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                return { status: res.status, error: json.message || json?.error || `Upload failed (${res.status})` };
+            }
+
+            return { status: res.status, data: json };
+        } catch {
+            return { status: 0, error: 'Network error — is the backend running?' };
+        }
+    },
 
     getWallet: () => request<WalletResponse>('/user-wallet/wallet'),
 

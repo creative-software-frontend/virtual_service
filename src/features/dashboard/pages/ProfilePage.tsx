@@ -9,6 +9,15 @@ import {
 } from "../../../utils/api";
 import { useEffect, useMemo, useState } from "react";
 
+function toFullUploadUrl(url: string) {
+    if (!url) return url;
+    if (url.startsWith("/uploads/")) {
+        return `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${url}`;
+    }
+    return url;
+}
+
+
 const EDUCATION_OPTIONS = [
     "SSC",
     "HSC",
@@ -108,13 +117,12 @@ function labelForRole(role: UserProfile["role"]): string {
     return "User";
 }
 
-async function fileToBase64DataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(file);
-    });
+function allowedAvatarTypes(file: File): boolean {
+    const name = file.name?.toLowerCase() ?? "";
+    const extAllowed = [".jpg", ".jpeg", ".png", ".webp"].some((ext) => name.endsWith(ext));
+    const mimeAllowed = ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+    // Accept if either extension or mime matches
+    return extAllowed || mimeAllowed;
 }
 
 export function ProfilePage() {
@@ -305,8 +313,12 @@ export function ProfilePage() {
         }
     };
 
-    const avatarSource =
-        (editMode && draft?.avatar_url) || profile?.avatar_url || null;
+    // Visible avatar must NOT change immediately after upload.
+    // It should only change after Save Changes (profile reload).
+    const avatarSource = profile?.avatar_url || null;
+    const avatarImgSrc = toFullUploadUrl(avatarSource ?? "");
+
+
 
     return (
         <motion.div
@@ -340,34 +352,35 @@ export function ProfilePage() {
                         variants={fadeUp}
                         style={{ textAlign: "center", margin: "0 0 40px 0" }}
                     >
-                        <div
-                            style={{
-                                width: "110px",
-                                height: "110px",
-                                borderRadius: "50%",
-                                background: "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                margin: "0 auto 16px",
-                                border: "3px solid var(--border-subtle)",
-                                fontSize: "3rem",
-                                fontWeight: 700,
-                                color: "#fff",
-                                textTransform: "uppercase",
-                                boxShadow: "var(--shadow-blue)",
-                                overflow: "hidden",
-                            }}
-                        >
+                                            <div
+                                                style={{
+                                                    width: "110px",
+                                                    height: "110px",
+                                                    borderRadius: "50%",
+                                                    background: "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    margin: "0 auto 16px",
+                                                    border: "3px solid var(--border-subtle)",
+                                                    fontSize: "3rem",
+                                                    fontWeight: 700,
+                                                    color: "#fff",
+                                                    textTransform: "uppercase",
+                                                    boxShadow: "var(--shadow-blue)",
+                                                    overflow: "hidden",
+                                                }}
+                                            >
                             {avatarSource ? (
                                 <img
-                                    src={avatarSource}
+                                    src={avatarImgSrc}
                                     alt="Avatar"
                                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />
                             ) : (
                                 initials
                             )}
+
                         </div>
 
                         <h3
@@ -1024,28 +1037,48 @@ export function ProfilePage() {
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
                                                         <input
                                                             type="file"
-                                                            accept="image/*"
+                                                            accept="image/png,image/jpeg,image/webp"
+                                                            disabled={saving}
                                                             onChange={async (e) => {
                                                                 const file = e.target.files?.[0];
                                                                 if (!file) return;
+
+                                                                if (!allowedAvatarTypes(file)) {
+                                                                    setEditError("Only jpg, jpeg, png, webp images are allowed.");
+                                                                    return;
+                                                                }
+                                                                if (file.size > 5 * 1024 * 1024) {
+                                                                    setEditError("Maximum file size is 5MB.");
+                                                                    return;
+                                                                }
 
                                                                 setEditError(null);
                                                                 setEditSuccess(null);
                                                                 setSaving(true);
                                                                 try {
-                                                                    const base64 = await fileToBase64DataUrl(file);
-                                                                    setDraft((prev) => ({
-                                                                        ...(prev || {}),
-                                                                        avatar_url: base64,
-                                                                    }));
-                                                                } catch {
-                                                                    setEditError("Failed to read image.");
+                                                                    // Upload immediately and set URL in draft
+                                                                    const uploadRes = await userApi.uploadAvatar(file);
+                                                                    if (uploadRes.error || !uploadRes.data?.url) {
+                                                                        throw new Error(uploadRes.error || "Upload failed");
+                                                                    }
+
+                                                            setDraft((prev) => ({
+                                                                ...(prev || {}),
+                                                                avatar_url: uploadRes.data!.url,
+                                                            }));
+
+                                                            // Do NOT update visible avatar preview until Save Changes.
+
+                                                                } catch (err) {
+                                                                    setEditError(err instanceof Error ? err.message : "Avatar upload failed.");
                                                                 } finally {
                                                                     setSaving(false);
                                                                 }
                                                             }}
                                                         />
 
+
+                                                        {/* Preview intentionally removed: visible avatar updates only after Save Changes */}
                                                         {avatarSource ? (
                                                             <div
                                                                 style={{
@@ -1057,8 +1090,8 @@ export function ProfilePage() {
                                                                 }}
                                                             >
                                                                 <img
-                                                                    src={avatarSource}
-                                                                    alt="Avatar preview"
+                                                                    src={avatarImgSrc}
+                                                                    alt="Avatar"
                                                                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                                                 />
                                                             </div>
@@ -1067,6 +1100,7 @@ export function ProfilePage() {
                                                                 No avatar selected
                                                             </div>
                                                         )}
+
                                                     </div>
                                                 </div>
 

@@ -1,6 +1,8 @@
-- [ ] Read `src/features/dashboard/pages/AdminReportsPage.tsx` and identify the Global Ledger table section to replace.
-- [ ] Replace only the Global Ledger HTML table with premium horizontal glassmorphism transaction cards.
-- [ ] Ensure cards are full-width, stack vertically, wrap long notes, and do not introduce horizontal scrolling.
-- [ ] Preserve existing search/filter/pagination/data mapping and admin workflow (pending requests section must remain unchanged).
-- [ ] Verify that every transaction field (#, User, Role, Type, Amount, Status, Note, Date) is still displayed.
-- [ ] Provide modified files + UI summary + confirmation that only presentation changed.
+- [ ] Upload infrastructure (Express + Multer) implemented
+  - [x] Create reusable image upload middleware (jpg/jpeg/png/webp, max 5MB)
+  - [x] Auto-create folders: uploads/, uploads/avatars/, uploads/deposits/
+  - [x] Generate unique filenames
+  - [x] Serve uploads statically at /uploads
+  - [x] Create endpoint POST /api/upload/image
+- [ ] Do NOT integrate upload endpoint into business logic yet
+

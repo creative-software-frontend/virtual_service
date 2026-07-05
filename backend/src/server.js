@@ -17,6 +17,9 @@ app.use(cors({
 
 app.use(express.json());
 
+// Static uploads
+app.use("/uploads", express.static("uploads"));
+
 app.get("/", (req, res) => {
     res.send("Backend is running");
 });
@@ -29,6 +32,7 @@ app.use("/api/user-wallet", require("./routes/wallet.routes"));
 app.use("/api/provider", require("./routes/providerRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/admin-wallet", require("./routes/admin.wallet.routes"));
+app.use("/api/upload", require("./routes/uploadRoutes"));
 
 // 404
 app.use((req, res) => {

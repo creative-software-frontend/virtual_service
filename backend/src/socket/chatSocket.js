@@ -31,14 +31,6 @@ function registerChatSocket(io, socket, onlineUsers) {
             // Emit only AFTER successful DB insert
             const receiverSocketId = onlineUsers.get(Number(receiver_id));
             if (receiverSocketId) {
-                console.log("[BACKEND EMIT]", {
-                    socket: receiverSocketId,
-                    messageId: payload?.id,
-                    sender: payload?.sender_id,
-                    receiver: payload?.receiver_id,
-                    text: payload?.message,
-                    timestamp: Date.now(),
-                });
                 io.to(receiverSocketId).emit("newMessage", payload);
             }
 

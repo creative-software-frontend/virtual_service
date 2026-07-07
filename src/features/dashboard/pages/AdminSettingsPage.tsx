@@ -37,23 +37,13 @@ const sectionTitle: React.CSSProperties = {
     marginBottom: '16px',
 };
 
-const cardStyle: React.CSSProperties = {
-    background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: '14px',
-    padding: 'clamp(14px, 4vw, 20px)',
-    position: 'relative',
-    overflow: 'hidden',
-};
+const CheckIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+        fill="none" stroke="var(--gold-mid)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
 
-const accentLine = (color: string): React.CSSProperties => ({
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '1px',
-    background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-});
 
 // ── Packages Section ──────────────────────────────────────────────────────────
 
@@ -184,8 +174,8 @@ function PackagesSection() {
 
             {/* Create form */}
             {showForm && (
-                <div style={{ ...cardStyle, marginBottom: '16px', boxShadow: '0 0 20px rgba(59,130,246,0.15)' }}>
-                    <div style={accentLine('var(--blue-vivid)')} />
+                <div className="card" style={{ marginBottom: '16px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent, var(--blue-vivid), transparent)' }} />
                     <form onSubmit={handleCreate}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                             <div>
@@ -310,84 +300,162 @@ function PackagesSection() {
                     </p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {packages.map(pkg => {
-                        const tierMeta = {
-                            starter: { label: 'STARTER', color: '#3b82f6', bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', accent: 'var(--blue-vivid)' },
-                            premium: { label: 'PREMIUM', color: '#c5a880', bg: 'linear-gradient(135deg,#a87c3a,#c5a880)', accent: 'var(--gold-mid)' },
-                            elite:   { label: 'ELITE',   color: '#8b5cf6', bg: 'linear-gradient(135deg,#5b21b6,#8b5cf6)', accent: '#8b5cf6' },
-                        }[pkg.tier_type] || { label: 'PLAN', color: '#3b82f6', bg: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', accent: 'var(--blue-vivid)' };
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+                    {[...packages].sort((a, b) => {
+                        const order = { starter: 0, premium: 1, elite: 2 };
+                        const scoreA = order[a.tier_type as 'starter' | 'premium' | 'elite'] ?? 99;
+                        const scoreB = order[b.tier_type as 'starter' | 'premium' | 'elite'] ?? 99;
+                        if (scoreA !== scoreB) return scoreA - scoreB;
+                        return Number(a.price) - Number(b.price);
+                    }).map(pkg => {
+                        const featureList = pkg.features
+                            ? pkg.features.split(',').map(f => f.trim()).filter(Boolean)
+                            : [];
+                        const tierLabelText = pkg.tier_type === 'starter' ? 'Starter' : pkg.tier_type === 'elite' ? 'Elite' : 'Premium';
                         return (
-                        <div key={pkg.id} style={{
-                            ...cardStyle,
-                            display: 'flex', alignItems: 'flex-start', gap: '12px',
-                            boxShadow: `0 0 15px ${tierMeta.color}18`,
-                        }}>
-                            <div style={accentLine(tierMeta.accent)} />
-                            {/* Price badge */}
+                        <div key={pkg.id} className="card gold-top-edge" style={{ position: 'relative' }}>
+
+                            {/* Header */}
                             <div style={{
-                                flexShrink: 0,
-                                background: tierMeta.bg,
-                                borderRadius: '10px',
-                                padding: '8px 12px',
-                                textAlign: 'center',
-                                minWidth: '64px',
-                                boxShadow: `0 0 15px ${tierMeta.color}50`,
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                gap: '16px',
+                                borderBottom: '1px solid var(--border-subtle)',
+                                paddingBottom: '16px',
+                                marginBottom: '16px',
                             }}>
-                                <p style={{ fontSize: '0.45rem', color: 'rgba(255,255,255,0.8)', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700, marginBottom: '3px' }}>
-                                    {tierMeta.label}
-                                </p>
-                                <p style={{ fontSize: '1rem', fontWeight: 800, color: '#fff', fontFamily: "'Inter', sans-serif" }}>
-                                    {pkg.price === 0 ? 'FREE' : `৳${Number(pkg.price).toLocaleString()}`}
-                                </p>
-                                <p style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>
-                                    {pkg.duration_months}mo
-                                </p>
+                                <div>
+                                    <span className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>{tierLabelText}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <h3 style={{
+                                            fontSize: '1.3rem',
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)',
+                                            margin: 0,
+                                        }}>
+                                            {pkg.name}
+                                        </h3>
+                                        <span style={{
+                                            fontSize: '0.55rem',
+                                            fontWeight: 700,
+                                            letterSpacing: '0.05em',
+                                            textTransform: 'uppercase',
+                                            background: pkg.is_active ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                            color: pkg.is_active ? 'var(--green-status)' : 'var(--red-status)',
+                                            border: `1px solid ${pkg.is_active ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                                            padding: '2px 8px',
+                                            borderRadius: 'var(--radius-pill)',
+                                        }}>
+                                            {pkg.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </div>
+                                    {pkg.description && (
+                                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                                            {pkg.description}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                                    <span style={{
+                                        fontSize: 'clamp(1.3rem, 3vw, 1.7rem)',
+                                        fontWeight: 800,
+                                        color: 'var(--gold-mid)',
+                                        lineHeight: 1,
+                                    }}>
+                                        {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                                    </span>
+                                    <span className="badge badge-gold">
+                                        {pkg.duration_months} Month{pkg.duration_months > 1 ? 's' : ''}
+                                    </span>
+                                </div>
                             </div>
-                            {/* Info */}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif", marginBottom: '2px' }}>
-                                    {pkg.name}
+
+                            {/* Features list */}
+                            <div style={{ marginBottom: '16px' }}>
+                                <p style={{
+                                    fontSize: '0.6rem',
+                                    fontWeight: 700,
+                                    letterSpacing: '0.25em',
+                                    textTransform: 'uppercase',
+                                    color: 'var(--text-muted)',
+                                    marginBottom: '10px',
+                                    fontFamily: 'var(--font-display)',
+                                }}>
+                                    Included Features
                                 </p>
-                                {pkg.description && (
-                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif", marginBottom: '4px', lineHeight: 1.5 }}>
-                                        {pkg.description}
+                                {featureList.length > 0 ? (
+                                    <ul style={{
+                                        listStyle: 'none',
+                                        padding: 0,
+                                        margin: 0,
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+                                        gap: '8px',
+                                    }}>
+                                        {featureList.map(feat => (
+                                            <li key={feat} style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                fontSize: '0.82rem',
+                                                color: 'var(--text-secondary)',
+                                                fontFamily: 'var(--font-sans)',
+                                            }}>
+                                                <span style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    background: 'var(--gold-glow)',
+                                                    border: '1px solid var(--border-gold)',
+                                                    borderRadius: '50%',
+                                                    width: '20px',
+                                                    height: '20px',
+                                                    flexShrink: 0,
+                                                }}>
+                                                    <CheckIcon />
+                                                </span>
+                                                {feat}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                        No features listed.
                                     </p>
                                 )}
-                                {pkg.features && (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                        {pkg.features.split(',').map(f => f.trim()).filter(Boolean).map((f, i) => (
-                                            <span key={i} style={{
-                                                padding: '2px 8px', background: 'rgba(59,130,246,0.1)',
-                                                border: '1px solid rgba(59,130,246,0.2)', borderRadius: '20px',
-                                                fontSize: '0.55rem', color: 'var(--blue-vivid)',
-                                                fontWeight: 700, letterSpacing: '0.05em',
-                                                fontFamily: "'Inter', sans-serif",
-                                            }}>
-                                                {f}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
-                            {/* Delete */}
-                            <button
-                                onClick={() => handleDelete(pkg.id, pkg.name)}
-                                style={{
-                                    flexShrink: 0,
-                                    padding: '7px 10px',
-                                    background: 'rgba(239,68,68,0.08)',
-                                    border: '1px solid rgba(239,68,68,0.2)',
-                                    borderRadius: '8px', cursor: 'pointer',
-                                    color: '#fca5a5', fontSize: '0.65rem',
-                                    transition: 'all 0.2s',
-                                }}
-                                title="Delete package"
-                            >
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
-                                </svg>
-                            </button>
+
+                            {/* Action: Delete (preserve original CRUD) */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                                <button
+                                    onClick={() => handleDelete(pkg.id, pkg.name)}
+                                    className="btn btn-ghost btn-sm"
+                                    style={{
+                                        color: 'var(--red-status)',
+                                        borderColor: 'rgba(239,68,68,0.3)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
+                                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = '';
+                                        e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)';
+                                    }}
+                                    title="Delete package"
+                                >
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                         );
                     })}

@@ -4,6 +4,8 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
 const db = require("../config/db");
+const chatService = require("../services/chatService");
+
 
 // BEFORE (NOT GOOD)
 // router.get("/provider-dashboard", ...)
@@ -153,25 +155,17 @@ router.get(
     "/messages",
     authMiddleware,
     roleMiddleware(["user", "provider"]),
-    (req, res) => {
+    async (req, res) => {
         const me = req.user.id;
         const partner = parseInt(req.query.with, 10);
         if (!partner) return res.status(400).json({ message: "Missing 'with' query param." });
-        db.query(
-            `SELECT m.id, m.sender_id, m.receiver_id, m.message, m.created_at,
-                    u.name AS sender_name
-             FROM chat_messages m
-             JOIN users u ON u.id = m.sender_id
-             WHERE (m.sender_id = ? AND m.receiver_id = ?)
-                OR (m.sender_id = ? AND m.receiver_id = ?)
-             ORDER BY m.created_at ASC
-             LIMIT 200`,
-            [me, partner, partner, me],
-            (err, rows) => {
-                if (err) return res.status(500).json({ message: err.message });
-                res.json(rows);
-            }
-        );
+
+        try {
+            const rows = await chatService.getMessages({ senderId: me, partnerId: partner });
+            res.json(rows);
+        } catch (err) {
+            res.status(err.statusCode || 500).json({ message: err.message || "Database error" });
+        }
     }
 );
 
@@ -180,22 +174,26 @@ router.post(
     "/messages",
     authMiddleware,
     roleMiddleware(["user", "provider"]),
-    (req, res) => {
+    async (req, res) => {
         const { receiver_id, message } = req.body;
         if (!receiver_id || !message || !message.trim()) {
             return res.status(400).json({ message: "receiver_id and message are required." });
         }
-        const sender_id = req.user.id;
-        db.query(
-            `INSERT INTO chat_messages (sender_id, receiver_id, message) VALUES (?, ?, ?)`,
-            [sender_id, receiver_id, message.trim()],
-            (err, result) => {
-                if (err) return res.status(500).json({ message: err.message });
-                res.status(201).json({ id: result.insertId, sender_id, receiver_id, message: message.trim() });
-            }
-        );
+
+        try {
+            const sender_id = req.user.id;
+            const inserted = await chatService.sendMessage({
+                senderId: sender_id,
+                receiverId: receiver_id,
+                message: message
+            });
+            res.status(201).json(inserted);
+        } catch (err) {
+            res.status(err.statusCode || 500).json({ message: err.message || "Database error" });
+        }
     }
 );
+
 
 // Create Event
 router.post(

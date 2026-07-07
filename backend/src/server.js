@@ -41,7 +41,12 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, async () => {
+const httpServer = require("http").createServer(app);
+
+const { setupSocket } = require("./socket/socket");
+setupSocket(httpServer);
+
+httpServer.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
 
     // optional: safe startup init

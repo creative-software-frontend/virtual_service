@@ -18,189 +18,31 @@ const container = {
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
-const CheckIcon = ({ color }: { color: string }) => (
+const CheckIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-        fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        fill="none" stroke="var(--gold-mid)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12" />
     </svg>
 );
 
-type TierKey = 'starter' | 'premium' | 'elite';
-
-const TIER_CONFIG: Record<TierKey, {
-    badge: string;
-    label: string;
-    tagline: string;
-    icon: string;
-    btnLabel: string;
-    accentColor: string;
-    cardBg: string;
-    cardBorder: string;
-    headerColor: string;
-    priceBg: string;
-    priceBorder: string;
-    topLine: string;
-    checkColor: string;
-    btnStyle: React.CSSProperties;
-    shadow: string;
-}> = {
-    starter: {
-        badge: 'STARTER',
-        label: 'Regular',
-        tagline: 'ALWAYS FREE',
-        icon: '★',
-        btnLabel: '★ GET BASIC',
-        accentColor: '#3b82f6',
-        cardBg: 'var(--bg-card)',
-        cardBorder: '1px solid var(--border-subtle)',
-        headerColor: 'var(--text-primary)',
-        priceBg: 'rgba(59,130,246,0.08)',
-        priceBorder: '1px solid rgba(59,130,246,0.2)',
-        topLine: '',
-        checkColor: 'var(--text-muted)',
-        btnStyle: {
-            background: 'var(--blue-glow)',
-            border: '1px solid var(--border-subtle)',
-            color: 'var(--blue-vivid)',
-        },
-        shadow: '0 0 30px rgba(59,130,246,0.08)',
-    },
-    premium: {
-        badge: 'POPULAR',
-        label: 'Premium',
-        tagline: 'MOST CHOSEN',
-        icon: '♛',
-        btnLabel: '♛ GET PREMIUM',
-        accentColor: '#c5a880',
-        cardBg: 'var(--bg-card-hover)',
-        cardBorder: '1px solid var(--gold-border)',
-        headerColor: 'var(--gold-light)',
-        priceBg: 'rgba(232,160,32,0.1)',
-        priceBorder: '1px solid rgba(232,160,32,0.2)',
-        topLine: 'linear-gradient(90deg, transparent, var(--gold-mid), transparent)',
-        checkColor: 'var(--gold-mid)',
-        btnStyle: {
-            background: 'var(--gold-mid)',
-            border: 'none',
-            color: '#030712',
-        },
-        shadow: 'var(--shadow-gold)',
-    },
-    elite: {
-        badge: 'EXCLUSIVE',
-        label: 'Elite',
-        tagline: 'ULTIMATE TIER',
-        icon: '♦',
-        btnLabel: '♦ GET ELITE',
-        accentColor: '#8b5cf6',
-        cardBg: 'var(--bg-card)',
-        cardBorder: '1px solid rgba(139,92,246,0.35)',
-        headerColor: '#a78bfa',
-        priceBg: 'rgba(139,92,246,0.1)',
-        priceBorder: '1px solid rgba(139,92,246,0.25)',
-        topLine: 'linear-gradient(90deg, transparent, #8b5cf6, transparent)',
-        checkColor: '#a78bfa',
-        btnStyle: {
-            background: 'linear-gradient(135deg, #5b21b6, #8b5cf6)',
-            border: 'none',
-            color: '#fff',
-        },
-        shadow: '0 0 30px rgba(139,92,246,0.18)',
-    },
-};
-
-// ── Duration selector ─────────────────────────────────────────────────────────
-
-function DurationSelector({
-    options,
-    selected,
-    onChange,
-    config,
-}: {
-    options: Package[];
-    selected: Package | null;
-    onChange: (p: Package) => void;
-    config: typeof TIER_CONFIG[TierKey];
-}) {
-    return (
-        <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '8px',
-            marginTop: '12px',
-            marginBottom: '16px',
-        }}>
-            {options.map(p => {
-                const isActive = selected?.id === p.id;
-                return (
-                    <button
-                        key={p.id}
-                        onClick={() => onChange(p)}
-                        style={{
-                            background: isActive ? config.priceBg : 'transparent',
-                            border: isActive ? config.priceBorder : '1px solid var(--border-subtle)',
-                            borderRadius: '8px',
-                            padding: '10px 8px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            textAlign: 'center',
-                            outline: 'none',
-                            boxShadow: isActive ? `0 0 10px ${config.accentColor}30` : 'none',
-                            transform: isActive ? 'scale(1.02)' : 'scale(1)',
-                        }}
-                    >
-                        <div style={{
-                            fontSize: '0.58rem',
-                            color: isActive ? config.accentColor : 'var(--text-muted)',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.08em',
-                            fontWeight: 700,
-                            fontFamily: "'Inter', sans-serif",
-                            marginBottom: '3px',
-                        }}>
-                            {p.duration_months} Month{p.duration_months > 1 ? 's' : ''}
-                        </div>
-                        <div style={{
-                            fontSize: '1.05rem',
-                            fontWeight: 800,
-                            color: isActive ? config.accentColor : 'var(--text-primary)',
-                            fontFamily: "'Inter', sans-serif",
-                            textShadow: isActive ? `0 0 12px ${config.accentColor}60` : 'none',
-                        }}>
-                            {p.price === 0 ? 'Free' : `৳${Number(p.price).toLocaleString()}`}
-                        </div>
-                    </button>
-                );
-            })}
-        </div>
-    );
+// Tier label helper
+function tierLabel(tier: string) {
+    if (tier === 'starter') return 'Starter';
+    if (tier === 'elite') return 'Elite';
+    return 'Premium';
 }
 
 // ── Tier Card ─────────────────────────────────────────────────────────────────
 
-function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
-    const cfg = TIER_CONFIG[tier];
-    const isStarter = tier === 'starter';
+function TierCard({ pkg }: { pkg: Package }) {
     const [showModal, setShowModal] = useState(false);
 
-    // starter shows no duration selector — just static "Free" display
-    const [selected, setSelected] = useState<Package | null>(
-        packages.length > 0 ? packages[0] : null
-    );
-
-    // keep selected synced if packages load after mount
-    useEffect(() => {
-        if (packages.length > 0 && !selected) setSelected(packages[0]);
-    }, [packages]);
-
-    // features come from the selected package (or first package for starter)
-    const featSource = selected ?? packages[0] ?? null;
-    const featureList = featSource?.features
-        ? featSource.features.split(',').map(f => f.trim()).filter(Boolean)
+    const featureList = pkg.features
+        ? pkg.features.split(',').map(f => f.trim()).filter(Boolean)
         : [];
 
     const handleCTA = () => {
-        if (isStarter) {
+        if (Number(pkg.price) === 0) {
             alert("Proceeding with Free Starter plan registration...");
         } else {
             setShowModal(true);
@@ -208,17 +50,13 @@ function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
     };
 
     const handleProceed = async () => {
-        if (!selected) return;
-
         // Existing architecture: charge the selected plan price to the user's wallet
-        // using the already-implemented wallet deposit endpoint.
-        const res = await userApi.deposit(Number(selected.price));
+        const res = await userApi.deposit(Number(pkg.price));
         if (res.error) {
             alert(res.error);
             return;
         }
-
-        alert(`Added ৳${Number(selected.price).toLocaleString()} to your wallet for the ${cfg.label} plan.`);
+        alert(`Added ৳${Number(pkg.price).toLocaleString()} to your wallet for the ${pkg.name} plan.`);
         setShowModal(false);
     };
 
@@ -226,130 +64,144 @@ function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
         <>
             <motion.div
                 variants={fadeUp}
-                style={{
-                    background: cfg.cardBg,
-                    border: cfg.cardBorder,
-                    borderRadius: '16px',
-                    padding: '28px 24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                    height: '100%',
-                    boxShadow: cfg.shadow,
+                className="card gold-top-edge"
+                style={{ position: 'relative', padding: '32px clamp(20px, 5vw, 48px)', gap: 0 }}
+                onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-gold)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-gold)';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '';
+                    (e.currentTarget as HTMLElement).style.transform = '';
                 }}
             >
-                {/* Top accent line */}
-                {cfg.topLine && (
-                    <div style={{
-                        position: 'absolute', top: 0, left: 0, right: 0, height: '1.5px',
-                        background: cfg.topLine,
-                    }} />
-                )}
-
-                <div>
-                    {/* Badge + name */}
-                    <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                        <span style={{
-                            display: 'inline-block',
-                            fontSize: '0.6rem', letterSpacing: '0.15em', textTransform: 'uppercase',
-                            color: cfg.accentColor,
-                            border: `1px solid ${cfg.accentColor}40`,
-                            padding: '4px 12px', borderRadius: '4px',
-                            background: `${cfg.accentColor}12`,
-                            fontFamily: "'Inter', sans-serif", fontWeight: 700,
-                            marginBottom: '12px',
-                        }}>
-                            {cfg.badge}
+                {/* Card Header row */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: '16px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '20px',
+                    marginBottom: '20px',
+                }}>
+                    <div>
+                        {/* Eyebrow tier label */}
+                        <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>
+                            {tierLabel(pkg.tier_type)}
                         </span>
-
                         <h3 style={{
-                            fontFamily: "'Inter', sans-serif",
-                            fontSize: '1.4rem', fontWeight: 700,
-                            color: cfg.headerColor,
-                            marginBottom: '4px',
+                            fontSize: 'clamp(1.3rem, 3vw, 1.6rem)',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            margin: 0,
+                            lineHeight: 1.2,
                         }}>
-                            {cfg.label}
+                            {pkg.name}
                         </h3>
-
-                        {/* Starter: static "Free · ALWAYS" */}
-                        {isStarter ? (
-                            <>
-                                <p style={{
-                                    fontFamily: "'Inter', sans-serif",
-                                    fontSize: '2rem', fontWeight: 800,
-                                    color: 'var(--text-primary)', marginBottom: '4px',
-                                }}>
-                                    Free
-                                </p>
-                                <span style={{
-                                    fontSize: '0.6rem', letterSpacing: '0.1em',
-                                    textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700,
-                                }}>
-                                    ALWAYS
-                                </span>
-                            </>
-                        ) : (
-                            /* Premium / Elite: duration picker inline like old version */
-                            <DurationSelector
-                                options={packages}
-                                selected={selected}
-                                onChange={setSelected}
-                                config={cfg}
-                            />
+                        {pkg.description && (
+                            <p style={{
+                                fontSize: '0.85rem',
+                                color: 'var(--text-muted)',
+                                margin: '6px 0 0 0',
+                                lineHeight: 1.5,
+                            }}>
+                                {pkg.description}
+                            </p>
                         )}
                     </div>
 
-                    {/* Feature list */}
-                    {featureList.length > 0 && (
-                        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                        {/* Price */}
+                        <span style={{
+                            fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+                            fontWeight: 800,
+                            color: 'var(--gold-mid)',
+                            fontFamily: "var(--font-sans)",
+                            lineHeight: 1,
+                        }}>
+                            {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                        </span>
+                        {/* Duration badge */}
+                        <span className="badge badge-gold">
+                            {pkg.duration_months} Month{pkg.duration_months > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Features list */}
+                <div style={{ marginBottom: '24px' }}>
+                    <p style={{
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.25em',
+                        textTransform: 'uppercase',
+                        color: 'var(--text-muted)',
+                        marginBottom: '14px',
+                        fontFamily: 'var(--font-display)',
+                    }}>
+                        Included Benefits
+                    </p>
+                    {featureList.length > 0 ? (
+                        <ul style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '10px',
+                        }}>
                             {featureList.map(feat => (
                                 <li key={feat} style={{
-                                    display: 'flex', alignItems: 'center', gap: '10px',
-                                    marginBottom: '12px', fontSize: '0.85rem',
-                                    color: 'var(--text-primary)',
-                                    fontFamily: "'Inter', sans-serif",
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    fontSize: '0.875rem',
+                                    color: 'var(--text-secondary)',
+                                    fontFamily: 'var(--font-sans)',
                                 }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                                        <CheckIcon color={cfg.checkColor} />
+                                    <span style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        background: 'var(--gold-glow)',
+                                        border: '1px solid var(--border-gold)',
+                                        borderRadius: '50%',
+                                        width: '22px',
+                                        height: '22px',
+                                        flexShrink: 0,
+                                    }}>
+                                        <CheckIcon />
                                     </span>
                                     {feat}
                                 </li>
                             ))}
                         </ul>
+                    ) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                            Standard plan benefits apply.
+                        </p>
                     )}
                 </div>
 
-                {/* CTA button */}
+                {/* CTA Button — reuse site's .btn .btn-primary */}
                 <button
                     onClick={handleCTA}
-                    style={{
-                        ...cfg.btnStyle,
-                        padding: '14px',
-                        borderRadius: '8px',
-                        fontSize: '0.7rem',
-                        letterSpacing: '0.12em',
-                        textTransform: 'uppercase',
-                        fontWeight: 800,
-                        fontFamily: "'Inter', sans-serif",
-                        cursor: 'pointer',
-                        width: '100%',
-                        transition: 'all 0.2s',
-                        boxShadow: isStarter ? 'none' : `0 4px 20px ${cfg.accentColor}40`,
-                    }}
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '14px 24px' }}
                 >
-                    {cfg.btnLabel}
+                    {Number(pkg.price) === 0 ? 'Get Started' : 'Buy Now'}
                 </button>
             </motion.div>
 
-            {/* Confirm Plan Modal - shows monthly breakdown and proceeds */}
-            {showModal && !isStarter && selected && (
+            {/* Confirm Plan Modal */}
+            {showModal && (
                 <div style={{
                     position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
+                    inset: 0,
                     backgroundColor: 'var(--bg-overlay)',
                     backdropFilter: 'blur(8px)',
                     display: 'flex',
@@ -358,133 +210,89 @@ function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
                     zIndex: 99999,
                     padding: '20px',
                 }}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',
-                        border: `1px solid ${cfg.accentColor}40`,
-                        borderRadius: '16px',
-                        width: '100%',
-                        maxWidth: '440px',
-                        padding: '24px',
-                        boxShadow: cfg.shadow,
-                        position: 'relative',
-                    }}>
-                        {/* Top accent line */}
-                        {cfg.topLine && (
-                            <div style={{
-                                position: 'absolute', top: 0, left: 0, right: 0, height: '2.5px',
-                                background: cfg.topLine,
-                            }} />
-                        )}
-
-                        {/* Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="card gold-top-edge"
+                        style={{ width: '100%', maxWidth: '440px', position: 'relative' }}
+                    >
+                        {/* Modal Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                             <div>
                                 <h3 style={{
-                                    fontFamily: 'var(--font-serif)',
-                                    fontSize: '1.5rem',
-                                    color: cfg.headerColor,
-                                    marginBottom: '4px',
+                                    fontSize: '1.25rem',
+                                    fontWeight: 700,
+                                    color: 'var(--text-primary)',
+                                    margin: '0 0 4px 0',
                                 }}>
                                     Confirm Plan
                                 </h3>
-                                <p style={{
-                                    fontSize: '0.75rem',
-                                    color: 'var(--text-secondary)',
-                                }}>
-                                    Review pricing breakdown for your selection
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                                    Review pricing breakdown
                                 </p>
                             </div>
                             <button
                                 onClick={() => setShowModal(false)}
+                                className="btn btn-ghost btn-sm"
                                 style={{
-                                    background: 'var(--blue-dim)',
-                                    border: '1px solid var(--border-subtle)',
-                                    borderRadius: '50%',
                                     width: '32px',
                                     height: '32px',
+                                    borderRadius: '50%',
+                                    padding: 0,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
                                 }}
                             >
                                 ✕
                             </button>
                         </div>
 
-                        {/* Plan Summary Card */}
+                        {/* Plan Summary */}
                         <div style={{
                             background: 'var(--bg-input)',
                             border: '1px solid var(--border-subtle)',
-                            borderRadius: '12px',
-                            padding: '18px',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: '20px',
                             marginBottom: '24px',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '12px',
                         }}>
+                            {[
+                                { label: 'Plan', value: pkg.name },
+                                { label: 'Duration', value: `${pkg.duration_months} Month${pkg.duration_months > 1 ? 's' : ''}` },
+                            ].map(row => (
+                                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>{row.label}</span>
+                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>{row.value}</span>
+                                </div>
+                            ))}
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border-subtle)', margin: '4px 0' }} />
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Plan Tier</span>
-                                <span style={{ fontSize: '0.85rem', color: cfg.headerColor, fontWeight: 700 }}>{cfg.label}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Duration</span>
-                                <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 700 }}>{selected.duration_months} Month{selected.duration_months > 1 ? 's' : ''}</span>
-                            </div>
-                            
-                            <hr style={{ borderTop: '1px solid var(--border-subtle)', margin: '4px 0' }} />
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Cost</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>Monthly</span>
                                 <span style={{ fontSize: '1.1rem', color: 'var(--green-status)', fontWeight: 800 }}>
-                                    ৳{Math.round(Number(selected.price) / selected.duration_months).toLocaleString()} <span style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--text-secondary)' }}>/ month</span>
+                                    ৳{Math.round(Number(pkg.price) / pkg.duration_months).toLocaleString()}
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}> / mo</span>
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Price</span>
-                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 700 }}>৳{Number(selected.price).toLocaleString()}</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>Total</span>
+                                <span style={{ fontSize: '0.95rem', color: 'var(--gold-mid)', fontWeight: 700 }}>৳{Number(pkg.price).toLocaleString()}</span>
                             </div>
                         </div>
 
-                        {/* Footer / CTA Actions */}
+                        {/* Action Buttons */}
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                style={{
-                                    background: 'transparent',
-                                    border: '1px solid var(--border-default)',
-                                    borderRadius: '8px',
-                                    padding: '10px 18px',
-                                    color: 'var(--text-primary)',
-                                    fontSize: '0.7rem',
-                                    letterSpacing: '0.05em',
-                                    textTransform: 'uppercase',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                }}
-                            >
+                            <button onClick={() => setShowModal(false)} className="btn btn-ghost btn-sm">
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleProceed}
-                                style={{
-                                    ...cfg.btnStyle,
-                                    borderRadius: '8px',
-                                    padding: '10px 22px',
-                                    fontSize: '0.7rem',
-                                    letterSpacing: '0.05em',
-                                    textTransform: 'uppercase',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    boxShadow: `0 0 10px ${cfg.accentColor}50`,
-                                }}
-                            >
-                                Proceed
+                            <button onClick={handleProceed} className="btn btn-primary btn-sm">
+                                Confirm &amp; Pay
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             )}
         </>
@@ -493,53 +301,28 @@ function TierCard({ tier, packages }: { tier: TierKey; packages: Package[] }) {
 
 // ── MembershipPage ────────────────────────────────────────────────────────────
 
-const TIER_ORDER: TierKey[] = ['starter', 'premium', 'elite'];
-
-// Fallback static data shown while loading or if backend is offline
-const STATIC_PACKAGES: Package[] = [
-    // starter
-    {
-        id: -1, name: 'Regular', description: '', price: 0,
-        duration_days: 0, duration_months: 1, tier_type: 'starter',
-        features: 'limited everything,limited chat,limited search',
-        is_active: 1, created_at: '',
-    },
-    // premium
-    { id: -2, name: 'Premium', description: '', price: 499,  duration_days: 30,  duration_months: 1,  tier_type: 'premium', features: 'Unlimited Profile Browsing,Direct Chat Access,Priority Matching,Verified User Badge,Basic Support', is_active: 1, created_at: '' },
-    { id: -3, name: 'Premium', description: '', price: 999,  duration_days: 90,  duration_months: 3,  tier_type: 'premium', features: 'Unlimited Profile Browsing,Direct Chat Access,Priority Matching,Verified User Badge,Basic Support', is_active: 1, created_at: '' },
-    { id: -4, name: 'Premium', description: '', price: 1499, duration_days: 180, duration_months: 6,  tier_type: 'premium', features: 'Unlimited Profile Browsing,Direct Chat Access,Priority Matching,Verified User Badge,Basic Support', is_active: 1, created_at: '' },
-    { id: -5, name: 'Premium', description: '', price: 2499, duration_days: 365, duration_months: 12, tier_type: 'premium', features: 'Unlimited Profile Browsing,Direct Chat Access,Priority Matching,Verified User Badge,Basic Support', is_active: 1, created_at: '' },
-    // elite
-    { id: -6,  name: 'Elite', description: '', price: 2499,  duration_days: 30,  duration_months: 1,  tier_type: 'elite', features: 'Everything in Premium,VIP Profile Visibility,Unlimited Voice & Video Calls,Priority Placement in Search,Exclusive Elite Badge,Dedicated Support,Advanced Match Recommendations', is_active: 1, created_at: '' },
-    { id: -7,  name: 'Elite', description: '', price: 4999,  duration_days: 90,  duration_months: 3,  tier_type: 'elite', features: 'Everything in Premium,VIP Profile Visibility,Unlimited Voice & Video Calls,Priority Placement in Search,Exclusive Elite Badge,Dedicated Support,Advanced Match Recommendations', is_active: 1, created_at: '' },
-    { id: -8,  name: 'Elite', description: '', price: 7999,  duration_days: 180, duration_months: 6,  tier_type: 'elite', features: 'Everything in Premium,VIP Profile Visibility,Unlimited Voice & Video Calls,Priority Placement in Search,Exclusive Elite Badge,Dedicated Support,Advanced Match Recommendations', is_active: 1, created_at: '' },
-    { id: -9,  name: 'Elite', description: '', price: 14999, duration_days: 365, duration_months: 12, tier_type: 'elite', features: 'Everything in Premium,VIP Profile Visibility,Unlimited Voice & Video Calls,Priority Placement in Search,Exclusive Elite Badge,Dedicated Support,Advanced Match Recommendations', is_active: 1, created_at: '' },
-];
 
 export function MembershipPage() {
-    const [packages, setPackages] = useState<Package[]>(STATIC_PACKAGES);
+    const [packages, setPackages] = useState<Package[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        adminApi.getPublicPackages().then(res => {
-            if (res.data && res.data.length > 0) {
-                setPackages(res.data);
-            }
-            // If backend fails or returns empty, we keep the static fallback
+        adminApi.getPublicPackages().then((res) => {
+            // Membership page must use backend as the single source of truth.
+            setPackages(res.data ?? []);
             setLoading(false);
         });
     }, []);
 
-    // Group packages by tier
-    const byTier = packages.reduce<Record<TierKey, Package[]>>(
-        (acc, pkg) => {
-            const t = pkg.tier_type as TierKey;
-            if (!acc[t]) acc[t] = [];
-            acc[t].push(pkg);
-            return acc;
-        },
-        { starter: [], premium: [], elite: [] }
-    );
+
+    // Sort packages: starter (Silver) -> premium (Gold) -> elite (Platinum), then by price ascending
+    const sortedPackages = [...packages].sort((a, b) => {
+        const order = { starter: 0, premium: 1, elite: 2 };
+        const scoreA = order[a.tier_type as 'starter' | 'premium' | 'elite'] ?? 99;
+        const scoreB = order[b.tier_type as 'starter' | 'premium' | 'elite'] ?? 99;
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        return Number(a.price) - Number(b.price);
+    });
 
     return (
         <motion.div
@@ -549,7 +332,7 @@ export function MembershipPage() {
             style={{ minHeight: '100%', background: 'var(--bg-main)', paddingBottom: '32px' }}
         >
             <TopNav />
-            <div style={{ padding: '100px 16px 16px', maxWidth: '2400px', margin: '0 auto' }}>
+            <div style={{ padding: '100px 16px 16px', maxWidth: '900px', margin: '0 auto' }}>
 
                 {/* Header */}
                 <motion.div variants={fadeUp} style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -612,14 +395,32 @@ export function MembershipPage() {
                     </motion.div>
                 )}
 
-                {/* Tier cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px] max-w-8xl mx-auto w-full px-4">
-                    {TIER_ORDER.map(tier => (
-                        byTier[tier].length > 0 ? (
-                            <TierCard key={tier} tier={tier} packages={byTier[tier]} />
-                        ) : null
-                    ))}
-                </div>
+                {/* Tier cards stacked vertically in one column */}
+                {!loading && sortedPackages.length === 0 ? (
+                    <motion.div variants={fadeUp} style={{ textAlign: 'center', padding: '32px 0' }}>
+                        <p style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.95rem',
+                            margin: 0,
+                            fontFamily: "'Inter', sans-serif",
+                            fontWeight: 600,
+                        }}>
+                            No membership packages are currently available.
+                        </p>
+                    </motion.div>
+                ) : (
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '24px',
+                        width: '100%',
+                    }}>
+                        {sortedPackages.map(pkg => (
+                            <TierCard key={pkg.id} pkg={pkg} />
+                        ))}
+                    </div>
+                )}
+
 
             </div>
         </motion.div>

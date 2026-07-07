@@ -57,10 +57,16 @@ export const router = createBrowserRouter([
         const { NewsfeedPage } = await import(
             "../features/dashboard/pages/NewsfeedPage"
         );
-
-        return {
-            element: <NewsfeedPage />
-        };
+        return { element: <NewsfeedPage /> };
+    }
+},
+            {
+    path: "chat",
+    lazy: async () => {
+        const { ChatPage } = await import(
+            "../features/dashboard/pages/ChatPage"
+        );
+        return { element: <ChatPage /> };
     }
 },
             {

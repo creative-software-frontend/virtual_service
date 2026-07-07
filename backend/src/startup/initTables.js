@@ -197,6 +197,16 @@ module.exports = async (db) => {
 
         console.log("DB initialized successfully");
     } catch (err) {
-        console.error("DB init error:", err.message);
+        // Print the complete error object details to reveal the actual DB failure cause.
+        console.error("DB init error:", {
+            message: err?.message,
+            code: err?.code,
+            stack: err?.stack,
+            // Include common mysql2/driver fields when available
+            errno: err?.errno,
+            sql: err?.sql,
+            sqlState: err?.sqlState,
+            sqlMessage: err?.sqlMessage,
+        });
     }
 };

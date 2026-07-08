@@ -50,15 +50,18 @@ function TierCard({ pkg }: { pkg: Package }) {
     };
 
     const handleProceed = async () => {
-        // Existing architecture: charge the selected plan price to the user's wallet
-        const res = await userApi.deposit(Number(pkg.price));
+        const payload = pkg?.id;
+        console.log("Buying membership:", payload);
+        const res = await userApi.buyMembership(pkg.id);
         if (res.error) {
             alert(res.error);
             return;
         }
-        alert(`Added ৳${Number(pkg.price).toLocaleString()} to your wallet for the ${pkg.name} plan.`);
+
+        alert(`Membership activated: ${pkg.name}`);
         setShowModal(false);
     };
+
 
     return (
         <>

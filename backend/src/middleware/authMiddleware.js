@@ -30,7 +30,10 @@ const authMiddleware = (req, res, next) => {
             );
         }
 
-        next();
+        // membership expiry fallback (FREE when expired)
+        const { membershipExpiryMiddleware } = require('./membershipMiddleware');
+        return membershipExpiryMiddleware(req, res, next);
+
     } catch (error) {
         return res.status(401).json({
             message: "Token invalid or expired"

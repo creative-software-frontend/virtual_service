@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
+const { membershipExpiryMiddleware, requireFeature } = require("../middleware/membershipMiddleware");
 const db = require("../config/db");
 const walletService = require("../services/walletService");
 const { validateEventJoin } = require("../services/eventJoinService");
@@ -39,7 +40,7 @@ router.put("/profile", authMiddleware, updateProfile);
 
 // GET /api/user/search
 // Query params (all optional): keyword, gender, ageMin, ageMax, profession, education, location, relationship_goal, marital_status, interests, page, pageSize
-router.get("/search", authMiddleware, (req, res) => {
+router.get("/search", authMiddleware, requireFeature("partner_search"), (req, res) => {
     const userId = req.user.id;
 
     const {
@@ -446,7 +447,7 @@ router.get("/events", authMiddleware, (req, res) => {
 });
 
 // Join Event
-router.post("/events/:id/join", authMiddleware, async (req, res) => {
+router.post("/events/:id/join", authMiddleware, requireFeature("tour_access"), async (req, res) => {
     const userId = req.user.id;
     const eventId = Number(req.params.id);
 

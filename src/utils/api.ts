@@ -250,7 +250,16 @@ export interface SendMatchRequestResponse {
 }
 
 // ── User endpoints ────────────────────────────────────────────────────────────
+export interface MembershipStatus {
+    plan: string;
+    expires_at: string | null;
+    days_remaining: number;
+    wallet_balance: number;
+    features: Record<string, { enabled: boolean; available: boolean; message: string }>;
+}
+
 export const userApi = {
+
     getProfile: () => request<UserProfile>('/user/profile'),
 
     updateProfile: (payload: UpdateUserProfilePayload) =>
@@ -293,6 +302,15 @@ export const userApi = {
 
 
     getWallet: () => request<WalletResponse>('/user-wallet/wallet'),
+
+    getMembershipStatus: () => request<MembershipStatus>('/user/membership/status'),
+
+    buyMembership: (packageId: number) =>
+        request<{ message: string; membership: unknown }>('/user/membership/buy', {
+            method: 'POST',
+            body: JSON.stringify({ package_id: packageId }),
+        }),
+
 
     depositRequest: (payload: DepositRequestPayload) =>
         request<DepositRequestItem>('/user/deposit', {

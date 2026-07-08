@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
-const { membershipExpiryMiddleware, requireFeature } = require("../middleware/membershipMiddleware");
+const { membershipExpiryMiddleware, requireFeature, checkFeatureAccess } = require("../middleware/membershipMiddleware");
+
 const db = require("../config/db");
 const walletService = require("../services/walletService");
 const { validateEventJoin } = require("../services/eventJoinService");
@@ -33,14 +34,16 @@ function buildInterestWhereClause(interestsArr, placeholderStartIndex = 1) {
 }
 
 // GET /api/user/profile
-router.get("/profile", authMiddleware, getProfile);
+// Unlimited profile views feature is enforced via DB membership authorization.
+router.get("/profile", authMiddleware, requireFeature("PROFILE_VIEW_FULL"), getProfile);
+
 
 // PUT /api/user/profile
 router.put("/profile", authMiddleware, updateProfile);
 
 // GET /api/user/search
 // Query params (all optional): keyword, gender, ageMin, ageMax, profession, education, location, relationship_goal, marital_status, interests, page, pageSize
-router.get("/search", authMiddleware, requireFeature("partner_search"), (req, res) => {
+router.get("/search", authMiddleware, requireFeature("PARTNER_SEARCH"), async (req, res) => {
     const userId = req.user.id;
 
     const {
@@ -57,6 +60,19 @@ router.get("/search", authMiddleware, requireFeature("partner_search"), (req, re
         page,
         pageSize,
     } = req.query || {};
+
+    const advancedFilters = [ageMin, ageMax, profession, education, location, relationship_goal, marital_status, interests];
+    const hasAdvancedFilters = advancedFilters.some(val => val !== undefined && val !== null && String(val).trim() !== "");
+
+    if (hasAdvancedFilters) {
+        const check = await checkFeatureAccess(userId, "ADVANCED_SEARCH");
+        if (!check.allowed) {
+            return res.status(403).json({
+                success: false,
+                message: "Upgrade membership to access advanced search"
+            });
+        }
+    }
 
     const pageNum = Math.max(1, parseInt(String(page ?? 1), 10) || 1);
     const sizeNum = Math.min(50, Math.max(1, parseInt(String(pageSize ?? 12), 10) || 12));
@@ -447,8 +463,9 @@ router.get("/events", authMiddleware, (req, res) => {
 });
 
 // Join Event
-router.post("/events/:id/join", authMiddleware, requireFeature("tour_access"), async (req, res) => {
+router.post("/events/:id/join", authMiddleware, requireFeature("EVENT_ACCESS"), async (req, res) => {
     const userId = req.user.id;
+
     const eventId = Number(req.params.id);
 
     if (!Number.isFinite(eventId)) {

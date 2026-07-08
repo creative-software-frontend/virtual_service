@@ -3,6 +3,8 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const { requireFeature } = require("../middleware/membershipMiddleware");
+
 const db = require("../config/db");
 const chatService = require("../services/chatService");
 
@@ -35,6 +37,7 @@ router.get(
     "/online-providers",
     authMiddleware,
     roleMiddleware(["provider", "user", "admin"]),
+    requireFeature("CHAT"),
     (req, res) => {
         db.query(
             `
@@ -57,6 +60,7 @@ router.get(
     "/online-users",
     authMiddleware,
     roleMiddleware(["provider", "user", "admin"]),
+    requireFeature("CHAT"),
     (req, res) => {
         db.query(
             `
@@ -79,6 +83,7 @@ router.get(
     "/active-providers",
     authMiddleware,
     roleMiddleware(["user", "provider", "admin"]),
+    requireFeature("CHAT"),
     (req, res) => {
         db.query(
             `
@@ -155,7 +160,9 @@ router.get(
     "/messages",
     authMiddleware,
     roleMiddleware(["user", "provider"]),
+    requireFeature("CHAT"),
     async (req, res) => {
+
         const me = req.user.id;
         const partner = parseInt(req.query.with, 10);
         if (!partner) return res.status(400).json({ message: "Missing 'with' query param." });
@@ -174,7 +181,9 @@ router.post(
     "/messages",
     authMiddleware,
     roleMiddleware(["user", "provider"]),
+    requireFeature("CHAT"),
     async (req, res) => {
+
         const { receiver_id, message } = req.body;
         if (!receiver_id || !message || !message.trim()) {
             return res.status(400).json({ message: "receiver_id and message are required." });

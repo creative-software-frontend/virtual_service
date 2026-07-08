@@ -6,5 +6,6 @@ const membershipController = require("../controllers/membershipController");
 router.get("/status", authMiddleware, membershipController.getMembershipStatus);
 router.post("/buy", authMiddleware, membershipController.buyMembership);
 
+
 module.exports = router;
 

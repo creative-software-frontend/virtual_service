@@ -5,10 +5,10 @@ function registerChatSocket(io, socket, onlineUsers) {
 
     socket.on("typing", async ({ receiver_id }) => {
         if (!receiver_id) return;
-        // Protect socket chat events by membership feature
-        const { hasFeature } = require("../middleware/membershipMiddleware");
         try {
-            const allowed = await hasFeature(socket.userId, "chat");
+            const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
+            const allowed = (await checkFeatureAccess(socket.userId, "CHAT")).allowed;
+
             if (!allowed) {
                 socket.emit("error", { error: true, message: "Upgrade to Silver to use chat." });
                 console.log("[SOCKET CHAT BLOCKED] typing");
@@ -28,9 +28,9 @@ function registerChatSocket(io, socket, onlineUsers) {
 
     socket.on("stopTyping", async ({ receiver_id }) => {
         if (!receiver_id) return;
-        const { hasFeature } = require("../middleware/membershipMiddleware");
         try {
-            const allowed = await hasFeature(socket.userId, "chat");
+            const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
+            const allowed = (await checkFeatureAccess(socket.userId, "CHAT")).allowed;
             if (!allowed) {
                 socket.emit("error", { error: true, message: "Upgrade to Silver to use chat." });
                 console.log("[SOCKET CHAT BLOCKED] stopTyping");
@@ -50,8 +50,8 @@ function registerChatSocket(io, socket, onlineUsers) {
 
     socket.on("sendMessage", async ({ receiver_id, message }) => {
         try {
-            const { hasFeature } = require("../middleware/membershipMiddleware");
-            const allowed = await hasFeature(socket.userId, "chat");
+            const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
+            const allowed = (await checkFeatureAccess(socket.userId, "CHAT")).allowed;
             if (!allowed) {
                 socket.emit("error", { error: true, message: "Upgrade to Silver to use chat." });
                 console.log("[SOCKET CHAT BLOCKED] sendMessage");

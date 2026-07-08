@@ -220,8 +220,57 @@ async function getMembershipStatus(userId) {
 
 }
 
+async function getCurrentMembership(userId) {
+  const [userRows] = await db.query(
+    "SELECT membership_package_id, membership_expires_at FROM users WHERE id = ? LIMIT 1",
+    [userId]
+  );
+
+  if (!userRows.length) {
+    const err = new Error("User not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const u = userRows[0];
+  const expiresAt = u.membership_expires_at ? new Date(u.membership_expires_at) : null;
+  const now = new Date();
+  const isExpired = expiresAt ? expiresAt.getTime() < now.getTime() : false;
+
+  let pkgName = "Free";
+  let tierType = null;
+  let features = [];
+
+  if (u.membership_package_id && !isExpired) {
+    const [pkgRows] = await db.query(
+      "SELECT tier_type, name FROM packages WHERE id = ? LIMIT 1",
+      [u.membership_package_id]
+    );
+
+    if (pkgRows.length) {
+      tierType = pkgRows[0].tier_type;
+      pkgName = pkgRows[0].name || tierType;
+    }
+
+    if (tierType) {
+      const [pfRows] = await db.query(
+        "SELECT feature_key FROM package_features WHERE package_tier_type = ?",
+        [tierType]
+      );
+      features = pfRows.map(row => row.feature_key);
+    }
+  }
+
+  return {
+    package: pkgName,
+    expires_at: isExpired ? null : u.membership_expires_at,
+    features: features
+  };
+}
+
 module.exports = {
   buyMembership,
   getMembershipStatus,
+  getCurrentMembership,
 };
 

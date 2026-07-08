@@ -255,7 +255,15 @@ export interface MembershipStatus {
     expires_at: string | null;
     days_remaining: number;
     wallet_balance: number;
-    features: Record<string, { enabled: boolean; available: boolean; message: string }>;
+    features: {
+        [key: string]: { enabled: boolean; available: boolean; message: string };
+    };
+}
+
+export interface CurrentMembership {
+    package: string;
+    expires_at: string | null;
+    features: string[];
 }
 
 export const userApi = {
@@ -304,6 +312,7 @@ export const userApi = {
     getWallet: () => request<WalletResponse>('/user-wallet/wallet'),
 
     getMembershipStatus: () => request<MembershipStatus>('/user/membership/status'),
+    getCurrentMembership: () => request<CurrentMembership>('/user/membership/current'),
 
     buyMembership: (packageId: number) =>
         request<{ message: string; membership: unknown }>('/user/membership/buy', {

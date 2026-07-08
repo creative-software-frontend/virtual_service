@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
 import { adminApi, userApi } from '../../../utils/api';
 import type { Package } from '../../../utils/api';
+import { useMembership } from '../../../context/MembershipContext';
+import { ComingSoonGate } from '../../../components/ComingSoonGate';
 
 // ── Animation variants ────────────────────────────────────────────────────────
 
@@ -308,10 +310,10 @@ function TierCard({ pkg }: { pkg: Package }) {
 export function MembershipPage() {
     const [packages, setPackages] = useState<Package[]>([]);
     const [loading, setLoading] = useState(true);
+    const { membership } = useMembership();
 
     useEffect(() => {
         adminApi.getPublicPackages().then((res) => {
-            // Membership page must use backend as the single source of truth.
             setPackages(res.data ?? []);
             setLoading(false);
         });
@@ -352,6 +354,58 @@ export function MembershipPage() {
                         CHOOSE A PLAN THAT FITS YOU
                     </p>
                 </motion.div>
+
+                {/* Bangla Notice */}
+
+                {/* ── Current Plan Status ─────────────────────────────────── */}
+                {membership && (
+                    <motion.div variants={fadeUp} style={{
+                        background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(139,92,246,0.08))',
+                        border: '1px solid rgba(99,102,241,0.2)',
+                        borderRadius: 16, padding: '20px 24px', marginBottom: 24,
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                            <div>
+                                <p style={{ margin: '0 0 4px', fontSize: '0.6rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>Current Plan</p>
+                                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#fff', fontFamily: "'Inter', sans-serif" }}>{membership.package}</p>
+                            </div>
+                            {membership.expires_at && (
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ margin: '0 0 2px', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 700 }}>Expires</p>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+                                        {new Date(membership.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {membership.features.length > 0 && (
+                            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                <p style={{ margin: '0 0 10px', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 700 }}>Active Features</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                    {membership.features.map(f => (
+                                        <span key={f} style={{
+                                            padding: '4px 12px', borderRadius: 999,
+                                            background: 'rgba(99,102,241,0.12)',
+                                            border: '1px solid rgba(99,102,241,0.25)',
+                                            fontSize: '0.72rem', fontWeight: 700,
+                                            color: '#818cf8', letterSpacing: '0.04em',
+                                        }}>
+                                            ✓ {f.replace(/_/g, ' ')}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Coming soon section – shows for users who have the tier but feature isn't built */}
+                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12 }}>
+                            <ComingSoonGate feature="AUDIO_CALL" label="Audio Call" requiredTier="Gold" />
+                            <ComingSoonGate feature="VIDEO_CALL" label="Video Call" requiredTier="Gold" />
+                            <ComingSoonGate feature="VIP_SUPPORT" label="VIP Support" requiredTier="Platinum" />
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Bangla Notice */}
                 <motion.div

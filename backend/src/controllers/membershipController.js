@@ -41,8 +41,22 @@ async function getMembershipStatus(req, res) {
   }
 }
 
+async function getCurrentMembership(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const result = await membershipService.getCurrentMembership(userId);
+    return res.json(result);
+  } catch (error) {
+    const status = error.statusCode || 500;
+    return res.status(status).json({ message: error.message || "Failed to fetch current membership" });
+  }
+}
+
 module.exports = {
   buyMembership,
   getMembershipStatus,
+  getCurrentMembership,
 };
 

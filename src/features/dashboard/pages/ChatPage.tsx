@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { serviceApi, providerApi } from '../../../utils/api';
 import type { ChatMessage, ActiveUser } from '../../../utils/api';
 import { TopNav } from './TopNav';
+import { FeatureGate } from '../../../components/FeatureGate';
 
 
 /* ─── helpers ─── */
@@ -309,6 +310,7 @@ export function ChatPage() {
         <>
             <style>{STYLE}</style>
             <TopNav />
+            <FeatureGate feature="CHAT" fullPage requiredTier="Silver">
             <div style={{
                 position: 'fixed',
                 top: 64,
@@ -514,6 +516,7 @@ export function ChatPage() {
                     </div>
                 )}
             </div>
+            </FeatureGate>
         </>
     );
 }

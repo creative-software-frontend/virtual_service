@@ -1,4 +1,5 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
+import type { ReactNode } from 'react';
 import { useMembership } from '../context/MembershipContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,7 +23,7 @@ export const ComingSoonGate: React.FC<ComingSoonGateProps> = ({
     feature,
     label,
     requiredTier = 'Gold',
-    children,
+    children: _children,
 }) => {
     const { hasFeature, loading } = useMembership();
     const navigate = useNavigate();

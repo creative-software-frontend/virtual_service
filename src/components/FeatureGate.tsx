@@ -1,4 +1,5 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
+import type { ReactNode } from 'react';
 import { useMembership } from '../context/MembershipContext';
 import { useNavigate } from 'react-router-dom';
 

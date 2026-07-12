@@ -34,8 +34,9 @@ function buildInterestWhereClause(interestsArr, placeholderStartIndex = 1) {
 }
 
 // GET /api/user/profile
-// Unlimited profile views feature is enforced via DB membership authorization.
-router.get("/profile", authMiddleware, requireFeature("PROFILE_VIEW_FULL"), getProfile);
+// Profile viewing is public for all authenticated users regardless of membership.
+// It must NEVER require a membership feature.
+router.get("/profile", authMiddleware, getProfile);
 
 
 // PUT /api/user/profile

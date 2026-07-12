@@ -28,6 +28,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/test", require("./routes/testRoutes"));
 app.use("/api/user", require("./routes/userRoutes"));
+app.use("/api/user/membership", require("./routes/membershipRoutes"));
 app.use("/api/user-wallet", require("./routes/wallet.routes"));
 app.use("/api/provider", require("./routes/providerRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
@@ -41,7 +42,12 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, async () => {
+const httpServer = require("http").createServer(app);
+
+const { setupSocket } = require("./socket/socket");
+setupSocket(httpServer);
+
+httpServer.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
 
     // optional: safe startup init

@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../../context/AuthContext';
 import { serviceApi, providerApi } from '../../../utils/api';
 import type { ChatMessage, ActiveUser } from '../../../utils/api';
 import { TopNav } from './TopNav';
+import { FeatureGate } from '../../../components/FeatureGate';
+
 
 /* ─── helpers ─── */
 const GRAD = ['135deg,#6366f1,#8b5cf6','135deg,#0ea5e9,#06b6d4','135deg,#ec4899,#f472b6','135deg,#10b981,#34d399','135deg,#f59e0b,#fbbf24','135deg,#ef4444,#f97316'];
-const ug = (n: string) => { let h = 0; for (let i = 0; i < n.length; i++) h += n.charCodeAt(i); return GRAD[h % GRAD.length]; };
+const ug = (n?: string | null) => {
+    const s = n ?? '';
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h += s.charCodeAt(i);
+    return GRAD[h % GRAD.length];
+};
 const ini = (n: string) => n ? n.slice(0, 2).toUpperCase() : '??';
 const fmtTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const fmtDate = (d: string) => {
@@ -82,6 +90,13 @@ export function ChatPage() {
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const textRef = useRef<HTMLTextAreaElement>(null);
 
+    const socketRef = useRef<Socket | null>(null);
+
+    const socketConnectedRef = useRef(false);
+    const lastSocketMessageIdsRef = useRef<Set<number>>(new Set());
+
+    const selectedIdRef = useRef<number | null>(null);
+
     useEffect(() => {
         (async () => {
             setCLoading(true);
@@ -91,43 +106,211 @@ export function ChatPage() {
         })();
     }, [isProvider]);
 
+    useEffect(() => {
+        const token = localStorage.getItem('bluedise_token');
+        const backendUrl = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+
+        if (!token) return;
+        const socket = io(backendUrl, {
+            auth: { token },
+            transports: ['websocket'],
+        });
+
+        socketRef.current = socket;
+
+        // Stable named handlers (cleanup uses the exact same references)
+        const handleConnect = () => {
+            socketConnectedRef.current = true;
+        };
+
+        const handleDisconnect = () => {
+            socketConnectedRef.current = false;
+        };
+
+        const handleTyping = ({ sender_id }: { sender_id?: number }) => {
+            if (!sender_id) return;
+            if (!selectedIdRef.current) return;
+            if (Number(sender_id) === selectedIdRef.current) setShowTyping(true);
+        };
+
+        const handleStopTyping = ({ sender_id }: { sender_id?: number }) => {
+            if (!sender_id) return;
+            if (!selectedIdRef.current) return;
+            if (Number(sender_id) === selectedIdRef.current) setShowTyping(false);
+        };
+
+        const normalizeSocketMessage = (payload: any) => {
+            const normalized: any = {
+                id: Number(payload?.id),
+                sender_id: Number(payload?.sender_id),
+                receiver_id: Number(payload?.receiver_id),
+                message: String(payload?.message ?? ''),
+                created_at: payload?.created_at ?? new Date().toISOString(),
+                sender_name: String(payload?.sender_name ?? ''),
+            };
+            return normalized;
+        };
+
+        const handleNewMessage = (payload: any) => {
+            if (!payload || typeof payload !== 'object') return;
+
+            const normalized = normalizeSocketMessage(payload);
+            const incomingId = normalized?.id;
+            if (!Number.isFinite(incomingId)) return;
+
+            // Primary dedupe by persisted id / optimistic replacement logic
+            setMessages((prev) => {
+                if (prev.some((m) => m.id === incomingId)) return prev;
+
+                const matchOptimisticIndex = prev.findIndex((m: any) => {
+                    return (
+                        m?.optimistic === true &&
+                        m?.sender_id === normalized.sender_id &&
+                        m?.receiver_id === normalized.receiver_id &&
+                        m?.message === normalized.message
+                    );
+                });
+
+                if (matchOptimisticIndex !== -1) {
+                    const next = [...prev];
+                    next[matchOptimisticIndex] = {
+                        ...normalized,
+                        optimistic: false,
+                        tempId: undefined,
+                    };
+                    return next;
+                }
+
+                // lastSocketMessageIdsRef as additional safety check
+                if (lastSocketMessageIdsRef.current.has(incomingId)) return prev;
+                lastSocketMessageIdsRef.current.add(incomingId);
+
+                // Only add if this message belongs to the currently selected thread
+                const partnerId = normalized.sender_id === myId ? normalized.receiver_id : normalized.sender_id;
+                if (selectedIdRef.current && Number(selectedIdRef.current) === Number(partnerId)) {
+                    return [...prev, normalized];
+                }
+
+                return prev;
+            });
+        };
+
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+        socket.on('typing', handleTyping);
+        socket.on('stopTyping', handleStopTyping);
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
+            socket.off('typing', handleTyping);
+            socket.off('stopTyping', handleStopTyping);
+            socket.off('newMessage', handleNewMessage);
+            socket.disconnect();
+            socketRef.current = null;
+        };
+    }, []);
+
+
     const loadMsgs = useCallback(async (id: number) => {
         const res = await serviceApi.getMessages(id);
         if (!res.error) setMessages(res.data ?? []);
     }, []);
 
     useEffect(() => {
+        selectedIdRef.current = selected?.id ?? null;
         if (!selected) return;
         setMLoading(true);
         loadMsgs(selected.id).finally(() => setMLoading(false));
-        pollRef.current = setInterval(() => loadMsgs(selected.id), 4000);
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
+        pollRef.current = null;
+        if (pollRef.current) clearInterval(pollRef.current);
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
     }, [selected, loadMsgs]);
 
-    useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
 
     const send = async () => {
         const txt = input.trim();
         if (!txt || !selected || sending) return;
-        setSending(true); setInput('');
-        setShowTyping(true);
-        const opt: ChatMessage = { id: Date.now(), sender_id: myId ?? 0, receiver_id: selected.id, message: txt, created_at: new Date().toISOString(), sender_name: myName };
-        setMessages(p => [...p, opt]);
-        await serviceApi.sendMessage(selected.id, txt);
-        setTimeout(() => setShowTyping(false), 1200);
+        setSending(true);
+
+        // Capture receiver id before we clear state
+        const receiverId = selected.id;
+
+        setInput('');
+
+        // Optimistic UI (keep it, but mark it so we can replace it when the socket event arrives)
+        const optId = Date.now();
+        const tempId = `temp_${optId}_${Math.random().toString(16).slice(2)}`;
+        const opt: ChatMessage = {
+            id: optId,
+            sender_id: myId ?? 0,
+            receiver_id: receiverId,
+            message: txt,
+            created_at: new Date().toISOString(),
+            sender_name: myName,
+            // Mark for replacement when the socket-persisted message arrives
+            optimistic: true,
+            tempId,
+        } as any;
+
+        const exists = lastSocketMessageIdsRef.current.has(optId);
+        if (!exists) setMessages((p) => [...p, opt]);
+
+        // Socket emit
+        socketRef.current?.emit('sendMessage', { receiver_id: receiverId, message: txt });
+        socketRef.current?.emit('stopTyping', { receiver_id: receiverId });
+
+        // REST persistence (without re-fetch)
+        await serviceApi.sendMessage(receiverId, txt);
+
+        setShowTyping(false);
         setSending(false);
-        await loadMsgs(selected.id);
         textRef.current?.focus();
     };
 
-    const onKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+    // Typing indicator helpers (backend contract: { receiver_id })
+
+    const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const emitTypingNow = (receiverId: number) => {
+        if (!receiverId) return;
+        socketRef.current?.emit('typing', { receiver_id: receiverId });
+        // debounce stopTyping after last keystroke
+        if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+        typingDebounceRef.current = setTimeout(() => {
+            socketRef.current?.emit('stopTyping', { receiver_id: receiverId });
+        }, 700);
+    };
+
+    const onKey = (e: React.KeyboardEvent) => {
+        if (!selected) return;
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            send();
+            return;
+        }
+
+        // While typing (except Enter-send), debounce typing events
+        emitTypingNow(selected.id);
+    };
 
     const filtered = contacts.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+
+
+
 
     return (
         <>
             <style>{STYLE}</style>
             <TopNav />
+            <FeatureGate feature="CHAT" fullPage requiredTier="Silver">
             <div style={{
                 position: 'fixed',
                 top: 64,
@@ -333,6 +516,7 @@ export function ChatPage() {
                     </div>
                 )}
             </div>
+            </FeatureGate>
         </>
     );
 }

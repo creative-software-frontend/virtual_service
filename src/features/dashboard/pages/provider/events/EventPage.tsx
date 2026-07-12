@@ -10,6 +10,7 @@ import { CreateEventModal } from './CreateEventModal';
 import { EventDetailsModal } from './EventDetailsModal';
 import type { Event } from './types/event';
 import { PartnerSearchPanel } from '../../partner/PartnerSearchPanel';
+import { FeatureGate } from '../../../../../components/FeatureGate';
 
 export function EventPage() {
     const { role = 'user' } = useParams<{ role: string }>();
@@ -208,6 +209,7 @@ export function EventPage() {
                     {error}
                 </div>
             ) : (
+                <FeatureGate feature="EVENT_ACCESS" fullPage requiredTier="Platinum">
                 <>
                     <EventFilters
                         searchQuery={searchQuery}
@@ -258,6 +260,7 @@ export function EventPage() {
                         />
                     )}
                 </>
+                </FeatureGate>
             )}
 
             {/* Create & Edit Modal */}

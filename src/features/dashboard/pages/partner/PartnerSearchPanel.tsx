@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { userApi, type PartnerSearchFilters, type PartnerSearchResponse, type UserProfile, type MatchRequestListResponse } from "../../../../utils/api";
+import { FeatureGate } from "../../../../components/FeatureGate";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 14 },
@@ -314,13 +315,14 @@ function SearchFilters({
                                         <option value="prefer_not_to_say">Prefer not to say</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <FeatureGate feature="ADVANCED_SEARCH">
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                                 <div>
                                     <label style={labelStyle}>Location</label>
                                     <input value={filters.location ?? ""} onChange={(e) => set("location", e.target.value || undefined)} style={fieldStyle} placeholder="City / area" />
                                 </div>
-                            </div>
-
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                                 <div>
                                     <label style={labelStyle}>Min age</label>
                                     <input type="number" min={18} value={filters.ageMin ?? ""} onChange={(e) => set("ageMin", e.target.value ? Number(e.target.value) : undefined)} style={fieldStyle} placeholder="18" />
@@ -433,6 +435,7 @@ function SearchFilters({
                                     })}
                                 </div>
                             </div>
+                            </FeatureGate>
 
                             {activeCount > 0 && (
                                 <button
@@ -707,6 +710,7 @@ export function PartnerSearchPanel() {
     const results = data?.results ?? [];
 
     return (
+        <FeatureGate feature="PARTNER_SEARCH" fullPage requiredTier="Silver">
         <motion.div initial="hidden" animate="visible" variants={container} style={{ width: "100%" }}>
             <SearchFilters
                 filters={filters}
@@ -803,5 +807,6 @@ export function PartnerSearchPanel() {
                 onClose={() => setDetailsOpen(false)}
             />
         </motion.div>
+        </FeatureGate>
     );
 }

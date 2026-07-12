@@ -51,6 +51,46 @@ module.exports = async (db) => {
             console.log("Added earnings column to users table");
         }
 
+        // Membership columns (required by membershipService / membershipMiddleware)
+        const requiredMembershipColumns = [
+            { name: "membership_package_id", type: "INT NULL" },
+            { name: "membership_started_at", type: "DATETIME NULL" },
+            { name: "membership_expires_at", type: "DATETIME NULL" },
+        ];
+
+        // Refresh column names after potential earlier ALTERs
+        const [userColsAfterWallet] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
+        );
+        const colNamesAfterWallet = userColsAfterWallet.map(c => c.COLUMN_NAME.toLowerCase());
+
+        for (const col of requiredMembershipColumns) {
+            if (!colNamesAfterWallet.includes(col.name.toLowerCase())) {
+                await db.query(`ALTER TABLE users ADD COLUMN ${col.name} ${col.type}`);
+                console.log(`Added ${col.name} column to users table`);
+            }
+        }
+
+        // Add foreign key only if it doesn't exist yet
+        // (Some MySQL setups won't allow adding the constraint repeatedly.)
+        try {
+            const fkCheck = await db.query(
+                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'membership_package_id'"
+            );
+            const existingFkNames = (fkCheck[0] || []).map(r => r.CONSTRAINT_NAME);
+
+            if (!existingFkNames.length) {
+                await db.query(
+                    "ALTER TABLE users ADD CONSTRAINT fk_users_membership_package_id FOREIGN KEY (membership_package_id) REFERENCES packages(id) ON DELETE SET NULL"
+                );
+                console.log("Added foreign key for users.membership_package_id -> packages.id");
+            }
+        } catch (e) {
+            // Non-fatal: membership still works without the FK.
+            console.warn("Foreign key add skipped/failed:", e?.message || e);
+        }
+
+
         // Profile columns (nullable)
         const profileColumns = [
             { name: 'gender', type: "VARCHAR(50) NULL" },
@@ -77,9 +117,10 @@ module.exports = async (db) => {
         // Create transactions table
         await db.query(`
             CREATE TABLE IF NOT EXISTS transactions (
+
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
-                type ENUM('deposit', 'withdraw', 'earning', 'event_payment', 'event_income') NOT NULL,
+                type ENUM('deposit', 'withdraw', 'earning', 'event_payment', 'event_income', 'membership_purchase') NOT NULL,
                 amount DECIMAL(15,2) NOT NULL,
                 status VARCHAR(20) DEFAULT 'completed',
                 description VARCHAR(255),
@@ -231,6 +272,16 @@ module.exports = async (db) => {
 
         console.log("DB initialized successfully");
     } catch (err) {
-        console.error("DB init error:", err.message);
+        // Print the complete error object details to reveal the actual DB failure cause.
+        console.error("DB init error:", {
+            message: err?.message,
+            code: err?.code,
+            stack: err?.stack,
+            // Include common mysql2/driver fields when available
+            errno: err?.errno,
+            sql: err?.sql,
+            sqlState: err?.sqlState,
+            sqlMessage: err?.sqlMessage,
+        });
     }
 };

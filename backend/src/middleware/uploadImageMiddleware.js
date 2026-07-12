@@ -32,11 +32,13 @@ function createUploadImageMiddleware() {
     const uploadsRoot = path.join(process.cwd(), "uploads");
     const avatarDir = path.join(uploadsRoot, "avatars");
     const depositsDir = path.join(uploadsRoot, "deposits");
+    const postsDir = path.join(uploadsRoot, "posts");
 
     // Ensure folders exist at startup
     ensureDirSync(uploadsRoot);
     ensureDirSync(avatarDir);
     ensureDirSync(depositsDir);
+    ensureDirSync(postsDir);
 
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {
@@ -44,7 +46,9 @@ function createUploadImageMiddleware() {
             // Accepts: req.body.folder OR req.query.folder
             const folder = String(req.body?.folder ?? req.query?.folder ?? "avatars");
 
-            const selected = folder === "deposits" ? depositsDir : avatarDir;
+            let selected = avatarDir;
+            if (folder === "deposits") selected = depositsDir;
+            else if (folder === "posts") selected = postsDir;
             cb(null, selected);
         },
         filename: (req, file, cb) => {
@@ -83,7 +87,9 @@ const uploadImageMiddleware = createUploadImageMiddleware();
 
 function resolvePublicUrl(req) {
     const folder = String(req.body?.folder ?? req.query?.folder ?? "avatars");
-    const safeFolder = folder === "deposits" ? "deposits" : "avatars";
+    let safeFolder = "avatars";
+    if (folder === "deposits") safeFolder = "deposits";
+    else if (folder === "posts") safeFolder = "posts";
 
     const filename = req.file?.filename;
     if (!filename) return null;

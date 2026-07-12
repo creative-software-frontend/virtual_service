@@ -195,6 +195,40 @@ module.exports = async (db) => {
         `);
         console.log("Match requests table setup verified");
 
+        // Post interaction tables
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS post_likes (
+                user_id INT NOT NULL,
+                post_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, post_id),
+                INDEX idx_post_likes_post (post_id)
+            )
+        `);
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS post_comments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                post_id INT NOT NULL,
+                user_id INT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_post_comments_post (post_id),
+                INDEX idx_post_comments_user (user_id)
+            )
+        `);
+
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS post_shares (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                post_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_post_shares_post (post_id)
+            )
+        `);
+        console.log("Post interaction tables setup verified");
+
         console.log("DB initialized successfully");
     } catch (err) {
         console.error("DB init error:", err.message);

@@ -261,7 +261,7 @@ export const userApi = {
 
     uploadImage: async (
         file: File,
-        folder: "avatars" | "deposits"
+        folder: "avatars" | "deposits" | "posts"
     ): Promise<ApiResponse<{ url: string }>> => {
         const token = localStorage.getItem('bluedise_token');
 
@@ -402,6 +402,27 @@ export interface Post {
     user_id: number;
     author_name: string;
     author_role: string;
+    like_count: number;
+    comment_count: number;
+    share_count: number;
+    user_has_liked: boolean;
+}
+
+export interface PostComment {
+    id: number;
+    post_id: number;
+    user_id: number;
+    content: string;
+    created_at: string;
+    author_name: string;
+    avatar_url: string | null;
+}
+
+export interface CommentsResponse {
+    comments: PostComment[];
+    total: number;
+    page: number;
+    limit: number;
 }
 
 export interface ChatMessage {
@@ -427,6 +448,26 @@ export const serviceApi = {
             method: 'POST',
             body: JSON.stringify({ content, image_url: image_url ?? null }),
         }),
+
+    toggleLike: (postId: number) =>
+        request<{ liked: boolean; likeCount: number }>(`/provider/posts/${postId}/like`, {
+            method: 'POST',
+        }),
+
+    getComments: (postId: number, page = 1) =>
+        request<CommentsResponse>(`/provider/posts/${postId}/comments?page=${page}&limit=10`),
+
+    addComment: (postId: number, content: string) =>
+        request<PostComment>(`/provider/posts/${postId}/comment`, {
+            method: 'POST',
+            body: JSON.stringify({ content }),
+        }),
+
+    sharePost: (postId: number) =>
+        request<{ shareCount: number }>(`/provider/posts/${postId}/share`, {
+            method: 'POST',
+        }),
+
     getMessages: (partnerId: number) =>
         request<ChatMessage[]>(`/provider/messages?with=${partnerId}`),
     sendMessage: (receiver_id: number, message: string) =>

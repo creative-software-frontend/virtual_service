@@ -127,7 +127,83 @@ async function sharePost(userId, postId) {
     return { shareCount: Number(shareCount) };
 }
 
+/**
+ * Fetch paginated newsfeed posts with like/comment/share counts and user info.
+ */
+async function getPosts(requestingUserId, page = 1, limit = 20) {
+    const pg = Math.max(1, parseInt(page, 10) || 1);
+    const lim = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const offset = (pg - 1) * lim;
+
+    const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM posts');
+
+    const [posts] = await db.query(
+        `SELECT
+            p.id,
+            p.user_id,
+            p.content,
+            p.image_url,
+            p.created_at,
+            u.name        AS author_name,
+            u.avatar_url  AS author_avatar,
+            u.role        AS author_role,
+            (SELECT COUNT(*) FROM post_likes    WHERE post_id = p.id) AS like_count,
+            (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id) AS comment_count,
+            (SELECT COUNT(*) FROM post_shares   WHERE post_id = p.id) AS share_count,
+            IF(EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?), 1, 0) AS liked_by_me
+         FROM posts p
+         JOIN users u ON u.id = p.user_id
+         ORDER BY p.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [requestingUserId, lim, offset]
+    );
+
+    return { posts, total: Number(total), page: pg, limit: lim };
+}
+
+/**
+ * Create a new post.
+ */
+async function createPost(userId, content, imageUrl = null) {
+    if (!content || !content.trim()) throw serviceError('Post content cannot be empty', 400);
+    if (content.trim().length > 5000) throw serviceError('Post content too long (max 5000 chars)', 400);
+
+    const [result] = await db.query(
+        'INSERT INTO posts (user_id, content, image_url) VALUES (?, ?, ?)',
+        [userId, content.trim(), imageUrl || null]
+    );
+
+    const [[post]] = await db.query(
+        `SELECT p.id, p.user_id, p.content, p.image_url, p.created_at,
+                u.name AS author_name, u.avatar_url AS author_avatar
+         FROM posts p
+         JOIN users u ON u.id = p.user_id
+         WHERE p.id = ?`,
+        [result.insertId]
+    );
+
+    return { ...post, like_count: 0, comment_count: 0, share_count: 0, liked_by_me: 0 };
+}
+
+/**
+ * Delete own post (and cascade removes likes/comments/shares via FK).
+ */
+async function deletePost(userId, postId) {
+    const pid = parseInt(postId, 10);
+    if (!pid) throw serviceError('Invalid post id', 400);
+
+    const [rows] = await db.query('SELECT user_id FROM posts WHERE id = ?', [pid]);
+    if (!rows.length) throw serviceError('Post not found', 404);
+    if (rows[0].user_id !== userId) throw serviceError('Not allowed to delete this post', 403);
+
+    await db.query('DELETE FROM posts WHERE id = ?', [pid]);
+    return { deleted: true };
+}
+
 module.exports = {
+    getPosts,
+    createPost,
+    deletePost,
     toggleLike,
     addComment,
     getComments,

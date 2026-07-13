@@ -20,6 +20,10 @@ export function AssetsPage() {
     const [modalError, setModalError] = useState('');
     const [modalLoading, setModalLoading] = useState(false);
 
+    // New state variables for withdrawal
+    const [withdrawMethod, setWithdrawMethod] = useState('bKash');
+    const [withdrawNumber, setWithdrawNumber] = useState('');
+
     const depositLabel = 'DEPOSIT';
     const depositSub = 'Deposit funds to wallet';
     const withdrawLabel = 'WITHDRAW';
@@ -89,9 +93,18 @@ export function AssetsPage() {
             return;
         }
 
+        if (!/^01[3-9]\d{8}$/.test(withdrawNumber)) {
+            setModalError('Please enter a valid Bangladesh mobile number.');
+            return;
+        }
+
         try {
             setModalLoading(true);
-            const res = await userApi.withdraw(amt);
+            const res = await userApi.withdraw({
+                amount: amt,
+                method: withdrawMethod as 'bKash' | 'Nagad',
+                account_number: withdrawNumber
+            });
             if (res.error) {
                 setModalError(res.error);
             } else {
@@ -230,13 +243,15 @@ export function AssetsPage() {
                                     ),
                                 }] : []),
                                 {
-                                    label: withdrawLabel,
-                                    sub: withdrawSub,
-                                    onClick: () => {
-                                        setAmountInput('');
-                                        setModalError('');
-                                        setShowWithdrawModal(true);
-                                    },
+                                     label: withdrawLabel,
+                                     sub: withdrawSub,
+                                     onClick: () => {
+                                         setAmountInput('');
+                                         setWithdrawMethod('bKash');
+                                         setWithdrawNumber('');
+                                         setModalError('');
+                                         setShowWithdrawModal(true);
+                                     },
                                     icon: (
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue-vivid)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                             <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
@@ -343,16 +358,49 @@ export function AssetsPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {transactions.map((tx) => {
                                     const isPositive = tx.type === 'deposit' || tx.type === 'earning' || tx.type === 'event_income';
+                                    const isPending = tx.status === "pending";
+                                    const isRejected = tx.status === "rejected";
+                                    const isApproved = tx.status === "approved";
+                                    const statusLabel = isPending ? "Pending" : isRejected ? "Rejected" : isApproved ? "Approved" : "Completed";
+
+                                    const statusBg = isPending
+                                        ? "rgba(245,158,11,0.15)"
+                                        : isRejected
+                                        ? "rgba(239,68,68,0.15)"
+                                        : "rgba(16,185,129,0.15)";
+                                    const statusColor = isPending
+                                        ? "var(--gold-mid)"
+                                        : isRejected
+                                        ? "var(--red-status)"
+                                        : "var(--green-status)";
+
+                                    // Icon color is muted for pending/rejected
+                                    const iconBg =
+                                        tx.type === "withdraw" || tx.type === "event_payment"
+                                            ? `rgba(239, 68, 68, ${isPending ? "0.08" : "0.15"})`
+                                            : tx.type === "deposit"
+                                            ? `rgba(59, 130, 246, ${isPending ? "0.08" : "0.15"})`
+                                            : `rgba(245, 158, 11, ${isPending ? "0.08" : "0.15"})`;
+                                    const iconColor =
+                                        isPending || isRejected
+                                            ? "var(--text-muted)"
+                                            : tx.type === "withdraw" || tx.type === "event_payment"
+                                            ? "var(--red-status)"
+                                            : tx.type === "deposit"
+                                            ? "var(--blue-vivid)"
+                                            : "var(--gold-mid)";
+
                                     return (
                                         <div key={tx.id} style={{
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
-                                            background: 'var(--bg-input)',
-                                            border: '1px solid var(--border-subtle)',
+                                            background: isPending ? "rgba(245,158,11,0.03)" : isRejected ? "rgba(239,68,68,0.03)" : "var(--bg-input)",
+                                            border: isPending ? "1px solid rgba(245,158,11,0.25)" : isRejected ? "1px solid rgba(239,68,68,0.2)" : "1px solid var(--border-subtle)",
                                             borderRadius: '12px',
                                             padding: '16px 20px',
                                             transition: 'border-color 0.2s',
+                                            opacity: isRejected ? 0.75 : 1,
                                         }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                                 <div style={{
@@ -362,33 +410,51 @@ export function AssetsPage() {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    background: tx.type === 'withdraw' || tx.type === 'event_payment'
-                                                        ? 'rgba(239, 68, 68, 0.15)'
-                                                        : tx.type === 'deposit'
-                                                            ? 'rgba(59, 130, 246, 0.15)'
-                                                            : 'rgba(245, 158, 11, 0.15)',
-                                                    color: tx.type === 'withdraw' || tx.type === 'event_payment'
-                                                        ? 'var(--red-status)'
-                                                        : tx.type === 'deposit'
-                                                            ? 'var(--blue-vivid)'
-                                                            : 'var(--gold-mid)',
+                                                    background: iconBg,
+                                                    color: iconColor,
                                                     fontWeight: 800,
                                                 }}>
                                                     {tx.type === 'withdraw' || tx.type === 'event_payment' ? '↓' : tx.type === 'deposit' ? '↑' : '★'}
                                                 </div>
                                                 <div>
-                                                    <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                                                    <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
                                                         {tx.description}
                                                     </p>
-                                                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                                        {new Date(tx.created_at).toLocaleString()} • <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{tx.status}</span>
-                                                    </p>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+                                                            {new Date(tx.created_at).toLocaleString()}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: "0.65rem",
+                                                            fontWeight: 700,
+                                                            textTransform: "uppercase",
+                                                            letterSpacing: "0.06em",
+                                                            padding: "2px 7px",
+                                                            borderRadius: "20px",
+                                                            background: statusBg,
+                                                            color: statusColor,
+                                                        }}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    </div>
+                                                    {tx.type === 'withdraw' && (
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                                                            Method: {(tx as any).withdraw_method || (tx as any).method || 'bKash/Nagad'} | Number: {(tx as any).withdraw_number || (tx as any).account_number || '01XXXXXXXXX'}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div style={{
                                                 fontSize: '1rem',
                                                 fontWeight: 800,
-                                                color: isPositive ? 'var(--green-status)' : 'var(--red-status)'
+                                                color: isPending
+                                                    ? "var(--text-muted)"
+                                                    : isRejected
+                                                    ? "var(--text-muted)"
+                                                    : isPositive
+                                                    ? "var(--green-status)"
+                                                    : "var(--red-status)",
+                                                textDecoration: isRejected ? "line-through" : "none",
                                             }}>
                                                 {isPositive ? '+' : '-'}৳{Number(tx.amount).toFixed(2)}
                                             </div>
@@ -480,7 +546,9 @@ export function AssetsPage() {
                                 {withdrawLabel} FUNDS
                             </h3>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                Enter the amount to withdraw. Available {role === 'provider' ? 'earnings' : 'balance'}: ৳{Number(role === 'provider' ? earnings : balance).toFixed(2)}.
+                                Enter the amount to withdraw.<br/>
+                                <br/>
+                                Available balance: ৳{Number(role === 'provider' ? earnings : balance).toFixed(2)}
                             </p>
                         </div>
 
@@ -507,6 +575,28 @@ export function AssetsPage() {
                                 autoFocus
                             />
                         </div>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Method
+                            <select
+                                value={withdrawMethod}
+                                onChange={(e) => setWithdrawMethod(e.target.value)}
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            >
+                                <option value="bKash">bKash</option>
+                                <option value="Nagad">Nagad</option>
+                            </select>
+                        </label>
+
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                            Account Number
+                            <input
+                                value={withdrawNumber}
+                                onChange={(e) => setWithdrawNumber(e.target.value)}
+                                placeholder="Enter account/mobile number"
+                                style={{ padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)', color: 'var(--text-primary)' }}
+                            />
+                        </label>
 
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                             <button type="button" onClick={() => setShowWithdrawModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: '1px solid var(--border-subtle)', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700 }}>

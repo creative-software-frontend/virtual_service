@@ -282,11 +282,11 @@ async function getWalletSummary(userId) {
         [userId]
     );
 
-    // ── Pending & Rejected withdraw requests ────────────────────────────────
+    // ── All withdraw requests ────────────────────────────────
     const [withdrawReqRows] = await db.query(
         `SELECT id, amount, method, account_number, status, admin_note, created_at
          FROM withdraw_requests
-         WHERE user_id = ? AND status IN ('Pending', 'Rejected')
+         WHERE user_id = ?
          ORDER BY created_at DESC`,
         [userId]
     );
@@ -315,17 +315,21 @@ async function getWalletSummary(userId) {
         id: `wd_req_${r.id}`,
         type: "withdraw",
         amount: r.amount,
-        status: r.status.toLowerCase(),   // 'pending' | 'rejected'
+        status: r.status.toLowerCase(),   // 'pending' | 'rejected' | 'approved'
         description: `Withdrawal request via ${r.method} to ${r.account_number}${r.admin_note ? ` — ${r.admin_note}` : ""}`,
         created_at: r.created_at,
+        method: r.method,
+        account_number: r.account_number,
         _source: "request",
     }));
 
     // Completed txs already have the right shape; normalise status to lowercase
-    const completedTx = (txRows || []).map((tx) => ({
-        ...tx,
-        status: (tx.status || "completed").toLowerCase(),
-    }));
+    const completedTx = (txRows || [])
+        .filter(tx => tx.type !== 'withdraw') // Use withdraw_requests for withdrawals instead to avoid duplicates and preserve method/number
+        .map((tx) => ({
+            ...tx,
+            status: (tx.status || "completed").toLowerCase(),
+        }));
 
     // Merge and sort newest-first
     const allTransactions = [...depositReqTx, ...withdrawReqTx, ...completedTx].sort(

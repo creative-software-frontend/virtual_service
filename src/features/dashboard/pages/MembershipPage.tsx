@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
-import { adminApi, userApi } from '../../../utils/api';
-import type { Package } from '../../../utils/api';
+import { userApi, membershipApi } from '../../../utils/api';
+
+import type { Package, PackageFeature } from '../../../utils/api';
 import { useMembership } from '../../../context/MembershipContext';
 import { ComingSoonGate } from '../../../components/ComingSoonGate';
 
@@ -39,9 +40,12 @@ function tierLabel(tier: string) {
 function TierCard({ pkg }: { pkg: Package }) {
     const [showModal, setShowModal] = useState(false);
 
-    const featureList = pkg.features
-        ? pkg.features.split(',').map(f => f.trim()).filter(Boolean)
-        : [];
+    // Handle both normalized PackageFeature[] and legacy CSV string
+    const featureList: string[] = Array.isArray(pkg.features)
+        ? (pkg.features as PackageFeature[]).map(f => f.display_name || f.key)
+        : typeof pkg.features === 'string'
+            ? pkg.features.split(',').map(f => f.trim()).filter(Boolean)
+            : [];
 
     const handleCTA = () => {
         if (Number(pkg.price) === 0) {
@@ -313,18 +317,39 @@ export function MembershipPage() {
     const { membership } = useMembership();
 
     useEffect(() => {
-        adminApi.getPublicPackages().then((res) => {
-            setPackages(res.data ?? []);
-            setLoading(false);
-        });
+        let cancelled = false;
+
+                const load = async () => {
+            try {
+                // User-only package catalog
+                const res = await membershipApi.getUserPackages();
+                console.log("[USER API RESPONSE]", res);
+                if (cancelled) return;
+                if (res && typeof res === 'object' && 'error' in res && (res as { error?: string }).error) {
+                    setPackages([]);
+                    console.log('[MembershipPage packages after fetch]', []);
+                    return;
+                }
+                setPackages((res as { data?: Package[] }).data ?? []);
+                console.log('[MembershipPage packages after fetch]', (res as { data?: Package[] }).data ?? []);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
 
 
     // Sort packages: starter (Silver) -> premium (Gold) -> elite (Platinum), then by price ascending
     const sortedPackages = [...packages].sort((a, b) => {
-        const order = { starter: 0, premium: 1, elite: 2 };
-        const scoreA = order[a.tier_type as 'starter' | 'premium' | 'elite'] ?? 99;
-        const scoreB = order[b.tier_type as 'starter' | 'premium' | 'elite'] ?? 99;
+        const order: Record<string, number> = { starter: 0, premium: 1, elite: 2 };
+        const scoreA = order[a.tier_type] ?? 99;
+        const scoreB = order[b.tier_type] ?? 99;
         if (scoreA !== scoreB) return scoreA - scoreB;
         return Number(a.price) - Number(b.price);
     });

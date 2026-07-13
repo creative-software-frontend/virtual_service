@@ -39,19 +39,211 @@ module.exports = async (db) => {
         `);
         console.log('packages table verified');
 
+        // ─── Add packages.type column if missing ───────────────────
+        const [pkgCols] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'packages'"
+        );
+        const pkgColNames = pkgCols.map(c => c.COLUMN_NAME.toLowerCase());
+        if (!pkgColNames.includes('type')) {
+            await db.query(
+                `ALTER TABLE packages ADD COLUMN \`type\` ENUM('user','provider') NOT NULL DEFAULT 'user'`
+            );
+            console.log('✅ Added type column to packages');
+        }
+
         // ════════════════════════════════════════════════════════════
         // 2. features  — no dependencies
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS features (
-                feature_key VARCHAR(100) PRIMARY KEY,
-                description VARCHAR(255)
+                id           INT AUTO_INCREMENT PRIMARY KEY,
+                feature_key  VARCHAR(100) NOT NULL UNIQUE,
+                display_name VARCHAR(150) NOT NULL,
+                description  VARCHAR(255)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('features table verified');
 
+        // ─── Migrate features table: add id + display_name if using old schema ──
+        const [featCols] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'features'"
+        );
+        const featColNames = featCols.map(c => c.COLUMN_NAME.toLowerCase());
+
+        // If old schema had feature_key as PRIMARY KEY (no id), add id column
+        if (!featColNames.includes('id')) {
+            await db.query(`ALTER TABLE features DROP PRIMARY KEY`);
+            await db.query(`ALTER TABLE features ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST`);
+            await db.query(`ALTER TABLE features ADD UNIQUE KEY uq_feature_key (feature_key)`);
+            console.log('✅ Migrated features table: added id column');
+        }
+        if (!featColNames.includes('display_name')) {
+            await db.query(`ALTER TABLE features ADD COLUMN display_name VARCHAR(150) NOT NULL DEFAULT ''`);
+            console.log('✅ Added display_name to features');
+        }
+
+        // ─── Seed user features ───────────────────────────────────
+        const userFeatures = [
+            { key: 'partner_search',    display: 'Partner Search' },
+            { key: 'chat',              display: 'Chat' },
+            { key: 'priority_matching', display: 'Priority Matching' },
+            { key: 'verified_badge',    display: 'Verified Badge' },
+            { key: 'tour_access',       display: 'Tour Access' },
+            { key: 'audio_call',        display: 'Audio Call' },
+            { key: 'video_call',        display: 'Video Call' },
+            { key: 'advanced_search',   display: 'Advanced Search' },
+            { key: 'vip_support',       display: 'VIP Support' },
+        ];
+
+        // ─── Seed provider features ───────────────────────────────
+        const providerFeatures = [
+            { key: 'featured_profile',      display: 'Featured Profile' },
+            { key: 'unlimited_services',    display: 'Unlimited Services' },
+            { key: 'priority_search',       display: 'Priority Search' },
+            { key: 'verified_badge',        display: 'Verified Badge' },
+            { key: 'analytics_dashboard',   display: 'Analytics Dashboard' },
+            { key: 'priority_support',      display: 'Priority Support' },
+            { key: 'event_access',          display: 'Event Access' },
+            { key: 'priority_matching',     display: 'Priority Matching' },
+            { key: 'homepage_promotion',    display: 'Homepage Promotion' },
+            { key: 'vip_support',           display: 'VIP Support' },
+            { key: 'early_access_features', display: 'Early Access Features' },
+        ];
+
+        const allFeatures = [...userFeatures, ...providerFeatures];
+        // Deduplicate by key
+        const uniqueFeatures = [...new Map(allFeatures.map(f => [f.key, f])).values()];
+
+        for (const feat of uniqueFeatures) {
+            await db.query(
+                `INSERT INTO features (feature_key, display_name)
+                 VALUES (?, ?)
+                 ON DUPLICATE KEY UPDATE display_name = IF(display_name = '' OR display_name IS NULL, VALUES(display_name), display_name)`,
+                [feat.key, feat.display]
+            );
+        }
+        console.log('✅ Features seeded');
+
         // ════════════════════════════════════════════════════════════
-        // 3. users  — depends on packages (migration creates base table)
+        // 3. package_features  — normalized schema migration
+        //    Old: (package_tier_type VARCHAR, feature_key VARCHAR)
+        //    New: (id INT PK, package_id INT FK, feature_id INT FK)
+        // ════════════════════════════════════════════════════════════
+        const [pfCols] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'package_features'"
+        );
+        const pfColNames = pfCols.map(c => c.COLUMN_NAME.toLowerCase());
+
+        if (pfColNames.length === 0) {
+            // Table doesn't exist — create fresh normalized schema
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS package_features (
+                    id         INT AUTO_INCREMENT PRIMARY KEY,
+                    package_id INT NOT NULL,
+                    feature_id INT NOT NULL,
+                    UNIQUE KEY uq_pkg_feat (package_id, feature_id),
+                    CONSTRAINT fk_pf_package FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_pf_feature FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+            console.log('✅ package_features table created (normalized)');
+        } else if (pfColNames.includes('package_tier_type')) {
+            // Old schema — migrate to normalized
+            console.log('🔄 Migrating package_features to normalized schema…');
+
+            // 1. Drop old FKs if any
+            try {
+                const [fkRows] = await db.query(
+                    `SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'package_features'
+                     AND CONSTRAINT_TYPE = 'FOREIGN KEY'`
+                );
+                for (const row of fkRows) {
+                    await db.query(`ALTER TABLE package_features DROP FOREIGN KEY \`${row.CONSTRAINT_NAME}\``);
+                }
+            } catch(e) {
+                console.warn('FK drop skipped:', e?.message);
+            }
+
+            // 2. Drop old PK
+            try {
+                await db.query(`ALTER TABLE package_features DROP PRIMARY KEY`);
+            } catch(e) { console.warn('PK drop skipped:', e?.message); }
+
+            // 3. Rename old columns for migration temp use
+            await db.query(`ALTER TABLE package_features
+                CHANGE COLUMN package_tier_type old_tier_type VARCHAR(20) NULL,
+                CHANGE COLUMN feature_key old_feature_key VARCHAR(100) NULL`);
+
+            // 4. Add new normalized columns
+            await db.query(`ALTER TABLE package_features
+                ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST,
+                ADD COLUMN package_id INT NULL,
+                ADD COLUMN feature_id INT NULL`);
+
+            // 5. Populate package_id from old tier_type by matching packages.tier_type
+            await db.query(`
+                UPDATE package_features pf
+                JOIN packages p ON p.tier_type = pf.old_tier_type
+                SET pf.package_id = p.id
+                WHERE pf.package_id IS NULL
+            `);
+
+            // 6. Populate feature_id from old feature_key
+            await db.query(`
+                UPDATE package_features pf
+                JOIN features f ON f.feature_key = pf.old_feature_key
+                SET pf.feature_id = f.id
+                WHERE pf.feature_id IS NULL
+            `);
+
+            // 7. Delete rows we couldn't migrate
+            await db.query(`DELETE FROM package_features WHERE package_id IS NULL OR feature_id IS NULL`);
+
+            // 8. Drop old columns
+            await db.query(`ALTER TABLE package_features
+                DROP COLUMN old_tier_type,
+                DROP COLUMN old_feature_key`);
+
+            // 9. Make package_id / feature_id NOT NULL
+            await db.query(`ALTER TABLE package_features
+                MODIFY COLUMN package_id INT NOT NULL,
+                MODIFY COLUMN feature_id INT NOT NULL`);
+
+            // 10. Add unique constraint
+            try {
+                await db.query(`ALTER TABLE package_features ADD UNIQUE KEY uq_pkg_feat (package_id, feature_id)`);
+            } catch(e) { console.warn('Unique key skipped:', e?.message); }
+
+            // 11. Add FKs
+            await addFKIfNotExists('package_features', 'fk_pf_package', 'package_id', 'packages', 'id', 'CASCADE');
+            await addFKIfNotExists('package_features', 'fk_pf_feature', 'feature_id', 'features', 'id', 'CASCADE');
+
+            console.log('✅ package_features migrated to normalized schema');
+        } else if (!pfColNames.includes('package_id')) {
+            // Has some other unexpected shape — just recreate
+            console.warn('⚠️  package_features has unexpected schema, attempting safe drop-recreate');
+            await db.query(`DROP TABLE IF EXISTS package_features`);
+            await db.query(`
+                CREATE TABLE package_features (
+                    id         INT AUTO_INCREMENT PRIMARY KEY,
+                    package_id INT NOT NULL,
+                    feature_id INT NOT NULL,
+                    UNIQUE KEY uq_pkg_feat (package_id, feature_id),
+                    CONSTRAINT fk_pf_package FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
+                    CONSTRAINT fk_pf_feature FOREIGN KEY (feature_id) REFERENCES features(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+            console.log('✅ package_features recreated (normalized)');
+        } else {
+            // Already normalized — just ensure FKs exist
+            await addFKIfNotExists('package_features', 'fk_pf_package', 'package_id', 'packages', 'id', 'CASCADE');
+            await addFKIfNotExists('package_features', 'fk_pf_feature', 'feature_id', 'features', 'id', 'CASCADE');
+            console.log('package_features table verified (already normalized)');
+        }
+
+        // ════════════════════════════════════════════════════════════
+        // 4. users  — depends on packages
         // ════════════════════════════════════════════════════════════
 
         // --- wallet columns ---
@@ -117,7 +309,7 @@ module.exports = async (db) => {
         console.log('users table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 4. posts  — depends on users
+        // 5. posts  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS posts (
@@ -133,7 +325,7 @@ module.exports = async (db) => {
         console.log('posts table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 5. events  — depends on users
+        // 6. events  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS events (
@@ -166,7 +358,7 @@ module.exports = async (db) => {
         console.log('events table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 6. transactions  — depends on users
+        // 7. transactions  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS transactions (
@@ -197,7 +389,7 @@ module.exports = async (db) => {
         console.log('transactions table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 7. deposit_requests  — depends on users
+        // 8. deposit_requests  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS deposit_requests (
@@ -221,7 +413,7 @@ module.exports = async (db) => {
         console.log('deposit_requests table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 8. withdraw_requests  — depends on users
+        // 9. withdraw_requests  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS withdraw_requests (
@@ -244,7 +436,7 @@ module.exports = async (db) => {
         console.log('withdraw_requests table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 9. match_requests  — depends on users
+        // 10. match_requests  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS match_requests (
@@ -265,7 +457,7 @@ module.exports = async (db) => {
         console.log('match_requests table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 10. event_participants  — depends on events + users
+        // 11. event_participants  — depends on events + users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS event_participants (
@@ -282,7 +474,7 @@ module.exports = async (db) => {
         console.log('event_participants table verified');
 
         // ════════════════════════════════════════════════════════════
-        // 11. post_likes  — depends on posts + users
+        // 12. post_likes  — depends on posts + users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS post_likes (
@@ -299,7 +491,7 @@ module.exports = async (db) => {
         await addFKIfNotExists('post_likes', 'fk_pl_user', 'user_id', 'users', 'id', 'CASCADE');
 
         // ════════════════════════════════════════════════════════════
-        // 12. post_comments  — depends on posts + users
+        // 13. post_comments  — depends on posts + users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS post_comments (
@@ -318,7 +510,7 @@ module.exports = async (db) => {
         await addFKIfNotExists('post_comments', 'fk_pc_user', 'user_id', 'users', 'id', 'CASCADE');
 
         // ════════════════════════════════════════════════════════════
-        // 13. post_shares  — depends on posts + users
+        // 14. post_shares  — depends on posts + users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS post_shares (
@@ -336,7 +528,7 @@ module.exports = async (db) => {
         console.log('post interaction tables verified');
 
         // ════════════════════════════════════════════════════════════
-        // 14. chat_messages  — depends on users
+        // 15. chat_messages  — depends on users
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS chat_messages (
@@ -352,20 +544,6 @@ module.exports = async (db) => {
         await addFKIfNotExists('chat_messages', 'fk_chat_sender',   'sender_id',   'users', 'id', 'CASCADE');
         await addFKIfNotExists('chat_messages', 'fk_chat_receiver', 'receiver_id', 'users', 'id', 'CASCADE');
         console.log('chat_messages table verified');
-
-        // ════════════════════════════════════════════════════════════
-        // 15. package_features  — depends on packages + features
-        // ════════════════════════════════════════════════════════════
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS package_features (
-                package_tier_type VARCHAR(20)  NOT NULL,
-                feature_key       VARCHAR(100) NOT NULL,
-                PRIMARY KEY (package_tier_type, feature_key),
-                CONSTRAINT fk_pf_feature FOREIGN KEY (feature_key) REFERENCES features(feature_key) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        `);
-        await addFKIfNotExists('package_features', 'fk_pf_feature', 'feature_key', 'features', 'feature_key', 'CASCADE');
-        console.log('package_features table verified');
 
         console.log('\n🎉 DB initialized successfully — all tables & foreign keys are set up.\n');
 

@@ -54,9 +54,32 @@ async function getCurrentMembership(req, res) {
   }
 }
 
+async function getUserPackages(req, res) {
+  try {
+    const result = await membershipService.getUserPackages();
+    return res.json(result);
+  } catch (error) {
+    const status = error.statusCode || 500;
+    return res.status(status).json({ message: error.message || "Failed to fetch user packages" });
+  }
+}
+
+async function getProviderPackages(req, res) {
+  try {
+    const result = await membershipService.getProviderPackages();
+    return res.json(result);
+  } catch (error) {
+    const status = error.statusCode || 500;
+    return res.status(status).json({ message: error.message || "Failed to fetch provider packages" });
+  }
+}
+
 module.exports = {
   buyMembership,
   getMembershipStatus,
   getCurrentMembership,
+  getUserPackages,
+  getProviderPackages,
 };
+
 

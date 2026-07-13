@@ -252,13 +252,15 @@ async function getCurrentMembership(userId) {
       pkgName = pkgRows[0].name || tierType;
     }
 
-    if (tierType) {
-      const [pfRows] = await db.query(
-        "SELECT feature_key FROM package_features WHERE package_tier_type = ?",
-        [tierType]
-      );
-      features = pfRows.map(row => row.feature_key);
-    }
+    // Query normalized package_features: package_id -> feature_id -> feature_key
+    const [pfRows] = await db.query(
+      `SELECT f.feature_key
+       FROM package_features pf
+       JOIN features f ON f.id = pf.feature_id
+       WHERE pf.package_id = ?`,
+      [u.membership_package_id]
+    );
+    features = pfRows.map(row => row.feature_key);
   }
 
   return {
@@ -268,9 +270,71 @@ async function getCurrentMembership(userId) {
   };
 }
 
+async function normalizePackagesWithFeatures({ packages }) {
+  if (!packages.length) return [];
+
+  const packageIds = packages.map(p => p.id);
+  const [featureRows] = await db.query(
+    `SELECT pf.package_id, f.id AS feature_id, f.feature_key, f.display_name
+     FROM package_features pf
+     JOIN features f ON f.id = pf.feature_id
+     WHERE pf.package_id IN (?)`,
+    [packageIds]
+  );
+
+  const featureMap = {};
+  for (const row of featureRows) {
+    if (!featureMap[row.package_id]) featureMap[row.package_id] = [];
+    featureMap[row.package_id].push({
+      id: row.feature_id,
+      key: row.feature_key,
+      display_name: row.display_name,
+    });
+  }
+
+  return packages.map(pkg => ({
+    id: pkg.id,
+    name: pkg.name,
+    description: pkg.description,
+    price: Number(pkg.price),
+    duration_days: pkg.duration_days,
+    duration_months: pkg.duration_months,
+    tier_type: pkg.tier_type,
+    type: pkg.type,
+    features: featureMap[pkg.id] || [],
+  }));
+}
+
+async function getUserPackages() {
+  const [packages] = await db.query(
+    `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
+     FROM packages
+     WHERE type = 'user' AND is_active = 1
+     ORDER BY price ASC`
+  );
+
+  console.log("[DB RESULT USER]", packages);
+  return normalizePackagesWithFeatures({ packages });
+}
+
+async function getProviderPackages() {
+  const [packages] = await db.query(
+    `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
+     FROM packages
+     WHERE type = 'provider' AND is_active = 1
+     ORDER BY price ASC`
+  );
+
+  console.log("[DB RESULT PROVIDER]", packages);
+  return normalizePackagesWithFeatures({ packages });
+}
+
 module.exports = {
   buyMembership,
   getMembershipStatus,
   getCurrentMembership,
+  getUserPackages,
+  getProviderPackages,
 };
+
 

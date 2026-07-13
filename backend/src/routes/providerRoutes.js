@@ -460,4 +460,58 @@ router.post(
     newsfeedController.sharePost
 );
 
+// ── GET /api/provider/packages — public list of provider packages with normalized features
+router.get(
+    "/packages",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    async (req, res) => {
+        try {
+            const [packages] = await db.query(
+                `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
+                 FROM packages
+                 WHERE type = 'provider' AND is_active = 1
+                 ORDER BY price ASC`
+            );
+
+            if (!packages.length) return res.json([]);
+
+            const packageIds = packages.map(p => p.id);
+            const [featureRows] = await db.query(
+                `SELECT pf.package_id, f.id AS feature_id, f.feature_key, f.display_name
+                 FROM package_features pf
+                 JOIN features f ON f.id = pf.feature_id
+                 WHERE pf.package_id IN (?)`,
+                [packageIds]
+            );
+
+            const featureMap = {};
+            for (const row of featureRows) {
+                if (!featureMap[row.package_id]) featureMap[row.package_id] = [];
+                featureMap[row.package_id].push({
+                    id: row.feature_id,
+                    key: row.feature_key,
+                    display_name: row.display_name,
+                });
+            }
+
+            const result = packages.map(pkg => ({
+                id: pkg.id,
+                name: pkg.name,
+                description: pkg.description,
+                price: Number(pkg.price),
+                duration_days: pkg.duration_days,
+                duration_months: pkg.duration_months,
+                tier_type: pkg.tier_type,
+                type: pkg.type,
+                features: featureMap[pkg.id] || [],
+            }));
+
+            res.json(result);
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    }
+);
+
 module.exports = router;

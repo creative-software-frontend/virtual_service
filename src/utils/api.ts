@@ -31,6 +31,8 @@ async function request<T>(
 
         const json = await res.json().catch(() => ({}));
 
+        console.log('[membershipApi request]', { path, resOk: res.ok, status: res.status, json });
+
         if (!res.ok) {
             return {
                 status: res.status,
@@ -406,6 +408,19 @@ export const userApi = {
         }),
 };
 
+// ── Provider Package type (normalized) ────────────────────────────────────────
+export interface ProviderPackage {
+    id: number;
+    name: string;
+    description: string | null;
+    price: number;
+    duration_days: number;
+    duration_months: number;
+    tier_type: string;
+    type: 'provider';
+    features: PackageFeature[];
+}
+
 // ── Provider endpoints ────────────────────────────────────────────────────────
 export const providerApi = {
     getDashboard: () => request<{ message: string }>('/provider/dashboard'),
@@ -417,7 +432,16 @@ export const providerApi = {
         request<Array<{ id: number; name: string; last_seen: string | null; is_online: number }>>(
             '/provider/online-users'
         ),
+    getProviderPackages: () =>
+        request<ProviderPackage[]>('/provider/packages'),
 };
+
+// ── Membership catalogs (role isolation) ─────────────────────────────────
+export const membershipApi = {
+    getUserPackages: () => request<Package[]>('/user/membership/user-packages'),
+    getProviderPackages: () => request<Package[]>('/user/membership/provider-packages'),
+};
+
 
 // ── Social / Service endpoints ─────────────────────────────────────────────────
 
@@ -524,6 +548,12 @@ export interface UsersSummaryData {
     providers: UserInfo[];
 }
 
+export interface PackageFeature {
+    id: number;
+    key: string;
+    display_name: string;
+}
+
 export interface Package {
     id: number;
     name: string;
@@ -531,10 +561,17 @@ export interface Package {
     price: number;
     duration_days: number;
     duration_months: number;
-    tier_type: 'starter' | 'premium' | 'elite';
-    features: string;
+    tier_type: string;
+    type: 'user' | 'provider';
+    features: PackageFeature[] | string; // normalized array from API, or legacy CSV string
     is_active: number;
     created_at: string;
+}
+
+export interface Feature {
+    id: number;
+    feature_key: string;
+    display_name: string;
 }
 
 export interface CreatePackagePayload {
@@ -543,8 +580,10 @@ export interface CreatePackagePayload {
     price: number;
     duration_days: number;
     duration_months: number;
-    tier_type: 'starter' | 'premium' | 'elite';
-    features: string;
+    tier_type: string;
+    type: 'user' | 'provider';
+    feature_ids: number[];
+    features?: string; // legacy CSV kept for user membership status service
 }
 
 export interface PlatformRate {
@@ -604,9 +643,18 @@ export const adminApi = {
     getPackages: () =>
         request<Package[]>('/admin/packages'),
 
+    getFeatures: () =>
+        request<Feature[]>('/admin/features'),
+
     createPackage: (payload: CreatePackagePayload) =>
-        request<Package>('/admin/packages', {
+        request<{ id: number }>('/admin/packages', {
             method: 'POST',
+            body: JSON.stringify(payload),
+        }),
+
+    updatePackage: (id: number, payload: Partial<CreatePackagePayload>) =>
+        request<{ message: string }>(`/admin/packages/${id}`, {
+            method: 'PUT',
             body: JSON.stringify(payload),
         }),
 

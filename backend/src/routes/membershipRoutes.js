@@ -7,6 +7,10 @@ router.get("/current", authMiddleware, membershipController.getCurrentMembership
 router.get("/status", authMiddleware, membershipController.getMembershipStatus);
 router.post("/buy", authMiddleware, membershipController.buyMembership);
 
+// Dedicated package catalogs (role isolation)
+router.get("/user-packages", authMiddleware, membershipController.getUserPackages);
+router.get("/provider-packages", authMiddleware, membershipController.getProviderPackages);
 
 module.exports = router;
+
 

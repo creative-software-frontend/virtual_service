@@ -572,6 +572,8 @@ export interface Feature {
     id: number;
     feature_key: string;
     display_name: string;
+    scope?: 'user' | 'provider' | 'both' | string;
+    is_coming_soon?: number;
 }
 
 export interface CreatePackagePayload {

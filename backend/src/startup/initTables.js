@@ -56,10 +56,12 @@ module.exports = async (db) => {
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS features (
-                id           INT AUTO_INCREMENT PRIMARY KEY,
-                feature_key  VARCHAR(100) NOT NULL UNIQUE,
-                display_name VARCHAR(150) NOT NULL,
-                description  VARCHAR(255)
+                id              INT AUTO_INCREMENT PRIMARY KEY,
+                feature_key     VARCHAR(100) NOT NULL UNIQUE,
+                display_name    VARCHAR(150) NOT NULL,
+                description     VARCHAR(255),
+                scope           ENUM('user','provider','both') NOT NULL DEFAULT 'both',
+                is_coming_soon  TINYINT(1) NOT NULL DEFAULT 0
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('features table verified');
@@ -81,45 +83,67 @@ module.exports = async (db) => {
             await db.query(`ALTER TABLE features ADD COLUMN display_name VARCHAR(150) NOT NULL DEFAULT ''`);
             console.log('✅ Added display_name to features');
         }
+        if (!featColNames.includes('scope')) {
+            await db.query(`ALTER TABLE features ADD COLUMN scope ENUM('user','provider','both') NOT NULL DEFAULT 'both'`);
+            console.log('✅ Added scope to features');
+        }
+        if (!featColNames.includes('is_coming_soon')) {
+            await db.query(`ALTER TABLE features ADD COLUMN is_coming_soon TINYINT(1) NOT NULL DEFAULT 0`);
+            console.log('✅ Added is_coming_soon to features');
+        }
 
         // ─── Seed user features ───────────────────────────────────
+        // NOTE: These are the canonical user feature keys.
+        // UI + DB-driven gates expect these exact feature_key values.
         const userFeatures = [
-            { key: 'partner_search',    display: 'Partner Search' },
-            { key: 'chat',              display: 'Chat' },
-            { key: 'priority_matching', display: 'Priority Matching' },
-            { key: 'verified_badge',    display: 'Verified Badge' },
-            { key: 'tour_access',       display: 'Tour Access' },
-            { key: 'audio_call',        display: 'Audio Call' },
-            { key: 'video_call',        display: 'Video Call' },
-            { key: 'advanced_search',   display: 'Advanced Search' },
-            { key: 'vip_support',       display: 'VIP Support' },
+            { key: 'partner_search',            display: 'Partner Search', scope: 'user' },
+            { key: 'unlimited_profile_view',   display: 'Unlimited Profile Views', scope: 'user' },
+            { key: 'basic_chat',               display: 'Chat', scope: 'user' },
+            { key: 'audio_call',               display: 'Audio Call', scope: 'user' },
+            { key: 'video_call',               display: 'Video Call', scope: 'user' },
+            { key: 'advanced_search_filter',  display: 'Advanced Search Filter', scope: 'user' },
+            { key: 'priority_matching',       display: 'Priority Matching', scope: 'user' },
+            { key: 'verified_badge',          display: 'Verified Badge', scope: 'user' },
+            { key: 'tour_access',             display: 'Tour/Event Access', scope: 'user' },
+            { key: 'vip_support',             display: 'VIP Support', scope: 'user' },
         ];
 
         // ─── Seed provider features ───────────────────────────────
         const providerFeatures = [
-            { key: 'featured_profile',      display: 'Featured Profile' },
-            { key: 'unlimited_services',    display: 'Unlimited Services' },
-            { key: 'priority_search',       display: 'Priority Search' },
-            { key: 'verified_badge',        display: 'Verified Badge' },
-            { key: 'analytics_dashboard',   display: 'Analytics Dashboard' },
-            { key: 'priority_support',      display: 'Priority Support' },
-            { key: 'event_access',          display: 'Event Access' },
-            { key: 'priority_matching',     display: 'Priority Matching' },
-            { key: 'homepage_promotion',    display: 'Homepage Promotion' },
-            { key: 'vip_support',           display: 'VIP Support' },
-            { key: 'early_access_features', display: 'Early Access Features' },
+            { key: 'featured_profile',      display: 'Featured Profile', scope: 'provider' },
+            { key: 'unlimited_services',    display: 'Unlimited Services', scope: 'provider' },
+            { key: 'priority_search',       display: 'Priority Search Ranking', scope: 'provider' },
+            { key: 'verified_badge',        display: 'Verified Provider Badge', scope: 'provider' },
+            { key: 'analytics_dashboard',   display: 'Analytics Dashboard', scope: 'provider' },
+            { key: 'priority_support',      display: 'Priority Support', scope: 'provider' },
+            { key: 'event_access',          display: 'Tour/Event Access', scope: 'provider' },
+            { key: 'priority_matching',     display: 'Priority Matching', scope: 'provider' },
+            { key: 'homepage_promotion',    display: 'Homepage Promotion', scope: 'provider' },
+            { key: 'vip_support',           display: 'VIP Support', scope: 'provider' },
+            { key: 'early_access_features', display: 'Early Access Features', scope: 'provider' },
         ];
 
         const allFeatures = [...userFeatures, ...providerFeatures];
-        // Deduplicate by key
+        // Deduplicate by key (keep last occurrence so provider/user scoped versions override)
         const uniqueFeatures = [...new Map(allFeatures.map(f => [f.key, f])).values()];
 
+        const comingSoonByKey = new Map([
+            ['audio_call', 1],
+            ['video_call', 1],
+            ['advanced_search_filter', 1],
+            ['vip_support', 1],
+        ]);
+
         for (const feat of uniqueFeatures) {
+            const isComingSoon = comingSoonByKey.get(feat.key) ?? 0;
             await db.query(
-                `INSERT INTO features (feature_key, display_name)
-                 VALUES (?, ?)
-                 ON DUPLICATE KEY UPDATE display_name = IF(display_name = '' OR display_name IS NULL, VALUES(display_name), display_name)`,
-                [feat.key, feat.display]
+                `INSERT INTO features (feature_key, display_name, scope, is_coming_soon)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    display_name = VALUES(display_name),
+                    scope = VALUES(scope),
+                    is_coming_soon = VALUES(is_coming_soon)`,
+                [feat.key, feat.display, feat.scope, isComingSoon]
             );
         }
         console.log('✅ Features seeded');

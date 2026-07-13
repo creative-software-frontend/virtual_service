@@ -1,7 +1,8 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { useMembership } from '../context/MembershipContext';
-import { useNavigate } from 'react-router-dom';
+import { MembershipUpgradeButton } from './MembershipUpgradeButton';
+
 
 interface ComingSoonGateProps {
     /** The feature key (e.g. "AUDIO_CALL"). Used to check if the user's tier includes it. */
@@ -23,10 +24,9 @@ export const ComingSoonGate: React.FC<ComingSoonGateProps> = ({
     feature,
     label,
     requiredTier = 'Gold',
-    children: _children,
 }) => {
     const { hasFeature, loading } = useMembership();
-    const navigate = useNavigate();
+
 
     const displayLabel = label || feature.replace(/_/g, ' ');
 
@@ -69,19 +69,7 @@ export const ComingSoonGate: React.FC<ComingSoonGateProps> = ({
                 <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
                     Available with {requiredTier} membership
                 </p>
-                <button
-                    onClick={() => navigate('/membership')}
-                    style={{
-                        marginTop: 4,
-                        padding: '7px 18px',
-                        background: 'rgba(99,102,241,0.1)',
-                        border: '1px solid rgba(99,102,241,0.25)',
-                        borderRadius: 8, color: '#818cf8',
-                        fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                    }}
-                >
-                    View Plans
-                </button>
+                <MembershipUpgradeButton variant="secondary">View Plans</MembershipUpgradeButton>
             </div>
         );
     }

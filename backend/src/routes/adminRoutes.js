@@ -114,7 +114,7 @@ router.get("/features",
     async (req, res) => {
         try {
             const [rows] = await db.query(
-                "SELECT id, feature_key, display_name FROM features ORDER BY display_name ASC"
+                "SELECT id, feature_key, display_name, scope, is_coming_soon FROM features ORDER BY display_name ASC"
             );
             res.json(rows);
         } catch (err) {

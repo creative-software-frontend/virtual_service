@@ -185,29 +185,25 @@ async function getMembershipStatus(userId) {
   // UI contract required by task: features.<name> = { enabled, available, message }
   const wallet_balance = await db.query("SELECT balance FROM users WHERE id = ? LIMIT 1", [userId]).then(r => r?.[0]?.[0]?.balance ?? 0);
 
-  const isComingSoon = (name) => ["audio_call", "video_call", "advanced_search", "vip_support"].includes(name);
+  const plan = pkg?.name || tier;
 
-  const plan = tier === "elite" ? "platinum" : tier === "premium" ? "gold" : "free";
-
-  const enabled = {
-    partner_search: tier !== "starter",
-    chat: tier !== "starter",
-    priority_matching: tier === "elite",
-    verified_badge: tier === "elite",
-    tour_access: tier === "elite",
-    audio_call: tier === "elite",
-    video_call: tier === "elite",
-    advanced_search: tier === "elite",
-    vip_support: tier === "elite",
-  };
+  // DB-driven features: membership enabled features come from package_features.
+  // Availability/coming-soon comes from features.is_coming_soon.
+  const [featureRows] = await db.query(
+    `SELECT f.feature_key, f.display_name, f.is_coming_soon
+     FROM package_features pf
+     JOIN features f ON f.id = pf.feature_id
+     WHERE pf.package_id = ?`,
+    [u.membership_package_id]
+  );
 
   const features = {};
-  for (const [name, ok] of Object.entries(enabled)) {
-    features[name] = ok
-      ? isComingSoon(name)
-        ? { enabled: true, available: false, message: "Coming Soon" }
-        : { enabled: true, available: true, message: "Enabled" }
-      : { enabled: false, available: false, message: "Locked" };
+  for (const row of featureRows) {
+    const key = row.feature_key;
+    const isCS = Number(row.is_coming_soon) === 1;
+    features[key] = isCS
+      ? { enabled: true, available: false, message: "Coming Soon" }
+      : { enabled: true, available: true, message: "Enabled" };
   }
 
   return {

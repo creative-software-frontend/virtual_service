@@ -1,7 +1,8 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { useMembership } from '../context/MembershipContext';
-import { useNavigate } from 'react-router-dom';
+import { MembershipUpgradeButton } from './MembershipUpgradeButton';
+
 
 interface FeatureGateProps {
     feature: string;
@@ -25,7 +26,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
     requiredTier = 'Membership',
 }) => {
     const { hasFeature, loading } = useMembership();
-    const navigate = useNavigate();
+
 
     if (loading) {
         return (
@@ -87,24 +88,8 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
                     Upgrade your membership to unlock this feature and access premium benefits.
                 </p>
 
-                <button
-                    onClick={() => navigate('/membership')}
-                    style={{
-                        marginTop: 8,
-                        padding: '13px 32px',
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                        border: 'none', borderRadius: 12,
-                        color: '#fff', fontSize: '0.95rem', fontWeight: 700,
-                        cursor: 'pointer',
-                        boxShadow: '0 0 24px rgba(99,102,241,0.4)',
-                        fontFamily: "'Inter', sans-serif",
-                        transition: 'opacity 0.2s',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                    onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                >
-                    View Membership Plans
-                </button>
+                <MembershipUpgradeButton>View Membership Plans</MembershipUpgradeButton>
+
             </div>
         );
     }
@@ -129,20 +114,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>
                 Upgrade to {requiredTier} to unlock
             </p>
-            <button
-                onClick={() => navigate('/membership')}
-                style={{
-                    marginTop: 4,
-                    padding: '8px 20px',
-                    background: 'rgba(99,102,241,0.15)',
-                    border: '1px solid rgba(99,102,241,0.35)',
-                    borderRadius: 8, color: '#818cf8',
-                    fontSize: '0.78rem', fontWeight: 700,
-                    cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-                }}
-            >
-                Upgrade
-            </button>
+            <MembershipUpgradeButton variant="secondary">Upgrade</MembershipUpgradeButton>
         </div>
     );
 };

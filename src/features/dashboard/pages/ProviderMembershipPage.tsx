@@ -19,15 +19,7 @@ const container = {
     visible: { transition: { staggerChildren: 0.1 } },
 };
 
-// ── Coming Soon feature keys ───────────────────────────────────────────────────
 
-const COMING_SOON_KEYS = new Set([
-    'analytics_dashboard',
-    'priority_matching',
-    'homepage_promotion',
-    'vip_support',
-    'early_access_features',
-]);
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -131,7 +123,9 @@ function TierCard({ pkg, index }: { pkg: Package; index: number }) {
     const style = getTierStyle(index, pkg.tier_type || pkg.name);
     const hasFeatures = pkg.features && pkg.features.length > 0;
 
+
     return (
+
         <motion.div
             variants={fadeUp}
             style={{
@@ -234,42 +228,33 @@ function TierCard({ pkg, index }: { pkg: Package; index: number }) {
                         gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))',
                         gap: '10px',
                     }}>
-                        {((Array.isArray(pkg.features) ? pkg.features : []) as Array<{ key: string; display_name: string }>).map((feat) => {
-                            const isCS = COMING_SOON_KEYS.has(feat.key);
+                            {((Array.isArray(pkg.features) ? pkg.features : []) as Array<{ key: string; display_name: string }>).map((feat) => {
+                            // Coming Soon is DB-driven via features.is_coming_soon in /membership/status.
+                            // Provider membership catalog is only a preview of selected package features,
+                            // so we render all selected features without hardcoded coming-soon logic.
 
                             return (
                                 <li
+
                                     key={feat.key}
                                     style={{
                                         display: 'flex', alignItems: 'center', gap: '10px',
                                         fontSize: '0.875rem',
-                                        color: isCS ? 'var(--text-muted)' : 'var(--text-secondary)',
-                                        opacity: isCS ? 0.55 : 1,
+                                        color: 'var(--text-secondary)',
                                         fontFamily: 'var(--font-sans)',
                                     }}
                                 >
                                     <span style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: isCS ? 'var(--bg-input)' : 'var(--gold-glow)',
-                                        border: `1px solid ${isCS ? 'var(--border-subtle)' : 'var(--border-gold)'}`,
+                                        background: 'var(--gold-glow)',
+                                        border: '1px solid var(--border-gold)',
                                         borderRadius: '50%', width: '22px', height: '22px', flexShrink: 0,
                                     }}>
-                                        {isCS ? <LockIcon /> : <CheckIcon />}
+                                        <CheckIcon />
                                     </span>
 
                                     <span style={{ flex: 1 }}>{feat.display_name}</span>
 
-                                    {isCS && (
-                                        <span style={{
-                                            fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.06em',
-                                            padding: '2px 8px', borderRadius: '999px', flexShrink: 0,
-                                            background: 'rgba(245,158,11,0.12)',
-                                            border: '1px solid rgba(245,158,11,0.3)',
-                                            color: 'var(--gold-mid)',
-                                        }}>
-                                            Coming Soon
-                                        </span>
-                                    )}
                                 </li>
                             );
                         })}

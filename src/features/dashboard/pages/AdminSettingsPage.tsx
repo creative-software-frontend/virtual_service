@@ -3,6 +3,11 @@ import { TopNav } from './TopNav';
 import { adminApi } from '../../../utils/api';
 import type { Package, Feature, CreatePackagePayload } from '../../../utils/api';
 
+type FeatureWithFlags = Feature & {
+    is_coming_soon?: number | boolean;
+    scope?: string;
+};
+
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const inputStyle: React.CSSProperties = {
@@ -30,14 +35,9 @@ const labelStyle: React.CSSProperties = {
     marginBottom: '6px',
 };
 
-// ── Provider feature keys that are "coming soon" (no actual implementation yet)
-const COMING_SOON_FEATURE_KEYS = new Set([
-    'analytics_dashboard',
-    'priority_matching',
-    'homepage_promotion',
-    'vip_support',
-    'early_access_features',
-]);
+// Coming-soon UI is now DB-driven via Feature.is_coming_soon
+// (kept constant empty for legacy compatibility)
+const COMING_SOON_FEATURE_KEYS = new Set();
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ function FeatureCheckboxes({
         }}>
             {features.map(f => {
                 const checked = selectedIds.includes(f.id);
-                const isCS = COMING_SOON_FEATURE_KEYS.has(f.feature_key);
+                const isCS = !!(f as FeatureWithFlags).is_coming_soon;
                 return (
                     <label
                         key={f.id}
@@ -169,19 +169,7 @@ function FeatureCheckboxes({
     );
 }
 
-// ── User feature input ─────────────────────────────────────────────────────────
-
-const USER_FEATURE_OPTIONS = [
-    { key: 'partner_search',    label: 'Partner Search' },
-    { key: 'chat',              label: 'Chat' },
-    { key: 'priority_matching', label: 'Priority Matching' },
-    { key: 'verified_badge',    label: 'Verified Badge' },
-    { key: 'tour_access',       label: 'Tour Access' },
-    { key: 'audio_call',        label: 'Audio Call' },
-    { key: 'video_call',        label: 'Video Call' },
-    { key: 'advanced_search',   label: 'Advanced Search' },
-    { key: 'vip_support',       label: 'VIP Support' },
-];
+// ── User feature input (DB-driven) ────────────────────────────────────────────
 
 function UserFeatureCheckboxes({
     features,
@@ -200,20 +188,18 @@ function UserFeatureCheckboxes({
         );
     };
 
-    // Use ALL_FEATURE_OPTIONS if features DB empty, else use what's available
-    const displayFeatures = USER_FEATURE_OPTIONS.map(opt => ({
-        id: features.find(f => f.feature_key === opt.key)?.id ?? null,
-        feature_key: opt.key,
-        display_name: opt.label,
-    })).filter(f => f.id !== null) as { id: number; feature_key: string; display_name: string }[];
+    const displayFeatures = (features as FeatureWithFlags[])
+        .filter(f => f.scope === 'user')
+        .sort((a, b) => a.feature_key.localeCompare(b.feature_key));
 
     return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
             {displayFeatures.map(f => {
-                const checked = selectedKeys.includes(f.feature_key);
+                const ff = f as FeatureWithFlags;
+                const checked = selectedKeys.includes(ff.feature_key);
                 return (
                     <label
-                        key={f.feature_key}
+                        key={ff.feature_key}
                         style={{
                             display: 'flex', alignItems: 'center', gap: '10px',
                             padding: '10px 12px', borderRadius: '8px',
@@ -222,7 +208,7 @@ function UserFeatureCheckboxes({
                             cursor: 'pointer', transition: 'all 0.15s', userSelect: 'none',
                         }}
                     >
-                        <input type="checkbox" checked={checked} onChange={() => toggle(f.feature_key)} style={{ display: 'none' }} />
+                        <input type="checkbox" checked={checked} onChange={() => toggle(ff.feature_key)} style={{ display: 'none' }} />
                         <span style={{
                             width: '16px', height: '16px', borderRadius: '4px',
                             border: `1.5px solid ${checked ? '#818cf8' : 'var(--border-default)'}`,
@@ -234,6 +220,19 @@ function UserFeatureCheckboxes({
                         <span style={{ fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: checked ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                             {f.display_name}
                         </span>
+                        {f.is_coming_soon ? (
+                            <span style={{
+                                display: 'flex', alignItems: 'center', gap: '4px',
+                                fontSize: '0.55rem', fontWeight: 700,
+                                padding: '1px 6px', borderRadius: '999px',
+                                background: 'rgba(245,158,11,0.12)',
+                                color: 'var(--gold-mid)',
+                                border: '1px solid rgba(245,158,11,0.3)',
+                                opacity: 0.85,
+                            }}>
+                                <LockIconSm /> Soon
+                            </span>
+                        ) : null}
                     </label>
                 );
             })}
@@ -244,6 +243,7 @@ function UserFeatureCheckboxes({
 // ── PackagesSection ────────────────────────────────────────────────────────────
 
 function PackagesSection() {
+
     const [packages, setPackages] = useState<Package[]>([]);
     const [allFeatures, setAllFeatures] = useState<Feature[]>([]);
     const [loading, setLoading] = useState(true);
@@ -264,7 +264,9 @@ function PackagesSection() {
     const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]); // for provider
     const [selectedUserFeatureKeys, setSelectedUserFeatureKeys] = useState<string[]>([]); // for user
 
+    // Load packages + features
     const fetchAll = async () => {
+
         setLoading(true);
         const [pkgRes, featRes] = await Promise.all([
             adminApi.getPackages(),
@@ -275,7 +277,13 @@ function PackagesSection() {
         setLoading(false);
     };
 
-    useEffect(() => { fetchAll(); }, []);
+    // Initial load
+    useEffect(() => {
+        const t = setTimeout(() => {
+            void fetchAll();
+        }, 0);
+        return () => clearTimeout(t);
+    }, []);
 
     const resetForm = () => {
         setForm({ name: '', description: '', price: 0, duration_months: 1, tier_type: 'premium' });
@@ -403,7 +411,7 @@ function PackagesSection() {
                             display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '8px',
                         }}>
                             {(features as Array<{ key: string; display_name: string; id: number }>).map(f => {
-                                const isCS = COMING_SOON_FEATURE_KEYS.has(f.key);
+                                const isCS = !!(f as unknown as { is_coming_soon?: boolean | number }).is_coming_soon || COMING_SOON_FEATURE_KEYS.has(f.key);
                                 return (
                                     <li key={f.key || f.id} style={{
                                         display: 'flex', alignItems: 'center', gap: '8px',
@@ -733,6 +741,7 @@ function PackagesSection() {
 
 export function AdminSettingsPage() {
     const [activeTab, setActiveTab] = useState<'packages'>('packages');
+
 
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg-main)', width: '100%', color: 'var(--text-primary)' }}>

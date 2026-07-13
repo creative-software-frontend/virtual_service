@@ -5,7 +5,7 @@ import { userApi, membershipApi } from '../../../utils/api';
 
 import type { Package, PackageFeature } from '../../../utils/api';
 import { useMembership } from '../../../context/MembershipContext';
-import { ComingSoonGate } from '../../../components/ComingSoonGate';
+
 
 // ── Animation variants ────────────────────────────────────────────────────────
 
@@ -28,12 +28,7 @@ const CheckIcon = () => (
     </svg>
 );
 
-// Tier label helper
-function tierLabel(tier: string) {
-    if (tier === 'starter') return 'Starter';
-    if (tier === 'elite') return 'Elite';
-    return 'Premium';
-}
+
 
 // ── Tier Card ─────────────────────────────────────────────────────────────────
 
@@ -98,10 +93,11 @@ function TierCard({ pkg }: { pkg: Package }) {
                     marginBottom: '20px',
                 }}>
                     <div>
-                        {/* Eyebrow tier label */}
+                        {/* Eyebrow (no hardcoded tier mapping) */}
                         <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>
-                            {tierLabel(pkg.tier_type)}
+                            {pkg.tier_type}
                         </span>
+
                         <h3 style={{
                             fontSize: 'clamp(1.3rem, 3vw, 1.6rem)',
                             fontWeight: 600,
@@ -423,12 +419,8 @@ export function MembershipPage() {
                             </div>
                         )}
 
-                        {/* Coming soon section – shows for users who have the tier but feature isn't built */}
-                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px,1fr))', gap: 12 }}>
-                            <ComingSoonGate feature="AUDIO_CALL" label="Audio Call" requiredTier="Gold" />
-                            <ComingSoonGate feature="VIDEO_CALL" label="Video Call" requiredTier="Gold" />
-                            <ComingSoonGate feature="VIP_SUPPORT" label="VIP Support" requiredTier="Platinum" />
-                        </div>
+                {/* Feature preview is DB-driven via /membership/status. No hardcoded coming-soon gates. */}
+
                     </motion.div>
                 )}
 

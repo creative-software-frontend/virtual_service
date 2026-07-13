@@ -6,8 +6,8 @@ const roleMiddleware = require("../middleware/roleMiddleware");
 const { requireFeature } = require("../middleware/membershipMiddleware");
 
 const db = require("../config/db");
+const newsfeedController = require("../controllers/newsfeedController");
 const chatService = require("../services/chatService");
-
 
 // BEFORE (NOT GOOD)
 // router.get("/provider-dashboard", ...)
@@ -101,22 +101,35 @@ router.get(
     }
 );
 
-// ── GET /api/provider/posts — get all posts with author info
+// ── GET /api/provider/posts — get all posts with author info + interaction counts
 router.get(
     "/posts",
     authMiddleware,
     roleMiddleware(["user", "provider", "admin"]),
     (req, res) => {
+        const userId = req.user.id;
         db.query(
             `SELECT p.id, p.content, p.image_url, p.created_at,
-                    u.id AS user_id, u.name AS author_name, u.role AS author_role
+                    u.id AS user_id, u.name AS author_name, u.role AS author_role,
+                    (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.id) AS like_count,
+                    (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id = p.id) AS comment_count,
+                    (SELECT COUNT(*) FROM post_shares ps WHERE ps.post_id = p.id) AS share_count,
+                    (SELECT COUNT(*) FROM post_likes pl2 WHERE pl2.post_id = p.id AND pl2.user_id = ?) AS user_has_liked
              FROM posts p
              JOIN users u ON u.id = p.user_id
              ORDER BY p.created_at DESC
              LIMIT 50`,
+            [userId],
             (err, rows) => {
                 if (err) return res.status(500).json({ message: "Database error: " + err.message });
-                res.json(rows);
+                const mapped = rows.map(r => ({
+                    ...r,
+                    like_count: Number(r.like_count),
+                    comment_count: Number(r.comment_count),
+                    share_count: Number(r.share_count),
+                    user_has_liked: Number(r.user_has_liked) > 0,
+                }));
+                res.json(mapped);
             }
         );
     }
@@ -413,6 +426,38 @@ router.get(
             }
         );
     }
+);
+
+// ── POST /api/provider/posts/:id/like — toggle like on a post
+router.post(
+    "/posts/:id/like",
+    authMiddleware,
+    roleMiddleware(["user", "provider", "admin"]),
+    newsfeedController.toggleLike
+);
+
+// ── GET /api/provider/posts/:id/comments — fetch paginated comments
+router.get(
+    "/posts/:id/comments",
+    authMiddleware,
+    roleMiddleware(["user", "provider", "admin"]),
+    newsfeedController.getComments
+);
+
+// ── POST /api/provider/posts/:id/comment — add a comment
+router.post(
+    "/posts/:id/comment",
+    authMiddleware,
+    roleMiddleware(["user", "provider", "admin"]),
+    newsfeedController.addComment
+);
+
+// ── POST /api/provider/posts/:id/share — record a share
+router.post(
+    "/posts/:id/share",
+    authMiddleware,
+    roleMiddleware(["user", "provider", "admin"]),
+    newsfeedController.sharePost
 );
 
 module.exports = router;

@@ -33,7 +33,8 @@ app.use("/api/user-wallet", require("./routes/wallet.routes"));
 app.use("/api/provider", require("./routes/providerRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/admin-wallet", require("./routes/admin.wallet.routes"));
-app.use("/api/upload", require("./routes/uploadRoutes"));
+app.use("/api/upload",   require("./routes/uploadRoutes"));
+app.use("/api/newsfeed", require("./routes/newsfeedRoutes"));
 
 // 404
 app.use((req, res) => {

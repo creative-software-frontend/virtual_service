@@ -109,6 +109,10 @@ function requireFeature(featureName) {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+      // Providers do not use the membership system yet — bypass all checks.
+      // Provider memberships may be introduced in the future.
+      if (req.user?.role === "provider") return next();
+
       const result = await checkFeatureAccess(userId, f);
       if (!result.allowed) {
         return res.status(result.statusCode || 403).json({ message: result.message });

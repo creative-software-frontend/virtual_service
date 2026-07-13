@@ -119,6 +119,7 @@ const PROVIDER_NAV = [
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.social },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
     { to: '/earnings', end: false, label: 'EARNINGS', icon: ICONS.earnings },
+    { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];

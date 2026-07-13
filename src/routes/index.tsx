@@ -69,7 +69,7 @@ export const router = createBrowserRouter([
         return { element: <ChatPage /> };
     }
 },
-            {
+{
                 path: "membership",
                 lazy: async () => {
                     const { MembershipPage } = await import("../features/dashboard/pages/MembershipPage");
@@ -77,7 +77,14 @@ export const router = createBrowserRouter([
                 }
             },
             {
-    path: "wallet",
+                path: "membership",
+                lazy: async () => {
+                    const { ProviderMembershipPage } = await import("../features/dashboard/pages/ProviderMembershipPage");
+                    return { element: <ProviderMembershipPage /> };
+                }
+            },
+            {
+                path: "wallet",
     lazy: async () => {
         const { WalletPage } = await import(
             "../features/dashboard/pages/WalletPage"

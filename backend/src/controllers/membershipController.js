@@ -20,6 +20,7 @@ async function buyMembership(req, res) {
       success: true,
       message: result?.message || "Membership activated successfully",
       package_id: result?.package_id,
+      funds_source: result?.funds_source,
     });
 
   } catch (error) {

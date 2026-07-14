@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
-import { useMembership } from '../../../../../context/MembershipContext';
 import { useEvents } from './hooks/useEvents';
 import { EventFilters } from './EventFilters';
 import { EventList } from './EventList';
@@ -9,6 +8,7 @@ import { MyEvents } from './MyEvents';
 import { JoinedEvents } from './JoinedEvents';
 import { CreateEventModal } from './CreateEventModal';
 import { EventDetailsModal } from './EventDetailsModal';
+import { JoinEventModal } from './JoinEventModal';
 import type { Event } from './types/event';
 import { PartnerSearchPanel } from '../../partner/PartnerSearchPanel';
 import { FeatureGate } from '../../../../../components/FeatureGate';
@@ -16,8 +16,13 @@ import { FeatureGate } from '../../../../../components/FeatureGate';
 export function EventPage() {
     const { role = 'user' } = useParams<{ role: string }>();
     const { user } = useAuth();
-    const { hasFeature } = useMembership();
     const currentUserId = user?.id ?? 0;
+
+    // Use the authenticated user's role (not the URL param) to decide which
+    // navigation items are visible. The backend still enforces the actual
+    // permissions (e.g. requireFeature("MY_EVENTS") on POST /provider/events),
+    // so we only gate the UI here.
+    const userRole = user?.role ?? role;
 
     const {
         events,
@@ -30,9 +35,11 @@ export function EventPage() {
         deleteEvent
     } = useEvents(role);
 
-    // Providers need the "My Events" feature (provider_my_events) to create events.
-    // This mirrors the backend requireFeature("MY_EVENTS") gate on POST /provider/events.
-    const canCreateEvent = role !== 'provider' || hasFeature('MY_EVENTS');
+    // Providers can create events; the backend still enforces the MY_EVENTS
+    // feature gate on POST /provider/events. Users never create events.
+    // Visibility is driven by role only (not the membership feature), so the
+    // Create Event item is always shown to providers.
+    const canCreateEvent = userRole === 'provider';
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -43,6 +50,7 @@ export function EventPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
     const [eventToView, setEventToView] = useState<Event | null>(null);
+    const [eventToJoin, setEventToJoin] = useState<Event | null>(null);
 
     const handleEditClick = (event: Event) => {
         setEventToEdit(event);
@@ -109,7 +117,7 @@ export function EventPage() {
                     )}
                 </button>
 
-                {role === 'provider' && (
+                {userRole === 'provider' && (
                     <button
                         onClick={() => setActiveTab('my-events')}
                         style={{
@@ -140,7 +148,41 @@ export function EventPage() {
                     </button>
                 )}
 
-                {role === 'user' && (
+                {userRole === 'provider' && canCreateEvent && (
+                    <button
+                        onClick={() => {
+                            setEventToEdit(null);
+                            setIsCreateOpen(true);
+                        }}
+                        style={{
+                            flex: 1,
+                            background: 'none',
+                            border: 'none',
+                            color: isCreateOpen ? '#818cf8' : 'var(--text-secondary)',
+                            padding: '12px 0',
+                            fontSize: '0.85rem',
+                            fontWeight: isCreateOpen ? 700 : 500,
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'color 0.2s'
+                        }}
+                    >
+                        Create Event
+                        {isCreateOpen && (
+                            <span style={{
+                                position: 'absolute',
+                                bottom: -1,
+                                left: '25%',
+                                right: '25%',
+                                height: 2,
+                                background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                borderRadius: 4
+                            }} />
+                        )}
+                    </button>
+                )}
+
+                {userRole === 'user' && (
                     <>
                         <button
                             onClick={() => setActiveTab('joined-events')}
@@ -221,24 +263,23 @@ export function EventPage() {
                         setSearchQuery={setSearchQuery}
                         statusFilter={statusFilter}
                         setStatusFilter={setStatusFilter}
-                        showCreateButton={canCreateEvent}
-                        onCreateClick={() => {
-                            setEventToEdit(null);
-                            setIsCreateOpen(true);
-                        }}
+                        showCreateButton={false}
                     />
                     {activeTab === 'browse' && (
                         <FeatureGate
-                            feature={role === 'provider' ? 'BROWSE_EVENTS' : 'EVENT_ACCESS'}
+                            feature={userRole === 'provider' ? 'BROWSE_EVENTS' : 'EVENT_ACCESS'}
                             fullPage
-                            requiredTier={role === 'provider' ? 'Provider' : 'Platinum'}
+                            requiredTier={userRole === 'provider' ? 'Provider' : 'Platinum'}
                         >
                             <EventList
                                 events={filteredEvents}
                                 role={role}
                                 currentUserId={currentUserId}
                                 actionLoading={actionLoading}
-                                onJoin={joinEvent}
+                                onJoin={(id) => {
+                                    const ev = events.find(e => e.id === id);
+                                    if (ev) setEventToJoin(ev);
+                                }}
                                 onLeave={leaveEvent}
                                 onEdit={handleEditClick}
                                 onDelete={deleteEvent}
@@ -248,7 +289,7 @@ export function EventPage() {
                         </FeatureGate>
                     )}
 
-                    {activeTab === 'my-events' && role === 'provider' && (
+                    {activeTab === 'my-events' && userRole === 'provider' && (
                         <FeatureGate feature="MY_EVENTS" fullPage requiredTier="Provider">
                             <MyEvents
                                 events={filteredEvents}
@@ -262,7 +303,7 @@ export function EventPage() {
                         </FeatureGate>
                     )}
 
-                    {activeTab === 'joined-events' && role === 'user' && (
+                    {activeTab === 'joined-events' && userRole === 'user' && (
                         <FeatureGate feature="EVENT_ACCESS" fullPage requiredTier="Platinum">
                             <JoinedEvents
                                 events={filteredEvents}
@@ -294,6 +335,15 @@ export function EventPage() {
                 event={eventToView}
                 onClose={() => setEventToView(null)}
                 role={role}
+            />
+
+            {/* Join Event confirmation modal */}
+            <JoinEventModal
+                isOpen={eventToJoin !== null}
+                event={eventToJoin}
+                onClose={() => setEventToJoin(null)}
+                onJoin={joinEvent}
+                onSuccess={refresh}
             />
         </div>
     );

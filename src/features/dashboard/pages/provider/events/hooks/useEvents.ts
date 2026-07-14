@@ -46,24 +46,15 @@ export function useEvents(role: string) {
     }, [fetchEvents]);
 
     const joinEvent = useCallback(async (eventId: number) => {
-        const event = events.find(e => e.id === eventId);
-        const entryFee = Number(event?.entry_fee || 0);
-        if (entryFee > 0) {
-            const confirmed = window.confirm(
-                `Join Paid Event\n\nThis event requires an entry fee of ৳${entryFee}.\n\nThis amount will be deducted from your wallet.\n\nDo you want to continue?`
-            );
-            if (!confirmed) return;
-        }
         setActionLoading(eventId);
         const res = await eventApi.joinEvent(eventId);
-        if (res.error) {
-            alert(res.error);
-        } else {
+        if (!res.error) {
             // refresh events
             await fetchEvents();
         }
         setActionLoading(null);
-    }, [fetchEvents, events]);
+        return res;
+    }, [fetchEvents]);
 
     const leaveEvent = useCallback(async (eventId: number) => {
         setActionLoading(eventId);

@@ -63,7 +63,7 @@ async function buyMembership({ userId, packageId }) {
 
     // Lock user row
     const [userRows] = await connection.query(
-      "SELECT id, balance FROM users WHERE id = ? FOR UPDATE",
+      "SELECT id, role, balance, earnings FROM users WHERE id = ? FOR UPDATE",
       [userId]
     );
     if (!userRows.length) {
@@ -73,6 +73,14 @@ async function buyMembership({ userId, packageId }) {
     }
 
     const user = userRows[0];
+
+    // Select the correct wallet source based on role.
+    // USER    -> balance
+    // PROVIDER -> earnings
+    const fundsField =
+      user.role === 'provider'
+        ? 'earnings'
+        : 'balance';
 
     const [pkgRows] = await connection.query(
       "SELECT id, name, price, duration_days, tier_type, membership_level FROM packages WHERE id = ? AND is_active = 1 LIMIT 1 FOR UPDATE",
@@ -90,7 +98,7 @@ async function buyMembership({ userId, packageId }) {
     // Target hierarchy level comes straight from the database.
     const targetLevel = Number(pkg.membership_level || 0);
 
-    const walletBalance = Number(user.balance || 0);
+    const walletBalance = Number(user[fundsField] || 0);
 
     // ── Membership hierarchy rules ──────────────────────────────────────────
     // Fetch the CURRENT active membership's level from the database only.
@@ -123,7 +131,7 @@ async function buyMembership({ userId, packageId }) {
 
     // Deduct wallet balance if price > 0
     if (price > 0) {
-      await connection.query("UPDATE users SET balance = balance - ? WHERE id = ?", [price, userId]);
+      await connection.query(`UPDATE users SET ${fundsField} = ${fundsField} - ? WHERE id = ?`, [price, userId]);
     }
 
     const now = getNow();
@@ -150,7 +158,7 @@ async function buyMembership({ userId, packageId }) {
     await connection.query(
       `INSERT INTO transactions (user_id, type, amount, status, description)
        VALUES (?, 'membership_purchase', ?, 'completed', ?)` ,
-      [userId, -price, `Membership Purchase - ${pkg.tier_type.charAt(0).toUpperCase() + pkg.tier_type.slice(1)}`]
+      [userId, -price, `Membership Purchase - ${pkg.tier_type.charAt(0).toUpperCase() + pkg.tier_type.slice(1)} (${fundsField})`]
     );
 
     await connection.commit();
@@ -173,6 +181,7 @@ async function buyMembership({ userId, packageId }) {
       package_id: pkg.id,
       tier_type: pkg.tier_type,
       price,
+      funds_source: fundsField,
       membership_started_at: now,
       membership_expires_at: newExpiresAt,
       message,

@@ -6,7 +6,7 @@ interface EventFiltersProps {
     statusFilter: string;
     setStatusFilter: Dispatch<SetStateAction<string>>;
     showCreateButton: boolean;
-    onCreateClick: () => void;
+    onCreateClick?: () => void;
 }
 
 export function EventFilters({

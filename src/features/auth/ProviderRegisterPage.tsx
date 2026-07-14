@@ -328,25 +328,28 @@ export function ProviderRegisterPage() {
                         </div>
                     )}
 
-                    {/* ✅ Privacy Policy Checkbox Custom (same as AuthPage) */}
+                    {/* ✅ Privacy Policy & Terms Combined Checkbox */}
                     {!isLogin && (
                         <div
-                            onClick={() => setPrivacyAccepted(v => !v)}
+                            onClick={() => {
+                                setPrivacyAccepted(v => !v);
+                                setTermsAccepted(v => !v);
+                            }}
                             style={{
                                 display: 'flex', alignItems: 'flex-start',
-                                gap: '10px', cursor: 'pointer', marginBottom: '0px',
+                                gap: '10px', cursor: 'pointer', marginBottom: '4px',
                             }}
                         >
                             <div style={{
                                 marginTop: '2px',
                                 width: '18px', height: '18px', minWidth: '18px',
                                 borderRadius: '4px',
-                                border: `2px solid ${privacyAccepted ? '#22c55e' : '#555'}`,
-                                backgroundColor: privacyAccepted ? '#22c55e' : 'transparent',
+                                border: `2px solid ${privacyAccepted && termsAccepted ? '#22c55e' : '#555'}`,
+                                backgroundColor: privacyAccepted && termsAccepted ? '#22c55e' : 'transparent',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 transition: 'all 0.2s',
                             }}>
-                                {privacyAccepted && checkIcon}
+                                {privacyAccepted && termsAccepted && checkIcon}
                             </div>
                             <span style={{
                                 fontSize: '0.75rem', color: 'var(--text-secondary)',
@@ -361,35 +364,7 @@ export function ProviderRegisterPage() {
                                 >
                                     Privacy Policy
                                 </a>
-                            </span>
-                        </div>
-                    )}
-
-                    {/* ✅ Terms & Conditions Checkbox Custom (same as AuthPage) */}
-                    {!isLogin && (
-                        <div
-                            onClick={() => setTermsAccepted(v => !v)}
-                            style={{
-                                display: 'flex', alignItems: 'flex-start',
-                                gap: '10px', cursor: 'pointer', marginBottom: '4px',
-                            }}
-                        >
-                            <div style={{
-                                marginTop: '2px',
-                                width: '18px', height: '18px', minWidth: '18px',
-                                borderRadius: '4px',
-                                border: `2px solid ${termsAccepted ? '#22c55e' : '#555'}`,
-                                backgroundColor: termsAccepted ? '#22c55e' : 'transparent',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.2s',
-                            }}>
-                                {termsAccepted && checkIcon}
-                            </div>
-                            <span style={{
-                                fontSize: '0.75rem', color: 'var(--text-secondary)',
-                                lineHeight: '1.5', userSelect: 'none',
-                            }}>
-                                I accept the{' '}
+                                {' '}and{' '}
                                 <a
                                     href="/terms-and-conditions"
                                     onClick={e => e.stopPropagation()}

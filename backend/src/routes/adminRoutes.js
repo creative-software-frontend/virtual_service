@@ -8,7 +8,7 @@ const db = require("../config/db");
 async function getPackagesWithFeatures(whereClause = '', params = []) {
     const [packages] = await db.query(
         `SELECT p.id, p.name, p.description, p.price, p.duration_days, p.duration_months,
-                p.tier_type, p.is_active, p.type, p.created_at
+                p.tier_type, p.membership_level, p.is_active, p.type, p.created_at
          FROM packages p
          ${whereClause}
          ORDER BY p.created_at DESC`,
@@ -80,11 +80,10 @@ router.get("/packages/public", async (req, res) => {
             "WHERE p.is_active=1 AND p.type='user'",
             []
         );
-        // Sort by tier order for user packages
-        const order = { starter: 0, premium: 1, elite: 2 };
+        // Sort by membership_level (DB-driven hierarchy), then price.
         packages.sort((a, b) => {
-            const sa = order[a.tier_type] ?? 99;
-            const sb = order[b.tier_type] ?? 99;
+            const sa = Number(a.membership_level) || 0;
+            const sb = Number(b.membership_level) || 0;
             return sa !== sb ? sa - sb : Number(a.price) - Number(b.price);
         });
         res.json(packages);
@@ -135,7 +134,7 @@ router.post("/packages",
             const {
                 name, description, price,
                 duration_days, duration_months,
-                tier_type, type,
+                tier_type, membership_level, type,
                 feature_ids,   // array of feature IDs (normalized)
                 features,      // legacy CSV fallback (ignored for normalized path)
             } = req.body;
@@ -143,11 +142,13 @@ router.post("/packages",
             const pkgType = type === 'provider' ? 'provider' : 'user';
             const dMonths = parseInt(duration_months) || 1;
             const dDays = parseInt(duration_days) || dMonths * 30;
+            // DB-driven hierarchy level. Default to 1 (lowest tier) when omitted.
+            const mLevel = parseInt(membership_level) || 1;
 
             const [result] = await connection.query(
                 `INSERT INTO packages
-                 (name, description, price, duration_days, duration_months, tier_type, type, features)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                 (name, description, price, duration_days, duration_months, tier_type, membership_level, type, features)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     name,
                     description || null,
@@ -155,6 +156,7 @@ router.post("/packages",
                     dDays,
                     dMonths,
                     tier_type || 'premium',
+                    mLevel,
                     pkgType,
                     features || null,   // keep CSV for legacy user membership status service
                 ]
@@ -194,7 +196,7 @@ router.put("/packages/:id",
             const {
                 name, description, price,
                 duration_days, duration_months,
-                tier_type, type, is_active,
+                tier_type, membership_level, type, is_active,
                 feature_ids,
                 features,
             } = req.body;
@@ -202,16 +204,20 @@ router.put("/packages/:id",
             const pkgType = type === 'provider' ? 'provider' : 'user';
             const dMonths = parseInt(duration_months) || 1;
             const dDays = parseInt(duration_days) || dMonths * 30;
+            // DB-driven hierarchy level. Keep existing value when omitted.
+            const mLevel = parseInt(membership_level);
 
             await connection.query(
                 `UPDATE packages SET
                     name=?, description=?, price=?, duration_days=?, duration_months=?,
-                    tier_type=?, type=?, features=?,
+                    tier_type=?, membership_level=?, type=?, features=?,
                     is_active=?
                  WHERE id=?`,
                 [
                     name, description || null, price, dDays, dMonths,
-                    tier_type || 'premium', pkgType, features || null,
+                    tier_type || 'premium',
+                    Number.isFinite(mLevel) ? mLevel : 1,
+                    pkgType, features || null,
                     is_active !== undefined ? is_active : 1,
                     req.params.id,
                 ]

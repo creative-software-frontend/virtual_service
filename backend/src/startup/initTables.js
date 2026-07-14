@@ -32,12 +32,42 @@ module.exports = async (db) => {
                 duration_days INT             NOT NULL DEFAULT 30,
                 duration_months INT           NOT NULL DEFAULT 1,
                 tier_type     VARCHAR(20)     NOT NULL DEFAULT 'premium',
+                membership_level INT          NOT NULL DEFAULT 1,
                 features      TEXT,
                 is_active     TINYINT(1)      NOT NULL DEFAULT 1,
                 created_at    TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('packages table verified');
+
+        // ─── Add packages.membership_level column if missing ───────
+        // Drives the membership hierarchy (DB-driven, independent of
+        // package id / name / price). Silver=1, Gold=2, Platinum=3.
+        const [pkgCols2] = await db.query(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'packages'"
+        );
+        const pkgColNames2 = pkgCols2.map(c => c.COLUMN_NAME.toLowerCase());
+        if (!pkgColNames2.includes('membership_level')) {
+            await db.query(
+                `ALTER TABLE packages ADD COLUMN \`membership_level\` INT NOT NULL DEFAULT 1`
+            );
+            console.log('✅ Added membership_level column to packages');
+        }
+
+        // Backfill membership_level from tier_type for any rows that
+        // still carry the legacy default (1) but have a higher tier.
+        await db.query(`
+            UPDATE packages
+            SET membership_level = CASE
+                WHEN tier_type = 'silver'  THEN 1
+                WHEN tier_type = 'Gold'    THEN 2
+                WHEN tier_type = 'premium' THEN 3   -- Platinum package uses tier_type 'premium'
+                WHEN tier_type = 'starter' THEN 1
+                WHEN tier_type = 'elite'   THEN 3
+                ELSE membership_level
+            END
+            WHERE membership_level = 1
+        `);
 
         // ─── Add packages.type column if missing ───────────────────
         const [pkgCols] = await db.query(

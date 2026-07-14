@@ -567,6 +567,7 @@ export interface Package {
     duration_days: number;
     duration_months: number;
     tier_type: string;
+    membership_level: number; // DB-driven hierarchy level (Silver=1, Gold=2, Platinum=3)
     type: 'user' | 'provider';
     features: PackageFeature[] | string; // normalized array from API, or legacy CSV string
     is_active: number;
@@ -588,6 +589,7 @@ export interface CreatePackagePayload {
     duration_days: number;
     duration_months: number;
     tier_type: string;
+    membership_level: number; // DB-driven hierarchy level
     type: 'user' | 'provider';
     feature_ids: number[];
     features?: string; // legacy CSV kept for user membership status service

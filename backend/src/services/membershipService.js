@@ -35,18 +35,20 @@ function addDays(date, days) {
   return d;
 }
 
-// Membership hierarchy levels (by tier_type). Comparison uses LEVEL, not price.
-// Silver = 1, Gold = 2, Platinum = 3.
-const TIER_LEVEL = {
-  silver: 1,
-  Gold: 2,
-  premium: 3, // Platinum package uses tier_type 'premium'
-};
-
-function tierLevel(tierType) {
-  if (tierType == null) return 0; // no active membership
-  return TIER_LEVEL[tierType] ?? 0;
-}
+// Membership hierarchy is fully database-driven via the `membership_level`
+// column on the `packages` table. We NEVER compare package id, name, or
+// price — those values change when packages are deleted and recreated.
+//
+//   Silver    -> membership_level = 1
+//   Gold      -> membership_level = 2
+//   Platinum  -> membership_level = 3
+//
+// Provider packages reuse the same scale (Starter=1, Premium=2, Elite=3).
+// Future packages (Diamond, Enterprise, VIP, ...) simply get a higher
+// membership_level value in the database — no backend code changes needed.
+//
+// A user with NO active membership has level 0 (free), so any real package
+// (level >= 1) is treated as an upgrade and is always allowed.
 
 async function getWalletBalanceForUser(connection, userId) {
   const [rows] = await connection.query("SELECT balance FROM users WHERE id = ? LIMIT 1", [userId]);
@@ -73,7 +75,7 @@ async function buyMembership({ userId, packageId }) {
     const user = userRows[0];
 
     const [pkgRows] = await connection.query(
-      "SELECT id, name, price, duration_days, tier_type FROM packages WHERE id = ? AND is_active = 1 LIMIT 1 FOR UPDATE",
+      "SELECT id, name, price, duration_days, tier_type, membership_level FROM packages WHERE id = ? AND is_active = 1 LIMIT 1 FOR UPDATE",
       [packageId]
     );
     if (!pkgRows.length) {
@@ -85,24 +87,25 @@ async function buyMembership({ userId, packageId }) {
     const pkg = pkgRows[0];
     const price = Number(pkg.price || 0);
     const durationDays = Number(pkg.duration_days || 0);
+    // Target hierarchy level comes straight from the database.
+    const targetLevel = Number(pkg.membership_level || 0);
 
     const walletBalance = Number(user.balance || 0);
 
     // ── Membership hierarchy rules ──────────────────────────────────────────
-    // Fetch current active membership (package + tier) to compare hierarchy level.
+    // Fetch the CURRENT active membership's level from the database only.
+    // We compare membership_level values — never id, name, or price.
     const [currentRows] = await connection.query(
-      `SELECT p.tier_type
+      `SELECT COALESCE(p.membership_level, 0) AS current_level
        FROM users u
        LEFT JOIN packages p ON p.id = u.membership_package_id
        WHERE u.id = ? LIMIT 1`,
       [userId]
     );
-    const currentTier = currentRows?.[0]?.tier_type ?? null;
-    const currentLevel = tierLevel(currentTier);
-    const targetLevel = tierLevel(pkg.tier_type);
+    const currentLevel = Number(currentRows?.[0]?.current_level || 0);
 
     // RULE 3 — Lower plan purchase while a higher plan is active => REJECT.
-    // Do NOT deduct wallet balance.
+    // Do NOT deduct wallet balance. Do NOT create a transaction.
     if (currentLevel > 0 && targetLevel > 0 && targetLevel < currentLevel) {
       const err = new Error(
         "You already have a higher membership plan active.\n\n" +
@@ -152,9 +155,11 @@ async function buyMembership({ userId, packageId }) {
 
     await connection.commit();
 
-    // Determine message based on hierarchy relationship.
+    // Determine message based on hierarchy relationship (DB-driven levels).
     let message;
-    if (currentLevel === targetLevel) {
+    if (currentLevel === 0) {
+      message = `You have successfully activated your ${pkg.name} membership.`;
+    } else if (currentLevel === targetLevel) {
       message = `Your ${pkg.name} membership has been extended successfully.`;
     } else if (targetLevel > currentLevel) {
       message = `You have successfully upgraded to ${pkg.name} membership.`;

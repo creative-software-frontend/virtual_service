@@ -260,6 +260,7 @@ function PackagesSection() {
         price: 0,
         duration_months: 1,
         tier_type: 'premium',
+        membership_level: 1,
     });
     const [selectedFeatureIds, setSelectedFeatureIds] = useState<number[]>([]); // for provider
     const [selectedUserFeatureKeys, setSelectedUserFeatureKeys] = useState<string[]>([]); // for user
@@ -286,7 +287,7 @@ function PackagesSection() {
     }, []);
 
     const resetForm = () => {
-        setForm({ name: '', description: '', price: 0, duration_months: 1, tier_type: 'premium' });
+        setForm({ name: '', description: '', price: 0, duration_months: 1, tier_type: 'premium', membership_level: 1 });
         setSelectedFeatureIds([]);
         setSelectedUserFeatureKeys([]);
         setPkgType('user');
@@ -312,6 +313,7 @@ function PackagesSection() {
             ...form,
             price: Number(form.price),
             duration_days: form.duration_months * 30,
+            membership_level: Number(form.membership_level) || 1,
             type: pkgType,
             feature_ids: featureIds,
             features: featuresCsv,
@@ -602,6 +604,18 @@ function PackagesSection() {
                                     <option value={6}>6 Months</option>
                                     <option value={12}>12 Months</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Membership Level *</label>
+                                <input
+                                    style={inputStyle}
+                                    type="number" min="1" step="1"
+                                    title="Hierarchy level used for upgrade/downgrade rules. Silver=1, Gold=2, Platinum=3. Higher = higher tier."
+                                    placeholder="e.g. 1, 2, 3"
+                                    value={form.membership_level || ''}
+                                    onChange={e => setForm(f => ({ ...f, membership_level: parseInt(e.target.value) || 1 }))}
+                                    required
+                                />
                             </div>
                         </div>
 

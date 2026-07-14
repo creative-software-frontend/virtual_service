@@ -5,6 +5,7 @@ import { userApi, membershipApi } from '../../../utils/api';
 
 import type { Package, PackageFeature } from '../../../utils/api';
 import { useMembership } from '../../../context/MembershipContext';
+import { useToast } from '../../../components/Toast';
 
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ const CheckIcon = () => (
 
 function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void }) {
     const [showModal, setShowModal] = useState(false);
+    const toast = useToast();
 
     // Handle both normalized PackageFeature[] and legacy CSV string
     const featureList: string[] = Array.isArray(pkg.features)
@@ -44,7 +46,7 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
 
     const handleCTA = () => {
         if (Number(pkg.price) === 0) {
-            alert("Proceeding with Free Starter plan registration...");
+            toast.info("Proceeding with Free Starter plan registration...");
         } else {
             setShowModal(true);
         }
@@ -55,7 +57,7 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
         console.log("Buying membership:", payload);
         const res = await userApi.buyMembership(pkg.id);
         if (res.error) {
-            alert(res.error);
+            toast.error(res.error);
             return;
         }
 
@@ -63,8 +65,7 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
         // unlock immediately without a page reload.
         if (onPurchased) await onPurchased();
         setShowModal(false);
-        alert(`Membership activated: ${pkg.name}`);
-        setShowModal(false);
+        toast.success(`${pkg.name} membership activated successfully.`);
     };
 
 
@@ -317,6 +318,7 @@ export function MembershipPage() {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const { membership, refreshMembership } = useMembership();
+    const toast = useToast();
 
     // Active membership = user is on a paid plan (not the FREE starter)
     const hasActiveMembership =
@@ -327,16 +329,16 @@ export function MembershipPage() {
         try {
             const res = await userApi.cancelMembership();
             if (res.error) {
-                alert(res.error);
+                toast.error(res.error);
                 return;
             }
             // Refresh membership context + status so the user immediately
             // reverts to FREE and Silver features become locked again.
             await refreshMembership();
             setShowCancelModal(false);
-            alert('Your membership has been cancelled. You are now a Free user.');
+            toast.success('Membership cancelled successfully. You are now using the Free plan.');
         } catch {
-            alert('Failed to cancel membership. Please try again.');
+            toast.error('Failed to cancel membership. Please try again.');
         } finally {
             setCancelling(false);
         }

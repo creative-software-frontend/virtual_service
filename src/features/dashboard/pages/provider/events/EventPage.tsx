@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
+import { useMembership } from '../../../../../context/MembershipContext';
 import { useEvents } from './hooks/useEvents';
 import { EventFilters } from './EventFilters';
 import { EventList } from './EventList';
@@ -15,6 +16,7 @@ import { FeatureGate } from '../../../../../components/FeatureGate';
 export function EventPage() {
     const { role = 'user' } = useParams<{ role: string }>();
     const { user } = useAuth();
+    const { hasFeature } = useMembership();
     const currentUserId = user?.id ?? 0;
 
     const {
@@ -27,6 +29,10 @@ export function EventPage() {
         leaveEvent,
         deleteEvent
     } = useEvents(role);
+
+    // Providers need the "My Events" feature (provider_my_events) to create events.
+    // This mirrors the backend requireFeature("MY_EVENTS") gate on POST /provider/events.
+    const canCreateEvent = role !== 'provider' || hasFeature('MY_EVENTS');
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -209,58 +215,66 @@ export function EventPage() {
                     {error}
                 </div>
             ) : (
-                <FeatureGate feature="EVENT_ACCESS" fullPage requiredTier="Platinum">
                 <>
                     <EventFilters
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}
                         statusFilter={statusFilter}
                         setStatusFilter={setStatusFilter}
-                        showCreateButton={role === 'provider'}
+                        showCreateButton={canCreateEvent}
                         onCreateClick={() => {
                             setEventToEdit(null);
                             setIsCreateOpen(true);
                         }}
                     />
                     {activeTab === 'browse' && (
-                        <EventList
-                            events={filteredEvents}
-                            role={role}
-                            currentUserId={currentUserId}
-                            actionLoading={actionLoading}
-                            onJoin={joinEvent}
-                            onLeave={leaveEvent}
-                            onEdit={handleEditClick}
-                            onDelete={deleteEvent}
-                            onViewDetails={handleViewDetails}
-                            emptyMessage="No events match your criteria."
-                        />
+                        <FeatureGate
+                            feature={role === 'provider' ? 'BROWSE_EVENTS' : 'EVENT_ACCESS'}
+                            fullPage
+                            requiredTier={role === 'provider' ? 'Provider' : 'Platinum'}
+                        >
+                            <EventList
+                                events={filteredEvents}
+                                role={role}
+                                currentUserId={currentUserId}
+                                actionLoading={actionLoading}
+                                onJoin={joinEvent}
+                                onLeave={leaveEvent}
+                                onEdit={handleEditClick}
+                                onDelete={deleteEvent}
+                                onViewDetails={handleViewDetails}
+                                emptyMessage="No events match your criteria."
+                            />
+                        </FeatureGate>
                     )}
 
                     {activeTab === 'my-events' && role === 'provider' && (
-                        <MyEvents
-                            events={filteredEvents}
-                            role={role}
-                            currentUserId={currentUserId}
-                            actionLoading={actionLoading}
-                            onEdit={handleEditClick}
-                            onDelete={deleteEvent}
-                            onViewDetails={handleViewDetails}
-                        />
+                        <FeatureGate feature="MY_EVENTS" fullPage requiredTier="Provider">
+                            <MyEvents
+                                events={filteredEvents}
+                                role={role}
+                                currentUserId={currentUserId}
+                                actionLoading={actionLoading}
+                                onEdit={handleEditClick}
+                                onDelete={deleteEvent}
+                                onViewDetails={handleViewDetails}
+                            />
+                        </FeatureGate>
                     )}
 
                     {activeTab === 'joined-events' && role === 'user' && (
-                        <JoinedEvents
-                            events={filteredEvents}
-                            role={role}
-                            currentUserId={currentUserId}
-                            actionLoading={actionLoading}
-                            onLeave={leaveEvent}
-                            onViewDetails={handleViewDetails}
-                        />
+                        <FeatureGate feature="EVENT_ACCESS" fullPage requiredTier="Platinum">
+                            <JoinedEvents
+                                events={filteredEvents}
+                                role={role}
+                                currentUserId={currentUserId}
+                                actionLoading={actionLoading}
+                                onLeave={leaveEvent}
+                                onViewDetails={handleViewDetails}
+                            />
+                        </FeatureGate>
                     )}
                 </>
-                </FeatureGate>
             )}
 
             {/* Create & Edit Modal */}

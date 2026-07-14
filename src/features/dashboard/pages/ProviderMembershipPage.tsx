@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TopNav } from './TopNav';
-import { membershipApi } from '../../../utils/api';
+import { userApi, membershipApi } from '../../../utils/api';
 import type { Package } from '../../../utils/api';
+import { useMembership } from '../../../context/MembershipContext';
+import { useToast } from '../../../components/Toast';
 
 
 
@@ -38,47 +40,6 @@ const LockIcon = () => (
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
 );
-
-const CrownIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-        fill="none" stroke="var(--gold-mid)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z" />
-    </svg>
-);
-
-// ── Tier gradient map ──────────────────────────────────────────────────────────
-
-function getTierStyle(index: number, tier: string): { gradient: string; borderColor: string; badge?: string } {
-    const styles = [
-
-        {
-            gradient: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.08) 100%)',
-            borderColor: 'rgba(99,102,241,0.25)',
-        },
-        {
-            gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(251,191,36,0.1) 100%)',
-            borderColor: 'rgba(245,158,11,0.3)',
-            badge: 'Best Value',
-        },
-        {
-            gradient: 'linear-gradient(135deg, rgba(236,72,153,0.15) 0%, rgba(244,114,182,0.1) 100%)',
-            borderColor: 'rgba(236,72,153,0.3)',
-            badge: 'Premium',
-        },
-        {
-            gradient: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(52,211,153,0.08) 100%)',
-            borderColor: 'rgba(16,185,129,0.25)',
-        },
-    ];
-
-    // Override for known tier names
-    const tl = tier?.toLowerCase();
-    if (tl?.includes('platinum') || tl?.includes('vip')) return styles[2];
-    if (tl?.includes('elite') || tl?.includes('professional')) return styles[1];
-    if (tl?.includes('starter')) return styles[0];
-
-    return styles[index % styles.length];
-}
 
 // ── Loading Skeleton ───────────────────────────────────────────────────────────
 
@@ -118,146 +79,156 @@ function LoadingSkeleton() {
 
 // ── Tier Card ──────────────────────────────────────────────────────────────────
 
-function TierCard({ pkg, index }: { pkg: Package; index: number }) {
+function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void }) {
 
-    const style = getTierStyle(index, pkg.tier_type || pkg.name);
-    const hasFeatures = pkg.features && pkg.features.length > 0;
+    const toast = useToast();
+    const [showModal, setShowModal] = useState(false);
+    const [purchasing, setPurchasing] = useState(false);
 
+    const handleProceed = async () => {
+        setPurchasing(true);
+        const res = await userApi.buyMembership(pkg.id);
+        setPurchasing(false);
+        if (res.error) {
+            toast.error(res.error);
+            return;
+        }
+        setShowModal(false);
+        // Refresh membership context so provider-gated features (chat, events…)
+        // unlock immediately without a page reload.
+        if (onPurchased) await onPurchased();
+        toast.success(res.data?.message || `${pkg.name} membership activated successfully.`);
+    };
+
+    // Normalize features to { key, display_name, is_coming_soon }
+    const featureList: Array<{ key: string; display_name: string; is_coming_soon?: boolean }> =
+        Array.isArray(pkg.features)
+            ? (pkg.features as Array<{ key: string; display_name: string; is_coming_soon?: boolean }>)
+            : [];
 
     return (
-
-        <motion.div
-            variants={fadeUp}
-            style={{
-                position: 'relative',
-                padding: '28px clamp(18px, 5vw, 36px)',
-                background: style.gradient,
-                border: `1px solid ${style.borderColor}`,
-                borderRadius: '16px',
-                overflow: 'hidden',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-                (e.currentTarget as HTMLElement).style.boxShadow = `0 16px 48px ${style.borderColor.replace(/[\d.]+\)$/, '0.25)')}`;
-            }}
-            onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = '';
-                (e.currentTarget as HTMLElement).style.boxShadow = '';
-            }}
-        >
-            {/* Gold top edge */}
-            <div style={{
-                position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-                background: `linear-gradient(90deg, transparent, ${style.borderColor.replace(/[\d.]+\)$/, '0.8)')}, transparent)`,
-            }} />
-
-            {/* Header */}
-            <div style={{
-                display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between',
-                alignItems: 'flex-start', gap: '16px',
-                borderBottom: '1px solid var(--border-subtle)',
-                paddingBottom: '20px', marginBottom: '20px',
-            }}>
-                <div>
-                    {style.badge && (
-                        <span style={{
-                            display: 'inline-block', marginBottom: '8px',
-                            fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                            padding: '3px 10px', borderRadius: '999px', textTransform: 'uppercase',
-                            background: style.gradient,
-                            border: `1px solid ${style.borderColor}`,
-                            color: 'var(--gold-mid)',
-                        }}>
-                            {style.badge}
-                        </span>
-                    )}
-                    <h3 style={{
-                        fontSize: 'clamp(1.25rem, 3vw, 1.55rem)',
-                        fontWeight: 700, color: 'var(--text-primary)',
-                        margin: '0 0 6px 0', lineHeight: 1.2,
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                    }}>
-                        {pkg.name}
-                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                            <CrownIcon />
-                        </span>
-                    </h3>
-                    {pkg.description && (
-                        <p style={{
-                            fontSize: '0.85rem', color: 'var(--text-muted)',
-                            margin: 0, lineHeight: 1.5,
-                        }}>
-                            {pkg.description}
-                        </p>
-                    )}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                    <span style={{
-                        fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', fontWeight: 800,
-                        color: 'var(--gold-mid)', lineHeight: 1,
-                    }}>
-                        {pkg.price === 0 ? 'Free' : `৳${pkg.price.toLocaleString()}`}
-                    </span>
-                    <span style={{
-                        fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em',
-                        padding: '4px 12px', borderRadius: '999px',
-                        background: style.gradient,
-                        border: `1px solid ${style.borderColor}`,
-                        color: 'var(--text-secondary)',
-                    }}>
-                        {pkg.duration_months} Month{pkg.duration_months > 1 ? 's' : ''}
-                    </span>
-                </div>
-            </div>
-
-            {/* Feature list */}
-            <div style={{ marginBottom: '24px' }}>
-                <p style={{
-                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.25em',
-                    textTransform: 'uppercase', color: 'var(--text-muted)',
-                    marginBottom: '14px', fontFamily: 'var(--font-display)',
+        <>
+            <motion.div
+                variants={fadeUp}
+                className="card gold-top-edge"
+                style={{ position: 'relative', padding: '32px clamp(20px, 5vw, 48px)', gap: 0 }}
+                onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-gold)';
+                    (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-gold)';
+                    (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '';
+                    (e.currentTarget as HTMLElement).style.transform = '';
+                }}
+            >
+                {/* Card Header row */}
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: '16px',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    paddingBottom: '20px',
+                    marginBottom: '20px',
                 }}>
-                    Included Benefits
-                </p>
-                {hasFeatures ? (
-                    <ul style={{
-                        listStyle: 'none', padding: 0, margin: 0,
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))',
-                        gap: '10px',
+                    <div>
+                        {/* Eyebrow (no hardcoded tier mapping) */}
+                        <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>
+                            {pkg.tier_type}
+                        </span>
+
+                        <h3 style={{
+                            fontSize: 'clamp(1.3rem, 3vw, 1.6rem)',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            margin: 0,
+                            lineHeight: 1.2,
+                        }}>
+                            {pkg.name}
+                        </h3>
+                        {pkg.description && (
+                            <p style={{
+                                fontSize: '0.85rem',
+                                color: 'var(--text-muted)',
+                                margin: '6px 0 0 0',
+                                lineHeight: 1.5,
+                            }}>
+                                {pkg.description}
+                            </p>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                        {/* Price */}
+                        <span style={{
+                            fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+                            fontWeight: 800,
+                            color: 'var(--gold-mid)',
+                            fontFamily: "var(--font-sans)",
+                            lineHeight: 1,
+                        }}>
+                            {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                        </span>
+                        {/* Duration badge */}
+                        <span className="badge badge-gold">
+                            {pkg.duration_months} Month{pkg.duration_months > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Features list */}
+                <div style={{ marginBottom: '24px' }}>
+                    <p style={{
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.25em',
+                        textTransform: 'uppercase',
+                        color: 'var(--text-muted)',
+                        marginBottom: '14px',
+                        fontFamily: 'var(--font-display)',
                     }}>
-                            {((Array.isArray(pkg.features) ? pkg.features : []) as Array<{ key: string; display_name: string; is_coming_soon?: boolean }>).map((feat) => {
-                            // Coming Soon is DB-driven via features.is_coming_soon.
-                            const isCS = !!feat.is_coming_soon;
-
-                            return (
-                                <li
-
-                                    key={feat.key}
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '10px',
+                        Included Benefits
+                    </p>
+                    {featureList.length > 0 ? (
+                        <ul style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '10px',
+                        }}>
+                            {featureList.map(feat => {
+                                const isCS = !!feat.is_coming_soon;
+                                return (
+                                    <li key={feat.key} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
                                         fontSize: '0.875rem',
                                         color: isCS ? 'var(--text-muted)' : 'var(--text-secondary)',
                                         fontFamily: 'var(--font-sans)',
                                         opacity: isCS ? 0.7 : 1,
-                                    }}
-                                >
-                                    <span style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: isCS ? 'var(--bg-input)' : 'var(--gold-glow)',
-                                        border: `1px solid ${isCS ? 'var(--border-subtle)' : 'var(--border-gold)'}`,
-                                        borderRadius: '50%', width: '22px', height: '22px', flexShrink: 0,
                                     }}>
-                                        {isCS ? <LockIcon /> : <CheckIcon />}
-                                    </span>
-
-                                    <span style={{ flex: 1 }}>
-                                        {feat.display_name}
+                                        <span style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            background: isCS ? 'var(--bg-input)' : 'var(--gold-glow)',
+                                            border: `1px solid ${isCS ? 'var(--border-subtle)' : 'var(--border-gold)'}`,
+                                            borderRadius: '50%',
+                                            width: '22px',
+                                            height: '22px',
+                                            flexShrink: 0,
+                                        }}>
+                                            {isCS ? <LockIcon /> : <CheckIcon />}
+                                        </span>
+                                        <span style={{ flex: 1 }}>{feat.display_name}</span>
                                         {isCS && (
                                             <span style={{
-                                                marginLeft: '8px',
                                                 fontSize: '0.55rem', fontWeight: 700,
                                                 padding: '1px 6px', borderRadius: '999px',
                                                 background: 'rgba(245,158,11,0.12)',
@@ -268,38 +239,123 @@ function TierCard({ pkg, index }: { pkg: Package; index: number }) {
                                                 Coming Soon
                                             </span>
                                         )}
-                                    </span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    ) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                            Standard plan benefits apply.
+                        </p>
+                    )}
+                </div>
 
-                                </li>
-                            );
-                        })}
-                    </ul>
-                ) : (
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                        Standard plan benefits apply.
-                    </p>
-                )}
-            </div>
+                {/* CTA Button — reuse site's .btn .btn-primary */}
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '14px 24px' }}
+                >
+                    {Number(pkg.price) === 0 ? 'Get Started' : 'Buy Now'}
+                </button>
+            </motion.div>
 
-            {/* Purchase button — disabled (preview only) */}
-            <button
-                disabled
-                style={{
-                    width: '100%', padding: '14px 24px',
-                    background: 'var(--bg-input)',
-                    border: `1px solid ${style.borderColor}`,
-                    borderRadius: '10px',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.12em',
-                    textTransform: 'uppercase', fontFamily: "'Inter', sans-serif",
-                    cursor: 'not-allowed', opacity: 0.7,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                }}
-            >
-                <LockIcon />
-                Coming Soon
-            </button>
-        </motion.div>
+            {/* Confirm Plan Modal — matches site modal styling */}
+            {showModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'var(--bg-overlay)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 99999,
+                    padding: '20px',
+                }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="card gold-top-edge"
+                        style={{ width: '100%', maxWidth: '440px', position: 'relative' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                            <div>
+                                <h3 style={{
+                                    fontSize: '1.25rem',
+                                    fontWeight: 700,
+                                    color: 'var(--text-primary)',
+                                    margin: '0 0 4px 0',
+                                }}>
+                                    Confirm Plan
+                                </h3>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                                    Review pricing breakdown
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="btn btn-ghost btn-sm"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div style={{
+                            background: 'var(--bg-input)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginBottom: '20px',
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{pkg.name}</span>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    {Number(pkg.price) === 0 ? 'Free' : `৳${Number(pkg.price).toLocaleString()}`}
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Duration</span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    {pkg.duration_months} Month{pkg.duration_months > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        </div>
+
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+                            Your provider features will unlock immediately after purchase.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="btn btn-ghost"
+                                style={{ flex: 1, padding: '12px' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleProceed}
+                                disabled={purchasing}
+                                className="btn btn-primary"
+                                style={{ flex: 1, padding: '12px' }}
+                            >
+                                {purchasing ? 'Processing…' : 'Confirm Purchase'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </>
     );
 }
 
@@ -331,8 +387,7 @@ function EmptyState() {
 
 export function ProviderMembershipPage() {
     const [packages, setPackages] = useState<Package[]>([]);
-
-
+    const { refreshMembership } = useMembership();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -389,8 +444,7 @@ export function ProviderMembershipPage() {
                     <div style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                         width: '56px', height: '56px', borderRadius: '16px',
-                        background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(251,191,36,0.1))',
-                        border: '1px solid rgba(245,158,11,0.3)',
+                        background: 'var(--gold-glow)', border: '1px solid var(--border-gold)',
                         marginBottom: '16px',
                     }}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold-mid)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -415,6 +469,7 @@ export function ProviderMembershipPage() {
                 {/* Info notice */}
                 <motion.div
                     variants={fadeUp}
+                    className="card"
                     style={{
                         background: 'var(--blue-glow)', border: '1px solid var(--border-subtle)',
                         borderRadius: '12px', padding: '16px', marginBottom: '28px',
@@ -429,15 +484,14 @@ export function ProviderMembershipPage() {
                             color: 'var(--text-secondary)', fontSize: '0.85rem',
                             lineHeight: '1.6', fontFamily: "'Inter', sans-serif", fontWeight: 500, margin: 0,
                         }}>
-                            Provider membership purchasing is not yet available. These plans are a preview of upcoming subscription options.
-                            Features marked <strong style={{ color: 'var(--gold-mid)' }}>Coming Soon</strong> are actively being developed.
+                            Choose a plan to unlock provider tools. Features marked <strong style={{ color: 'var(--gold-mid)' }}>Coming Soon</strong> are included in your plan and will activate as soon as they're released.
                         </p>
                     </div>
                 </motion.div>
 
                 {/* Error state */}
                 {error && (
-                    <motion.div variants={fadeUp} style={{
+                    <motion.div variants={fadeUp} className="card" style={{
                         padding: '16px', borderRadius: '12px', marginBottom: '24px',
                         background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
                         color: '#fca5a5', fontSize: '0.85rem',
@@ -456,8 +510,8 @@ export function ProviderMembershipPage() {
                         variants={container}
                         style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}
                     >
-                        {packages.map((pkg, i) => (
-                            <TierCard key={pkg.id} pkg={pkg} index={i} />
+                        {packages.map((pkg) => (
+                            <TierCard key={pkg.id} pkg={pkg} onPurchased={refreshMembership} />
                         ))}
                     </motion.div>
                 )}

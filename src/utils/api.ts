@@ -761,6 +761,14 @@ export const eventApi = {
     getEvents: (role: string) =>
         request<Event[]>(`/${role}/events`),
 
+    // Provider "Browse Events" — DB-driven feature gate (provider_browse_events)
+    getProviderBrowseEvents: () =>
+        request<Event[]>('/provider/events'),
+
+    // Provider "My Events" — DB-driven feature gate (provider_my_events)
+    getProviderMyEvents: () =>
+        request<Event[]>('/provider/events/mine'),
+
     createEvent: (payload: { title: string; description: string; date_time: string; location: string; capacity: number; host_name: string; entry_fee: number; application_deadline: string }) =>
         request<Event>('/provider/events', {
             method: 'POST',

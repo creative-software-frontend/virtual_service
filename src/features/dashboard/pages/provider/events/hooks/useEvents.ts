@@ -11,11 +11,32 @@ export function useEvents(role: string) {
     const fetchEvents = useCallback(async () => {
         setLoading(true);
         setError(null);
-        const res = await eventApi.getEvents(role);
-        if (res.error) {
-            setError(res.error);
+        // Providers: "Browse Events" and "My Events" are separate DB-driven
+        // membership features, so we fetch both lists independently.
+        if (role === 'provider') {
+            const [browseRes, mineRes] = await Promise.all([
+                eventApi.getProviderBrowseEvents(),
+                eventApi.getProviderMyEvents(),
+            ]);
+            if (browseRes.error && browseRes.status !== 403) {
+                setError(browseRes.error);
+            }
+            // Merge both lists (mine is a subset of browse, but keep both for tab filtering)
+            const browse = browseRes.data || [];
+            const mine = mineRes.data || [];
+            const merged = [...browse];
+            const seen = new Set(browse.map((e: Event) => e.id));
+            for (const e of mine) {
+                if (!seen.has(e.id)) merged.push(e);
+            }
+            setEvents(merged);
         } else {
-            setEvents(res.data || []);
+            const res = await eventApi.getEvents(role);
+            if (res.error) {
+                setError(res.error);
+            } else {
+                setEvents(res.data || []);
+            }
         }
         setLoading(false);
     }, [role]);

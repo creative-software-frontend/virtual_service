@@ -222,6 +222,7 @@ router.post(
     "/events",
     authMiddleware,
     roleMiddleware(["provider"]),
+    requireFeature("MY_EVENTS"),
     (req, res) => {
         const { title, description, date_time, location, capacity, host_name, entry_fee, application_deadline } = req.body;
 
@@ -404,11 +405,34 @@ router.get(
     }
 );
 
-// Get Provider's Events
+// Get all Events ("Browse Events" — requires provider_browse_events)
 router.get(
     "/events",
     authMiddleware,
     roleMiddleware(["provider"]),
+    requireFeature("BROWSE_EVENTS"),
+    (req, res) => {
+        db.query(
+            `SELECT e.*, 
+                    u.name as creator_name,
+                    (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) as participant_count
+             FROM events e
+             JOIN users u ON e.creator_id = u.id
+             ORDER BY e.date_time ASC`,
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows);
+            }
+        );
+    }
+);
+
+// Get Provider's own Events ("My Events" — requires provider_my_events)
+router.get(
+    "/events/mine",
+    authMiddleware,
+    roleMiddleware(["provider"]),
+    requireFeature("MY_EVENTS"),
     (req, res) => {
         const providerId = req.user.id;
         db.query(

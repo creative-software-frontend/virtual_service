@@ -310,7 +310,7 @@ export function ChatPage() {
         <>
             <style>{STYLE}</style>
             <TopNav />
-            <FeatureGate feature="CHAT" fullPage requiredTier="Silver">
+            <FeatureGate feature="CHAT" fullPage requiredTier={isProvider ? "Provider" : "Silver"}>
             <div style={{
                 position: 'fixed',
                 top: 64,

@@ -34,12 +34,28 @@ export const MembershipContext = createContext<MembershipContextProps | undefine
 // (e.g. "basic_chat", "partner_search") while some call sites pass the legacy
 // uppercase names (e.g. "CHAT", "PARTNER_SEARCH"). This must mirror the alias
 // map in backend/src/middleware/membershipMiddleware.js.
-const FEATURE_ALIASES: Record<string, string> = {
+//
+// Provider feature keys are prefixed with "provider_" (e.g. "provider_chat") to
+// keep them isolated from user feature keys. The alias map below maps the shared
+// call-site names to the correct scoped key based on the requesting user's role.
+const USER_FEATURE_ALIASES: Record<string, string> = {
     CHAT: 'basic_chat',
     PARTNER_SEARCH: 'partner_search',
     ADVANCED_SEARCH: 'advanced_search_filter',
     EVENT_ACCESS: 'tour_access',
     TOUR_ACCESS: 'tour_access',
+};
+
+const PROVIDER_FEATURE_ALIASES: Record<string, string> = {
+    CHAT: 'provider_chat',
+    BROWSE_EVENTS: 'provider_browse_events',
+    MY_EVENTS: 'provider_my_events',
+    AUDIO_CALL: 'provider_audio_call',
+    VIDEO_CALL: 'provider_video_call',
+    VERIFIED_BADGE: 'provider_verified_badge',
+    PRIORITY_MATCHING: 'provider_priority_matching',
+    VIP_SUPPORT: 'provider_vip_support',
+    EVENT_ACCESS: 'provider_browse_events',
 };
 
 // ── Provider ─────────────────────────────────────────────────────────────────
@@ -102,9 +118,14 @@ export const MembershipProvider: React.FC<{ children: ReactNode }> = ({ children
      * Returns true only if the user's current membership includes the given
      * feature key exactly as stored in `package_features.feature_key`.
      * Always safe to call — membership.features is guaranteed to be an array.
+     *
+     * The alias map is role-aware: providers resolve shared call-site names
+     * (e.g. "CHAT") to their scoped key (e.g. "provider_chat") so the same
+     * FeatureGate works for both roles without hardcoding package names.
      */
     const hasFeature = (featureKey: string): boolean => {
-        const key = FEATURE_ALIASES[featureKey] ?? featureKey;
+        const aliasMap = user?.role === 'provider' ? PROVIDER_FEATURE_ALIASES : USER_FEATURE_ALIASES;
+        const key = aliasMap[featureKey] ?? featureKey;
         return membership.features.includes(key);
     };
 

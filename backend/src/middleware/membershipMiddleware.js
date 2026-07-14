@@ -4,19 +4,37 @@ const db = require("../config/db");
 // stored in the `features` table. The DB uses lowercase, scoped keys
 // (e.g. "basic_chat", "partner_search") while some call sites pass the
 // legacy uppercase names (e.g. "CHAT", "PARTNER_SEARCH").
-// NOTE: provider-scoped keys like "EVENT_ACCESS" are intentionally left
-// untouched so provider functionality is never broken.
-const FEATURE_ALIASES = {
+//
+// Provider feature keys are prefixed with "provider_" (e.g. "provider_chat")
+// to keep them isolated from user feature keys. The alias map below maps the
+// shared call-site names to the correct scoped key based on the requesting
+// user's role, so the same `requireFeature("CHAT")` works for both users and
+// providers without hardcoding package names anywhere.
+const USER_FEATURE_ALIASES = {
   CHAT: "basic_chat",
   PARTNER_SEARCH: "partner_search",
   ADVANCED_SEARCH: "advanced_search_filter",
+  EVENT_ACCESS: "tour_access",
 };
 
-function normalizeFeatureName(featureName) {
+const PROVIDER_FEATURE_ALIASES = {
+  CHAT: "provider_chat",
+  BROWSE_EVENTS: "provider_browse_events",
+  MY_EVENTS: "provider_my_events",
+  AUDIO_CALL: "provider_audio_call",
+  VIDEO_CALL: "provider_video_call",
+  VERIFIED_BADGE: "provider_verified_badge",
+  PRIORITY_MATCHING: "provider_priority_matching",
+  VIP_SUPPORT: "provider_vip_support",
+  EVENT_ACCESS: "provider_browse_events",
+};
+
+function normalizeFeatureName(featureName, role) {
   if (!featureName) return null;
   const s = String(featureName).trim();
   if (!s) return null;
-  return FEATURE_ALIASES[s] || s;
+  if (role === "provider") return PROVIDER_FEATURE_ALIASES[s] || s;
+  return USER_FEATURE_ALIASES[s] || s;
 }
 
 function membershipNoMembership() {
@@ -31,8 +49,8 @@ function membershipLocked() {
   return { statusCode: 403, message: "Upgrade membership to access this feature" };
 }
 
-async function checkFeatureAccess(userId, featureName) {
-  const f = normalizeFeatureName(featureName);
+async function checkFeatureAccess(userId, featureName, role) {
+  const f = normalizeFeatureName(featureName, role);
   if (!f) return { allowed: false, ...membershipLocked() };
 
   // Load membership
@@ -91,11 +109,13 @@ function requireFeature(featureName) {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-      // Membership restrictions apply ONLY to role = 'user'.
-      // Admins and providers bypass all membership checks.
-      if (req.user?.role === "admin" || req.user?.role === "provider") return next();
+      // Admins bypass all membership checks.
+      if (req.user?.role === "admin") return next();
 
-      const result = await checkFeatureAccess(userId, f);
+      // Both users and providers are subject to membership feature gating.
+      // Access is determined purely by the active membership's package_features
+      // (DB-driven) — never by hardcoding package names.
+      const result = await checkFeatureAccess(userId, f, req.user?.role);
       if (!result.allowed) {
         return res.status(result.statusCode || 403).json({ message: result.message });
       }

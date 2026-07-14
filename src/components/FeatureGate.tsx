@@ -29,13 +29,14 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
     const { hasFeature, loading } = useMembership();
     const { user } = useAuth();
 
-    // Membership restrictions apply ONLY to role = 'user'.
-    // Admins and providers bypass all membership checks and keep full access.
-    const isExempt = user?.role === 'admin' || user?.role === 'provider';
+    // Admins bypass all membership checks and keep full access.
+    const isExempt = user?.role === 'admin';
     if (isExempt) {
         return <>{children}</>;
     }
 
+    // For providers, the membership tier label is "Provider" (not Silver/Gold/Platinum).
+    const tierLabel = user?.role === 'provider' ? 'Provider' : requiredTier;
 
     if (loading) {
         return (
@@ -87,14 +88,14 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
                     fontSize: '1.35rem', fontWeight: 800, color: '#fff',
                     margin: 0, fontFamily: "'Inter', sans-serif",
                 }}>
-                    {feature.replace(/_/g, ' ')} requires {requiredTier} membership
+                    {feature.replace(/_/g, ' ')} requires {tierLabel} membership
                 </h2>
 
                 <p style={{
                     fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)',
                     margin: 0, maxWidth: 360, lineHeight: 1.6,
                 }}>
-                    Upgrade your membership to unlock this feature and access premium benefits.
+                    Upgrade your membership to unlock this feature and access premium provider benefits.
                 </p>
 
                 <MembershipUpgradeButton>View Membership Plans</MembershipUpgradeButton>

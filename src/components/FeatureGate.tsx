@@ -11,6 +11,9 @@ interface FeatureGateProps {
     fallback?: ReactNode;
     fullPage?: boolean;
     requiredTier?: string;
+    /** When true, renders children immediately without any membership check.
+     *  Use this for features that providers must always access (e.g. chat inbox). */
+    providerBypass?: boolean;
 }
 
 /**
@@ -25,6 +28,7 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
     fallback,
     fullPage = false,
     requiredTier = 'Membership',
+    providerBypass = false,
 }) => {
     const { hasFeature, loading } = useMembership();
     const { user } = useAuth();
@@ -32,6 +36,11 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
     // Admins bypass all membership checks and keep full access.
     const isExempt = user?.role === 'admin';
     if (isExempt) {
+        return <>{children}</>;
+    }
+
+    // Explicit bypass: used by ChatPage for providers so their inbox is never locked.
+    if (providerBypass) {
         return <>{children}</>;
     }
 

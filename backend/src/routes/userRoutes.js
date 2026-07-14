@@ -79,8 +79,8 @@ router.get("/search", authMiddleware, requireFeature("PARTNER_SEARCH"), async (r
     const sizeNum = Math.min(50, Math.max(1, parseInt(String(pageSize ?? 12), 10) || 12));
     const offset = (pageNum - 1) * sizeNum;
 
-    const where = ["id != ?"];
-    const params = [userId];
+    const where = ["id != ?", "role = ?"];
+    const params = [userId, "provider"];
 
     if (gender) {
         where.push("gender = ?");

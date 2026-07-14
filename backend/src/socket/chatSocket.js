@@ -1,62 +1,51 @@
-const { getMessages, sendMessage } = require("../services/chatService");
+const { getMessages, sendMessage, checkChatPermission } = require("../services/chatService");
 
 function registerChatSocket(io, socket, onlineUsers) {
     // Note: Only implement the events required by the task.
 
-    socket.on("typing", async ({ receiver_id }) => {
-        if (!receiver_id) return;
+    // Shared gate: membership (existing) + partner-request rule for user↔provider.
+    const canChat = async (receiver_id) => {
         try {
             const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
-            const allowed = (await checkFeatureAccess(socket.userId, "CHAT")).allowed;
-
+            const allowed = (await checkFeatureAccess(socket.userId, "CHAT", socket.role)).allowed;
             if (!allowed) {
                 socket.emit("error", { error: true, message: "Upgrade to Silver to use chat." });
-                console.log("[SOCKET CHAT BLOCKED] typing");
-                return;
+                console.log("[SOCKET CHAT BLOCKED] membership");
+                return false;
             }
+
+            const perm = await checkChatPermission(socket.userId, receiver_id);
+            if (!perm.allowed) {
+                socket.emit("error", { error: true, message: perm.message || "Chat is locked until the partner request is accepted." });
+                console.log("[SOCKET CHAT BLOCKED] partner-request");
+                return false;
+            }
+            return true;
         } catch {
             socket.emit("error", { error: true, message: "Membership check failed" });
-            return;
+            return false;
         }
+    };
 
-        const receiverSocketId = onlineUsers.get(Number(receiver_id));
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("typing", { sender_id: socket.userId });
-        }
+    socket.on("typing", async ({ receiver_id }) => {
+        if (!receiver_id) return;
+        if (!(await canChat(receiver_id))) return;
+
+        io.to(`user_${Number(receiver_id)}`).emit("typing", { sender_id: socket.userId });
     });
 
 
     socket.on("stopTyping", async ({ receiver_id }) => {
         if (!receiver_id) return;
-        try {
-            const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
-            const allowed = (await checkFeatureAccess(socket.userId, "CHAT")).allowed;
-            if (!allowed) {
-                socket.emit("error", { error: true, message: "Upgrade to Silver to use chat." });
-                console.log("[SOCKET CHAT BLOCKED] stopTyping");
-                return;
-            }
-        } catch {
-            socket.emit("error", { error: true, message: "Membership check failed" });
-            return;
-        }
+        if (!(await canChat(receiver_id))) return;
 
-        const receiverSocketId = onlineUsers.get(Number(receiver_id));
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("stopTyping", { sender_id: socket.userId });
-        }
+        io.to(`user_${Number(receiver_id)}`).emit("stopTyping", { sender_id: socket.userId });
     });
 
 
     socket.on("sendMessage", async ({ receiver_id, message }) => {
         try {
-            const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
-            const allowed = (await checkFeatureAccess(socket.userId, "CHAT")).allowed;
-            if (!allowed) {
-                socket.emit("error", { error: true, message: "Upgrade to Silver to use chat." });
-                console.log("[SOCKET CHAT BLOCKED] sendMessage");
-                return;
-            }
+            if (!(await canChat(receiver_id))) return;
 
             const senderId = socket.userId;
             const payload = await sendMessage({
@@ -66,11 +55,15 @@ function registerChatSocket(io, socket, onlineUsers) {
             });
 
 
-            // Emit only AFTER successful DB insert
-            const receiverSocketId = onlineUsers.get(Number(receiver_id));
-            if (receiverSocketId) {
-                io.to(receiverSocketId).emit("newMessage", payload);
-            }
+            // Emit to both sender and receiver rooms (room-per-user architecture).
+            // This guarantees delivery even with multiple tabs / devices,
+            // and lets the sender's own sidebar update in real time.
+            const msgPayload = {
+                ...payload,
+                created_at: payload.created_at ?? new Date().toISOString(),
+            };
+            io.to(`user_${senderId}`).emit("newMessage", msgPayload);
+            io.to(`user_${Number(receiver_id)}`).emit("newMessage", msgPayload);
 
             // Optionally confirm to sender? Task does not list an event for this, so we do not.
         } catch (err) {

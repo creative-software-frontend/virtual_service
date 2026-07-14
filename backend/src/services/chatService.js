@@ -106,8 +106,97 @@ async function sendMessage({ senderId, receiverId, message }) {
     };
 }
 
+/**
+ * Returns the latest partner_request status between a user and a provider,
+ * or null if no request exists.
+ */
+async function getPartnerRequestStatus({ userId, providerId }) {
+    const [rows] = await db.query(
+        `SELECT status FROM partner_requests
+         WHERE user_id = ? AND provider_id = ?
+         ORDER BY created_at DESC LIMIT 1`,
+        [userId, providerId]
+    );
+    return rows && rows.length ? rows[0].status : null;
+}
+
+/**
+ * Chat access rule (USER ↔ PROVIDER partner workflow):
+ *
+ *   A user can chat with a provider only if BOTH are true:
+ *     1. The user has membership access to the chat feature (Silver or higher)
+ *     2. The partner request status = 'accepted'
+ *
+ *   Providers bypass membership restrictions but STILL require an accepted
+ *   partner request.
+ *
+ * For any other conversation shape (user↔user, etc.) the existing
+ * membership-gated chat behaviour is preserved.
+ *
+ * Returns { allowed, statusCode?, message? }.
+ */
+async function checkChatPermission(senderId, receiverId) {
+    const sId = Number(senderId);
+    const rId = Number(receiverId);
+
+    if (!sId || !rId || sId === rId) {
+        const err = new Error("Invalid chat participants");
+        err.statusCode = 400;
+        throw err;
+    }
+
+    const [sRows] = await db.query("SELECT id, role FROM users WHERE id = ? LIMIT 1", [sId]);
+    const [rRows] = await db.query("SELECT id, role FROM users WHERE id = ? LIMIT 1", [rId]);
+    if (!sRows.length || !rRows.length) {
+        const err = new Error("User not found");
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const senderRole = sRows[0].role;
+    const receiverRole = rRows[0].role;
+
+    const isUserProviderPair =
+        (senderRole === "user" && receiverRole === "provider") ||
+        (senderRole === "provider" && receiverRole === "user");
+
+    if (isUserProviderPair) {
+        const userId = senderRole === "user" ? sId : rId;
+        const providerId = senderRole === "provider" ? sId : rId;
+
+        const status = await getPartnerRequestStatus({ userId, providerId });
+        if (status !== "accepted") {
+            return {
+                allowed: false,
+                statusCode: 403,
+                message: "Chat is locked until the partner request is accepted.",
+            };
+        }
+
+        // Provider bypasses membership; the user still needs chat membership.
+        if (senderRole === "user") {
+            const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
+            const m = await checkFeatureAccess(sId, "CHAT", "user");
+            if (!m.allowed) {
+                return { allowed: false, statusCode: m.statusCode || 403, message: m.message };
+            }
+        }
+        return { allowed: true };
+    }
+
+    // Non user↔provider conversation: existing membership-gated chat.
+    const { checkFeatureAccess } = require("../middleware/membershipMiddleware");
+    const m = await checkFeatureAccess(sId, "CHAT", senderRole);
+    if (!m.allowed) {
+        return { allowed: false, statusCode: m.statusCode || 403, message: m.message };
+    }
+    return { allowed: true };
+}
+
 module.exports = {
     getMessages,
-    sendMessage
+    sendMessage,
+    checkChatPermission,
+    getPartnerRequestStatus
 };
 

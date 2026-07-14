@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { userApi, type PartnerSearchFilters, type PartnerSearchResponse, type UserProfile, type MatchRequestListResponse } from "../../../../utils/api";
+import { userApi, providerApi, type PartnerSearchFilters, type PartnerSearchResponse, type UserProfile, type PartnerRequestStatus } from "../../../../utils/api";
 import { FeatureGate } from "../../../../components/FeatureGate";
+import { useAuth } from "../../../../context/AuthContext";
 
 const fadeUp = {
     hidden: { opacity: 0, y: 14 },
@@ -115,18 +116,19 @@ function Pill({ children }: { children: React.ReactNode }) {
 
 function ProfileCard({
     profile,
-    requestedIds,
+    statusById,
     onRequest,
     onOpenDetails,
 }: {
     profile: PartnerSearchResponse["results"][number];
-    requestedIds: Set<number>;
+    statusById: Map<number, PartnerRequestStatus | null>;
     onRequest: (receiverId: number) => void;
     onOpenDetails: (p: PartnerSearchResponse["results"][number]) => void;
 }) {
     const age = computeAgeFromDob(profile.date_of_birth);
     const interests = profile.interests ? toInterestsArray(profile.interests) : [];
-    const canRequest = !requestedIds.has(profile.id);
+    const status = statusById.get(profile.id) ?? null;
+    const canRequest = status === null || status === 'rejected' || status === 'cancelled';
 
     return (
         <motion.div
@@ -212,7 +214,7 @@ function ProfileCard({
                         boxShadow: canRequest ? "0 0 14px rgba(59,130,246,0.3)" : "none",
                     }}
                 >
-                    {canRequest ? "Send Request" : "Requested"}
+                    {status === 'pending' ? 'Pending Approval' : status === 'accepted' ? 'Connected' : status === 'rejected' ? 'Request Rejected' : 'Send Request'}
                 </button>
             </div>
         </motion.div>
@@ -468,21 +470,55 @@ function SearchFilters({
 function DetailsModal({
     open,
     profile,
-    requestedIds,
+    statusById,
     onRequest,
     onClose,
 }: {
     open: boolean;
     profile: PartnerSearchResponse["results"][number] | null;
-    requestedIds: Set<number>;
+    statusById: Map<number, PartnerRequestStatus | null>;
     onRequest: (id: number) => void;
     onClose: () => void;
 }) {
+    const { user } = useAuth();
+    const role = user?.role;
+    const [gated, setGated] = useState<{ profile: any; access: 'public' | 'full' } | null>(null);
+    const [loadingProfile, setLoadingProfile] = useState(false);
+
+    const status = profile ? (statusById.get(profile.id) ?? null) : null;
+    const canRequest = status === null || status === 'rejected' || status === 'cancelled';
+    const isAccepted = status === 'accepted';
+
+    useEffect(() => {
+        if (!open || !profile) return;
+        let cancelled = false;
+        setLoadingProfile(true);
+        setGated(null);
+        const load = async () => {
+            const res = role === 'provider'
+                ? await providerApi.getRequesterProfile(profile.id)
+                : await userApi.getPartnerProfile(profile.id);
+            if (!cancelled && !res.error && res.data) {
+                setGated({ profile: res.data.profile, access: res.data.access });
+            }
+            if (!cancelled) setLoadingProfile(false);
+        };
+        load();
+        return () => { cancelled = true; };
+    }, [open, profile, role]);
+
     if (!open || !profile) return null;
 
-    const interests = profile.interests ? toInterestsArray(profile.interests) : [];
-    const age = computeAgeFromDob(profile.date_of_birth);
-    const canRequest = !requestedIds.has(profile.id);
+    const view = gated?.profile ?? profile;
+    const fullAccess = gated?.access === 'full';
+    const interests = view.interests ? toInterestsArray(view.interests) : [];
+    const age = computeAgeFromDob(view.date_of_birth);
+
+    const goToChat = () => {
+        // Navigate into the chat tab; the conversation list will include the
+        // provider once the request is accepted (chat is unlocked).
+        window.location.href = `/${role}/dashboard/chat`;
+    };
 
     return (
         <div
@@ -490,14 +526,14 @@ function DetailsModal({
             aria-modal="true"
             style={{
                 position: "fixed", inset: 0, background: "var(--bg-overlay)", backdropFilter: "blur(8px)",
-                zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 0,
+                zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
             }}
             onClick={onClose}
         >
             <motion.div
-                initial={{ y: 60, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.25 }}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.2 }}
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     width: "100%",
@@ -506,7 +542,7 @@ function DetailsModal({
                     overflowY: "auto",
                     background: "var(--bg-card)",
                     border: "1px solid var(--border-subtle)",
-                    borderRadius: "20px 20px 0 0",
+                    borderRadius: "20px",
                     boxShadow: "var(--shadow-lg)",
                 }}
             >
@@ -530,68 +566,105 @@ function DetailsModal({
                         ✕
                     </button>
                     <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-                        <Avatar profile={{ name: profile.name, avatar_url: profile.avatar_url }} size={64} />
+                        <Avatar profile={{ name: view.name, avatar_url: view.avatar_url }} size={64} />
                         <div>
-                            <div style={{ color: "#fff", fontWeight: 900, fontSize: "1.2rem" }}>{profile.name}</div>
+                            <div style={{ color: "#fff", fontWeight: 900, fontSize: "1.2rem" }}>{view.name}</div>
                             <div style={{ color: "rgba(255,255,255,0.85)", fontWeight: 600, fontSize: "0.8rem", marginTop: 2 }}>
-                                {profile.profession || "Profession not set"}{age !== null ? ` · ${age} yrs` : ""}
+                                {view.profession || "Profession not set"}{age !== null ? ` · ${age} yrs` : ""}
                             </div>
+                            {!fullAccess && (
+                                <div style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600, fontSize: "0.68rem", marginTop: 4 }}>
+                                    Public profile · full access after request accepted
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div style={{ padding: 20 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
-                        {[
-                            { label: "Location", value: profile.location ?? "Not set" },
-                            { label: "Gender", value: profile.gender ?? "Not set" },
-                            { label: "Education", value: profile.education ?? "Not set" },
-                            { label: "Relationship goal", value: profile.relationship_goal ?? "Not set" },
-                            { label: "Marital status", value: profile.marital_status ?? "Not set" },
-                        ].map((row) => (
-                            <div key={row.label} style={{
-                                display: "flex", justifyContent: "space-between", gap: 10,
-                                padding: "11px 13px", borderRadius: 10,
-                                background: "var(--bg-input)", border: "1px solid var(--border-subtle)",
-                            }}>
-                                <span style={{ color: "var(--text-muted)", fontWeight: 700, fontSize: "0.78rem" }}>{row.label}</span>
-                                <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: "0.82rem", textAlign: "right", wordBreak: "break-word" }}>{row.value}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div style={{ marginBottom: 22 }}>
-                        <div style={{ color: "var(--text-muted)", fontWeight: 800, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
-                            Interests
+                    {loadingProfile ? (
+                        <div style={{ color: "var(--text-muted)", fontWeight: 600, fontSize: "0.82rem", padding: "12px 0" }}>
+                            Loading profile…
                         </div>
-                        {interests.length ? (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                                {interests.map((i) => <Pill key={i}>{i}</Pill>)}
+                    ) : (
+                        <>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
+                                {[
+                                    { label: "Location", value: view.location ?? "Not set" },
+                                    ...(fullAccess ? [
+                                        { label: "Gender", value: view.gender ?? "Not set" },
+                                        { label: "Education", value: view.education ?? "Not set" },
+                                        { label: "Relationship goal", value: view.relationship_goal ?? "Not set" },
+                                        { label: "Marital status", value: view.marital_status ?? "Not set" },
+                                    ] : []),
+                                ].map((row) => (
+                                    <div key={row.label} style={{
+                                        display: "flex", justifyContent: "space-between", gap: 10,
+                                        padding: "11px 13px", borderRadius: 10,
+                                        background: "var(--bg-input)", border: "1px solid var(--border-subtle)",
+                                    }}>
+                                        <span style={{ color: "var(--text-muted)", fontWeight: 700, fontSize: "0.78rem" }}>{row.label}</span>
+                                        <span style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: "0.82rem", textAlign: "right", wordBreak: "break-word" }}>{row.value}</span>
+                                    </div>
+                                ))}
                             </div>
-                        ) : (
-                            <div style={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Not set</div>
-                        )}
-                    </div>
 
-                    <button
-                        type="button"
-                        onClick={() => onRequest(profile.id)}
-                        disabled={!canRequest}
-                        style={{
-                            width: "100%",
-                            padding: "14px",
-                            background: canRequest ? "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))" : "rgba(59,130,246,0.15)",
-                            border: "none",
-                            borderRadius: 11,
-                            color: canRequest ? "#fff" : "var(--text-muted)",
-                            fontWeight: 800,
-                            fontSize: "0.85rem",
-                            cursor: canRequest ? "pointer" : "not-allowed",
-                            boxShadow: canRequest ? "0 0 18px rgba(59,130,246,0.35)" : "none",
-                        }}
-                    >
-                        {canRequest ? "Send Match Request" : "Request Already Sent"}
-                    </button>
+                            <div style={{ marginBottom: 22 }}>
+                                <div style={{ color: "var(--text-muted)", fontWeight: 800, fontSize: "0.7rem", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+                                    Interests
+                                </div>
+                                {interests.length ? (
+                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+                                        {interests.map((i) => <Pill key={i}>{i}</Pill>)}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: "var(--text-secondary)", fontWeight: 600, fontSize: "0.8rem" }}>Not set</div>
+                                )}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => onRequest(profile.id)}
+                                disabled={!canRequest}
+                                style={{
+                                    width: "100%",
+                                    padding: "14px",
+                                    background: canRequest ? "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))" : "rgba(59,130,246,0.15)",
+                                    border: "none",
+                                    borderRadius: 11,
+                                    color: canRequest ? "#fff" : "var(--text-muted)",
+                                    fontWeight: 800,
+                                    fontSize: "0.85rem",
+                                    cursor: canRequest ? "pointer" : "not-allowed",
+                                    boxShadow: canRequest ? "0 0 18px rgba(59,130,246,0.35)" : "none",
+                                }}
+                            >
+                                {status === 'pending' ? 'Pending Approval' : status === 'accepted' ? 'Connected' : status === 'rejected' ? 'Request Rejected' : 'Send Request'}
+                            </button>
+
+                            {isAccepted && (
+                                <button
+                                    type="button"
+                                    onClick={goToChat}
+                                    style={{
+                                        width: "100%",
+                                        marginTop: 10,
+                                        padding: "14px",
+                                        background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                                        border: "none",
+                                        borderRadius: 11,
+                                        color: "#fff",
+                                        fontWeight: 800,
+                                        fontSize: "0.85rem",
+                                        cursor: "pointer",
+                                        boxShadow: "0 0 18px rgba(34,197,94,0.35)",
+                                    }}
+                                >
+                                    Open Chat
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
             </motion.div>
         </div>
@@ -640,7 +713,7 @@ export function PartnerSearchPanel() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [matchRequests, setMatchRequests] = useState<MatchRequestListResponse | null>(null);
+    const [statusById, setStatusById] = useState<Map<number, PartnerRequestStatus | null>>(new Map());
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [detailsProfile, setDetailsProfile] = useState<PartnerSearchResponse["results"][number] | null>(null);
 
@@ -664,33 +737,37 @@ export function PartnerSearchPanel() {
         return () => { cancelled = true; };
     }, [filters, page]);
 
+    // Load partner-request status for each provider in the current results.
     useEffect(() => {
         let cancelled = false;
-        const loadRequests = async () => {
-            const res = await userApi.getMatchRequests();
-            if (cancelled) return;
-            if (!res.error) setMatchRequests(res.data ?? null);
+        const results = data?.results ?? [];
+        if (results.length === 0) return;
+        const loadStatuses = async () => {
+            const next = new Map<number, PartnerRequestStatus | null>();
+            await Promise.all(
+                results.map(async (p) => {
+                    const res = await userApi.getPartnerRequestStatus(p.id);
+                    if (!cancelled && !res.error) next.set(p.id, res.data?.status ?? null);
+                })
+            );
+            if (!cancelled) setStatusById(next);
         };
-        loadRequests();
+        loadStatuses();
         return () => { cancelled = true; };
-    }, []);
+    }, [data]);
 
-    const requestedIds = useMemo(() => {
-        const ids = new Set<number>();
-        if (!matchRequests) return ids;
-        for (const inc of matchRequests.incoming) ids.add(inc.sender_id);
-        for (const out of matchRequests.outgoing) ids.add(out.receiver_id);
-        return ids;
-    }, [matchRequests]);
-
-    const onRequest = async (receiverId: number) => {
-        const res = await userApi.sendMatchRequest(receiverId);
+    const onRequest = async (providerId: number) => {
+        const res = await userApi.sendPartnerRequest(providerId);
         if (res.error) {
             setError(res.error);
             return;
         }
-        const reqs = await userApi.getMatchRequests();
-        if (!reqs.error) setMatchRequests(reqs.data ?? null);
+        // Optimistically reflect the new pending status.
+        setStatusById((prev) => {
+            const next = new Map(prev);
+            next.set(providerId, res.data?.status ?? 'pending');
+            return next;
+        });
     };
 
     const openDetails = (p: PartnerSearchResponse["results"][number]) => {
@@ -791,7 +868,7 @@ export function PartnerSearchPanel() {
                         <ProfileCard
                             key={p.id}
                             profile={p}
-                            requestedIds={requestedIds}
+                            statusById={statusById}
                             onRequest={onRequest}
                             onOpenDetails={openDetails}
                         />
@@ -802,7 +879,7 @@ export function PartnerSearchPanel() {
             <DetailsModal
                 open={detailsOpen}
                 profile={detailsProfile}
-                requestedIds={requestedIds}
+                statusById={statusById}
                 onRequest={(id) => { onRequest(id); }}
                 onClose={() => setDetailsOpen(false)}
             />

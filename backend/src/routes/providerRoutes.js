@@ -8,6 +8,7 @@ const { requireFeature } = require("../middleware/membershipMiddleware");
 const db = require("../config/db");
 const newsfeedController = require("../controllers/newsfeedController");
 const chatService = require("../services/chatService");
+const { checkChatPermission } = chatService;
 
 // BEFORE (NOT GOOD)
 // router.get("/provider-dashboard", ...)
@@ -56,20 +57,48 @@ router.get(
 );
 
 // GET /api/provider/online-users
+// Provider chat list = users who have a partner request (pending OR accepted)
+// OR users who have sent/received a chat message with this provider.
+// Online status is surfaced for the presence indicator.
 router.get(
     "/online-users",
     authMiddleware,
     roleMiddleware(["provider", "user", "admin"]),
-    requireFeature("CHAT"),
     (req, res) => {
+        const providerId = req.user.id;
         db.query(
             `
-            SELECT id, name, last_seen, is_online
-            FROM users
-            WHERE role = 'user'
-              AND (is_online = 1 OR last_seen >= NOW() - INTERVAL 60 SECOND)
-            ORDER BY is_online DESC, last_seen DESC
+            SELECT u.id, u.name, u.last_seen, u.is_online,
+                   MAX(pr.status) AS request_status
+            FROM (
+                -- Source 1: partner requests (pending or accepted)
+                SELECT pr.user_id AS partner_uid, pr.status
+                FROM partner_requests pr
+                WHERE pr.provider_id = ?
+                  AND pr.status IN ('pending', 'accepted')
+
+                UNION
+
+                -- Source 2: chat messages where provider is involved
+                SELECT CASE
+                         WHEN cm.sender_id = ? THEN cm.receiver_id
+                         ELSE cm.sender_id
+                       END AS partner_uid,
+                       NULL AS status
+                FROM chat_messages cm
+                WHERE cm.sender_id = ? OR cm.receiver_id = ?
+            ) AS combined
+            JOIN users u ON u.id = combined.partner_uid
+            LEFT JOIN partner_requests pr
+                   ON pr.user_id = u.id AND pr.provider_id = ?
+                  AND pr.status IN ('pending', 'accepted')
+            WHERE u.id != ?
+            GROUP BY u.id, u.name, u.last_seen, u.is_online
+            ORDER BY
+                CASE WHEN MAX(pr.status) = 'accepted' THEN 0 ELSE 1 END,
+                u.is_online DESC, u.last_seen DESC
             `,
+            [providerId, providerId, providerId, providerId, providerId, providerId],
             (err, rows) => {
                 if (err) return res.status(500).json({ message: "Database error: " + err.message });
                 res.json(rows);
@@ -79,20 +108,47 @@ router.get(
 );
 
 // ── GET /api/provider/active-providers (for user dashboard)
+// User chat list = providers who have a partner request (pending OR accepted)
+// with this user, OR providers with whom the user has exchanged messages.
 router.get(
     "/active-providers",
     authMiddleware,
     roleMiddleware(["user", "provider", "admin"]),
-    requireFeature("CHAT"),
     (req, res) => {
+        const userId = req.user.id;
         db.query(
             `
-            SELECT id, name, last_seen, is_online
-            FROM users
-            WHERE role = 'provider'
-              AND (is_online = 1 OR last_seen >= NOW() - INTERVAL 60 SECOND)
-            ORDER BY is_online DESC, last_seen DESC
+            SELECT u.id, u.name, u.last_seen, u.is_online,
+                   MAX(pr.status) AS request_status
+            FROM (
+                -- Source 1: partner requests (pending or accepted)
+                SELECT pr.provider_id AS partner_uid, pr.status
+                FROM partner_requests pr
+                WHERE pr.user_id = ?
+                  AND pr.status IN ('pending', 'accepted')
+
+                UNION
+
+                -- Source 2: chat messages where user is involved
+                SELECT CASE
+                         WHEN cm.sender_id = ? THEN cm.receiver_id
+                         ELSE cm.sender_id
+                       END AS partner_uid,
+                       NULL AS status
+                FROM chat_messages cm
+                WHERE cm.sender_id = ? OR cm.receiver_id = ?
+            ) AS combined
+            JOIN users u ON u.id = combined.partner_uid
+            LEFT JOIN partner_requests pr
+                   ON pr.provider_id = u.id AND pr.user_id = ?
+                  AND pr.status IN ('pending', 'accepted')
+            WHERE u.id != ?
+            GROUP BY u.id, u.name, u.last_seen, u.is_online
+            ORDER BY
+                CASE WHEN MAX(pr.status) = 'accepted' THEN 0 ELSE 1 END,
+                u.is_online DESC, u.last_seen DESC
             `,
+            [userId, userId, userId, userId, userId, userId],
             (err, rows) => {
                 if (err) return res.status(500).json({ message: "Database error: " + err.message });
                 res.json(rows);
@@ -180,6 +236,13 @@ router.get(
         const partner = parseInt(req.query.with, 10);
         if (!partner) return res.status(400).json({ message: "Missing 'with' query param." });
 
+        // Partner-request chat rule: user↔provider chat requires an accepted
+        // partner request (plus membership for the user side).
+        const perm = await checkChatPermission(me, partner);
+        if (!perm.allowed) {
+            return res.status(perm.statusCode || 403).json({ message: perm.message });
+        }
+
         try {
             const rows = await chatService.getMessages({ senderId: me, partnerId: partner });
             res.json(rows);
@@ -200,6 +263,13 @@ router.post(
         const { receiver_id, message } = req.body;
         if (!receiver_id || !message || !message.trim()) {
             return res.status(400).json({ message: "receiver_id and message are required." });
+        }
+
+        // Partner-request chat rule: user↔provider chat requires an accepted
+        // partner request (plus membership for the user side).
+        const perm = await checkChatPermission(req.user.id, receiver_id);
+        if (!perm.allowed) {
+            return res.status(perm.statusCode || 403).json({ message: perm.message });
         }
 
         try {

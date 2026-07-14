@@ -559,6 +559,29 @@ module.exports = async (db) => {
         console.log('event_participants table verified');
 
         // ════════════════════════════════════════════════════════════
+        // 12. partner_requests  — USER → PROVIDER partner requests
+        //     Distinct from match_requests (user↔user). Drives chat +
+        //     full-profile access between a user and a provider once
+        //     the provider accepts the request.
+        // ════════════════════════════════════════════════════════════
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS partner_requests (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                user_id     INT NOT NULL,
+                provider_id INT NOT NULL,
+                status      ENUM('pending','accepted','rejected','cancelled') NOT NULL DEFAULT 'pending',
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_partner_user_provider (user_id, provider_id),
+                CONSTRAINT fk_pr_user     FOREIGN KEY (user_id)     REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT fk_pr_provider FOREIGN KEY (provider_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        await addFKIfNotExists('partner_requests', 'fk_pr_user',     'user_id',     'users', 'id', 'CASCADE');
+        await addFKIfNotExists('partner_requests', 'fk_pr_provider', 'provider_id', 'users', 'id', 'CASCADE');
+        console.log('partner_requests table verified');
+
+        // ════════════════════════════════════════════════════════════
         // 12. post_likes  — depends on posts + users
         // ════════════════════════════════════════════════════════════
         await db.query(`

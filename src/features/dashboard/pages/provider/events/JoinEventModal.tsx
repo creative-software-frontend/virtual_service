@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { eventApi } from '../../../../../utils/api';
 import { useToast } from '../../../../../components/Toast';
 import { formatEventDate } from './utils/eventHelpers';
 import type { Event } from './types/event';

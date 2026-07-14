@@ -11,6 +11,7 @@ import { EventDetailsModal } from './EventDetailsModal';
 import { JoinEventModal } from './JoinEventModal';
 import type { Event } from './types/event';
 import { PartnerSearchPanel } from '../../partner/PartnerSearchPanel';
+import { PartnerRequestsPanel } from '../../partner/PartnerRequestsPanel';
 import { FeatureGate } from '../../../../../components/FeatureGate';
 
 export function EventPage() {
@@ -18,10 +19,6 @@ export function EventPage() {
     const { user } = useAuth();
     const currentUserId = user?.id ?? 0;
 
-    // Use the authenticated user's role (not the URL param) to decide which
-    // navigation items are visible. The backend still enforces the actual
-    // permissions (e.g. requireFeature("MY_EVENTS") on POST /provider/events),
-    // so we only gate the UI here.
     const userRole = user?.role ?? role;
 
     const {
@@ -44,7 +41,7 @@ export function EventPage() {
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [activeTab, setActiveTab] = useState<'browse' | 'my-events' | 'joined-events' | 'partner'>('browse');
+    const [activeTab, setActiveTab] = useState<'browse' | 'my-events' | 'joined-events' | 'partner' | 'requests'>('browse');
 
     // Modals
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -182,6 +179,37 @@ export function EventPage() {
                     </button>
                 )}
 
+                {userRole === 'provider' && (
+                    <button
+                        onClick={() => setActiveTab('requests')}
+                        style={{
+                            flex: 1,
+                            background: 'none',
+                            border: 'none',
+                            color: activeTab === 'requests' ? '#818cf8' : 'var(--text-secondary)',
+                            padding: '12px 0',
+                            fontSize: '0.85rem',
+                            fontWeight: activeTab === 'requests' ? 700 : 500,
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'color 0.2s'
+                        }}
+                    >
+                        Requests
+                        {activeTab === 'requests' && (
+                            <span style={{
+                                position: 'absolute',
+                                bottom: -1,
+                                left: '25%',
+                                right: '25%',
+                                height: 2,
+                                background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                borderRadius: 4
+                            }} />
+                        )}
+                    </button>
+                )}
+
                 {userRole === 'user' && (
                     <>
                         <button
@@ -248,6 +276,8 @@ export function EventPage() {
             {/* Event Lists depending on active tab */}
             {activeTab === 'partner' ? (
                 <PartnerSearchPanel />
+            ) : activeTab === 'requests' ? (
+                <PartnerRequestsPanel />
             ) : loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
                     Loading experiences...

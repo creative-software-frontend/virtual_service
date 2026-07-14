@@ -34,13 +34,9 @@ function setupSocket(httpServer) {
     });
 
     io.on("connection", (socket) => {
-        // Cleanup/replace on reconnect
-        for (const [userId, sockId] of onlineUsers.entries()) {
-            if (sockId === socket.id) {
-                onlineUsers.delete(userId);
-            }
-        }
         if (socket.userId != null) {
+            // Join personal room so we can emit to user_${id} from anywhere
+            socket.join(`user_${socket.userId}`);
             onlineUsers.set(socket.userId, socket.id);
         }
 

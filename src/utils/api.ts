@@ -251,6 +251,47 @@ export interface SendMatchRequestResponse {
     message: string;
 }
 
+// ── Partner Request (USER → PROVIDER) types ──────────────────────────────────
+export type PartnerRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled';
+
+export interface PartnerRequestItem {
+    id: number;
+    user_id: number;
+    provider_id: number;
+    status: PartnerRequestStatus;
+    created_at: string;
+    updated_at: string;
+    // Requester (user) profile fields, joined for the provider inbox:
+    name: string | null;
+    avatar_url: string | null;
+    gender: string | null;
+    date_of_birth: string | null;
+    location: string | null;
+    profession: string | null;
+    interests: string | null;
+    bio: string | null;
+}
+
+export interface PartnerRequestListResponse {
+    requests: PartnerRequestItem[];
+}
+
+export interface PartnerRequestStatusResponse {
+    status: PartnerRequestStatus | null;
+    request?: {
+        id: number;
+        status: PartnerRequestStatus;
+        created_at: string;
+        updated_at: string;
+    } | null;
+}
+
+export interface SendPartnerRequestResponse {
+    message: string;
+    request_id: number;
+    status: PartnerRequestStatus;
+}
+
 // ── User endpoints ────────────────────────────────────────────────────────────
 export interface MembershipStatus {
     plan: string;
@@ -411,6 +452,22 @@ export const userApi = {
         request<{ message: string; match_request_id: number }>(`/user/match-request/${id}/reject`, {
             method: 'POST',
         }),
+
+    // ── Partner Request (USER → PROVIDER) ──
+    sendPartnerRequest: (providerId: number) =>
+        request<SendPartnerRequestResponse>('/partner/request', {
+            method: 'POST',
+            body: JSON.stringify({ provider_id: providerId }),
+        }),
+
+    getPartnerRequestStatus: (providerId: number) =>
+        request<PartnerRequestStatusResponse>(`/partner/status/${providerId}`),
+
+    // View a provider's profile (public until request accepted, then full).
+    getPartnerProfile: (providerId: number) =>
+        request<{ profile: UserProfile; access: 'public' | 'full'; partner_status: PartnerRequestStatus | null }>(
+            `/partner/profile/${providerId}`
+        ),
 };
 
 // ── Provider Package type (normalized) ────────────────────────────────────────
@@ -439,6 +496,28 @@ export const providerApi = {
         ),
     getProviderPackages: () =>
         request<ProviderPackage[]>('/provider/packages'),
+
+    // ── Partner Requests inbox (PROVIDER) ──
+    getPartnerRequests: () =>
+        request<PartnerRequestListResponse>('/provider/partner-requests'),
+
+    acceptPartnerRequest: (id: number) =>
+        request<{ message: string; request_id: number; status: PartnerRequestStatus }>(
+            `/provider/partner-request/${id}/accept`,
+            { method: 'POST' }
+        ),
+
+    rejectPartnerRequest: (id: number) =>
+        request<{ message: string; request_id: number; status: PartnerRequestStatus }>(
+            `/provider/partner-request/${id}/reject`,
+            { method: 'POST' }
+        ),
+
+    // View a requester's (user) profile (public until request accepted, then full).
+    getRequesterProfile: (userId: number) =>
+        request<{ profile: UserProfile; access: 'public' | 'full'; partner_status: PartnerRequestStatus | null }>(
+            `/provider/requester-profile/${userId}`
+        ),
 };
 
 // ── Membership catalogs (role isolation) ─────────────────────────────────
@@ -495,6 +574,7 @@ export interface ActiveUser {
     name: string;
     last_seen: string | null;
     is_online: number;
+    request_status?: 'pending' | 'accepted' | 'rejected';
 }
 
 export const serviceApi = {

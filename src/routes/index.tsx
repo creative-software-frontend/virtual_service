@@ -1,9 +1,11 @@
 import { createBrowserRouter } from "react-router-dom";
 import { ProtectedRoute } from "../components/ProtectedRoute";
+import { ErrorPage } from "../components/ErrorPage";
 
 export const router = createBrowserRouter([
   {
     path: "/",
+    errorElement: <ErrorPage />,
     lazy: async () => {
       const { LandingPage } = await import("../features/landing/LandingPage");
       return { element: <LandingPage /> };
@@ -11,6 +13,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
+    errorElement: <ErrorPage />,
     lazy: async () => {
       const { AuthPage } = await import("../features/auth/AuthPage");
       return { element: <AuthPage /> };
@@ -18,6 +21,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/signup",
+    errorElement: <ErrorPage />,
     lazy: async () => {
       const { AuthPage } = await import("../features/auth/AuthPage");
       return { element: <AuthPage /> };
@@ -25,6 +29,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/provider/register",
+    errorElement: <ErrorPage />,
     lazy: async () => {
       const { ProviderRegisterPage } = await import("../features/auth/ProviderRegisterPage");
       return { element: <ProviderRegisterPage /> };
@@ -34,6 +39,7 @@ export const router = createBrowserRouter([
   // Unified Role Dashboard
   {
     path: "/:role/dashboard",
+    errorElement: <ErrorPage />,
     lazy: async () => {
       const { DashboardLayout } = await import("../features/dashboard/DashboardLayout");
       return {

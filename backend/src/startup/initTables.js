@@ -139,18 +139,25 @@ module.exports = async (db) => {
         ];
 
         // ─── Seed provider features ───────────────────────────────
+        // NOTE: provider feature keys are prefixed with `provider_` to avoid
+        // colliding with user feature keys (e.g. audio_call, vip_support) that
+        // share the same display name. The dedup-by-key logic below keeps the
+        // LAST occurrence, so reusing a user key would overwrite its scope and
+        // break the user membership feature mapping. Display names match the
+        // product spec exactly.
+        //
+        //   Implemented now:        Chat, Browse Events, My Events
+        //   Coming soon:            Audio Call, Video Call, Verified Badge,
+        //                           Priority Matching, VIP Support
         const providerFeatures = [
-            { key: 'featured_profile',      display: 'Featured Profile', scope: 'provider' },
-            { key: 'unlimited_services',    display: 'Unlimited Services', scope: 'provider' },
-            { key: 'priority_search',       display: 'Priority Search Ranking', scope: 'provider' },
-            { key: 'verified_provider_badge', display: 'Verified Provider Badge', scope: 'provider' },
-            { key: 'analytics_dashboard',   display: 'Analytics Dashboard', scope: 'provider' },
-            { key: 'priority_support',      display: 'Priority Support', scope: 'provider' },
-            { key: 'event_access',          display: 'Tour/Event Access', scope: 'provider' },
-            { key: 'priority_matching',     display: 'Priority Matching', scope: 'provider' },
-            { key: 'homepage_promotion',    display: 'Homepage Promotion', scope: 'provider' },
-            { key: 'vip_support',           display: 'VIP Support', scope: 'provider' },
-            { key: 'early_access_features', display: 'Early Access Features', scope: 'provider' },
+            { key: 'provider_chat',             display: 'Chat', scope: 'provider' },
+            { key: 'provider_browse_events',    display: 'Browse Events', scope: 'provider' },
+            { key: 'provider_my_events',        display: 'My Events', scope: 'provider' },
+            { key: 'provider_audio_call',       display: 'Audio Call', scope: 'provider' },
+            { key: 'provider_video_call',       display: 'Video Call', scope: 'provider' },
+            { key: 'provider_verified_badge',  display: 'Verified Badge', scope: 'provider' },
+            { key: 'provider_priority_matching', display: 'Priority Matching', scope: 'provider' },
+            { key: 'provider_vip_support',     display: 'VIP Support', scope: 'provider' },
         ];
 
         const allFeatures = [...userFeatures, ...providerFeatures];
@@ -162,6 +169,12 @@ module.exports = async (db) => {
             ['video_call', 1],
             ['advanced_search_filter', 1],
             ['vip_support', 1],
+            // Provider coming-soon features (DB-driven via is_coming_soon)
+            ['provider_audio_call', 1],
+            ['provider_video_call', 1],
+            ['provider_verified_badge', 1],
+            ['provider_priority_matching', 1],
+            ['provider_vip_support', 1],
         ]);
 
         for (const feat of uniqueFeatures) {
@@ -177,6 +190,24 @@ module.exports = async (db) => {
             );
         }
         console.log('✅ Features seeded');
+
+        // ─── Prune stale provider features ──────────────────────────
+        // The seed above only UPSERTs, so provider features removed from the
+        // spec (e.g. the old analytics_dashboard, featured_profile, etc.)
+        // would linger in the DB and appear as "extra" options in the admin
+        // provider package creator. Remove any provider-scoped feature whose
+        // key is not in the current provider spec list.
+        const providerSpecKeys = new Set(providerFeatures.map(f => f.key));
+        const [staleProvider] = await db.query(
+            "SELECT id FROM features WHERE scope = 'provider' AND feature_key NOT IN (?)",
+            [Array.from(providerSpecKeys)]
+        );
+        if (staleProvider.length) {
+            const staleIds = staleProvider.map(r => r.id);
+            // package_features rows cascade on feature delete (FK ON DELETE CASCADE)
+            await db.query("DELETE FROM features WHERE id IN (?)", [staleIds]);
+            console.log(`🧹 Removed ${staleIds.length} stale provider feature(s):`, staleProvider.map(r => r.feature_key).join(', '));
+        }
 
         // ════════════════════════════════════════════════════════════
         // 3. package_features  — normalized schema migration

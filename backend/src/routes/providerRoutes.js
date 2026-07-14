@@ -478,7 +478,7 @@ router.get(
 
             const packageIds = packages.map(p => p.id);
             const [featureRows] = await db.query(
-                `SELECT pf.package_id, f.id AS feature_id, f.feature_key, f.display_name
+                `SELECT pf.package_id, f.id AS feature_id, f.feature_key, f.display_name, f.is_coming_soon
                  FROM package_features pf
                  JOIN features f ON f.id = pf.feature_id
                  WHERE pf.package_id IN (?)`,
@@ -492,6 +492,7 @@ router.get(
                     id: row.feature_id,
                     key: row.feature_key,
                     display_name: row.display_name,
+                    is_coming_soon: Number(row.is_coming_soon) === 1,
                 });
             }
 

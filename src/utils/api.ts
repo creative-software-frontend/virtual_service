@@ -557,6 +557,7 @@ export interface PackageFeature {
     id: number;
     key: string;
     display_name: string;
+    is_coming_soon?: boolean;
 }
 
 export interface Package {

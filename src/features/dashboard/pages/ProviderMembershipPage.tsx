@@ -228,10 +228,9 @@ function TierCard({ pkg, index }: { pkg: Package; index: number }) {
                         gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))',
                         gap: '10px',
                     }}>
-                            {((Array.isArray(pkg.features) ? pkg.features : []) as Array<{ key: string; display_name: string }>).map((feat) => {
-                            // Coming Soon is DB-driven via features.is_coming_soon in /membership/status.
-                            // Provider membership catalog is only a preview of selected package features,
-                            // so we render all selected features without hardcoded coming-soon logic.
+                            {((Array.isArray(pkg.features) ? pkg.features : []) as Array<{ key: string; display_name: string; is_coming_soon?: boolean }>).map((feat) => {
+                            // Coming Soon is DB-driven via features.is_coming_soon.
+                            const isCS = !!feat.is_coming_soon;
 
                             return (
                                 <li
@@ -240,20 +239,36 @@ function TierCard({ pkg, index }: { pkg: Package; index: number }) {
                                     style={{
                                         display: 'flex', alignItems: 'center', gap: '10px',
                                         fontSize: '0.875rem',
-                                        color: 'var(--text-secondary)',
+                                        color: isCS ? 'var(--text-muted)' : 'var(--text-secondary)',
                                         fontFamily: 'var(--font-sans)',
+                                        opacity: isCS ? 0.7 : 1,
                                     }}
                                 >
                                     <span style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        background: 'var(--gold-glow)',
-                                        border: '1px solid var(--border-gold)',
+                                        background: isCS ? 'var(--bg-input)' : 'var(--gold-glow)',
+                                        border: `1px solid ${isCS ? 'var(--border-subtle)' : 'var(--border-gold)'}`,
                                         borderRadius: '50%', width: '22px', height: '22px', flexShrink: 0,
                                     }}>
-                                        <CheckIcon />
+                                        {isCS ? <LockIcon /> : <CheckIcon />}
                                     </span>
 
-                                    <span style={{ flex: 1 }}>{feat.display_name}</span>
+                                    <span style={{ flex: 1 }}>
+                                        {feat.display_name}
+                                        {isCS && (
+                                            <span style={{
+                                                marginLeft: '8px',
+                                                fontSize: '0.55rem', fontWeight: 700,
+                                                padding: '1px 6px', borderRadius: '999px',
+                                                background: 'rgba(245,158,11,0.12)',
+                                                color: 'var(--gold-mid)',
+                                                border: '1px solid rgba(245,158,11,0.3)',
+                                                flexShrink: 0,
+                                            }}>
+                                                Coming Soon
+                                            </span>
+                                        )}
+                                    </span>
 
                                 </li>
                             );

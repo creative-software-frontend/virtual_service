@@ -154,12 +154,18 @@ function FeatureCheckboxes({
                             <span style={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '3px',
+                                gap: '4px',
                                 fontSize: '0.55rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '999px',
+                                background: 'rgba(245,158,11,0.12)',
                                 color: 'var(--gold-mid)',
-                                opacity: 0.7,
+                                border: '1px solid rgba(245,158,11,0.3)',
+                                opacity: 0.85,
+                                flexShrink: 0,
                             }}>
-                                <LockIconSm />
+                                <LockIconSm /> Soon
                             </span>
                         )}
                     </label>
@@ -342,11 +348,10 @@ function PackagesSection() {
     const userPackages = packages.filter(p => p.type === 'user' || !p.type);
     const providerPackages = packages.filter(p => p.type === 'provider');
 
-    const providerFeatures = allFeatures.filter(f =>
-        ['featured_profile','unlimited_services','priority_search','verified_badge',
-         'analytics_dashboard','priority_support','event_access','priority_matching',
-         'homepage_promotion','vip_support','early_access_features'].includes(f.feature_key)
-    );
+    // Provider feature selector is DB-driven: only features with scope='provider'.
+    const providerFeatures = (allFeatures as FeatureWithFlags[])
+        .filter(f => f.scope === 'provider')
+        .sort((a, b) => a.display_name.localeCompare(b.display_name));
 
     const renderPackageCard = (pkg: Package) => {
         const features = Array.isArray(pkg.features)

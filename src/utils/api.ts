@@ -322,6 +322,11 @@ export const userApi = {
             body: JSON.stringify({ package_id: packageId }),
         }),
 
+    cancelMembership: () =>
+        request<{ message: string }>('/user/membership/cancel', {
+            method: 'POST',
+        }),
+
 
     depositRequest: (payload: DepositRequestPayload) =>
         request<DepositRequestItem>('/user/deposit', {

@@ -29,6 +29,17 @@ interface MembershipContextProps {
 
 export const MembershipContext = createContext<MembershipContextProps | undefined>(undefined);
 
+// Map UI/middleware feature aliases to the canonical feature_key values stored
+// in the `features` table. The DB uses lowercase, scoped keys
+// (e.g. "basic_chat", "partner_search") while some call sites pass the legacy
+// uppercase names (e.g. "CHAT", "PARTNER_SEARCH"). This must mirror the alias
+// map in backend/src/middleware/membershipMiddleware.js.
+const FEATURE_ALIASES: Record<string, string> = {
+    CHAT: 'basic_chat',
+    PARTNER_SEARCH: 'partner_search',
+    ADVANCED_SEARCH: 'advanced_search_filter',
+};
+
 // ── Provider ─────────────────────────────────────────────────────────────────
 
 export const MembershipProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -90,8 +101,10 @@ export const MembershipProvider: React.FC<{ children: ReactNode }> = ({ children
      * feature key exactly as stored in `package_features.feature_key`.
      * Always safe to call — membership.features is guaranteed to be an array.
      */
-    const hasFeature = (featureKey: string): boolean =>
-        membership.features.includes(featureKey);
+    const hasFeature = (featureKey: string): boolean => {
+        const key = FEATURE_ALIASES[featureKey] ?? featureKey;
+        return membership.features.includes(key);
+    };
 
     return (
         <MembershipContext.Provider

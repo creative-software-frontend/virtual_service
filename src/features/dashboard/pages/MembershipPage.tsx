@@ -32,7 +32,7 @@ const CheckIcon = () => (
 
 // ── Tier Card ─────────────────────────────────────────────────────────────────
 
-function TierCard({ pkg }: { pkg: Package }) {
+function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void }) {
     const [showModal, setShowModal] = useState(false);
 
     // Handle both normalized PackageFeature[] and legacy CSV string
@@ -59,6 +59,10 @@ function TierCard({ pkg }: { pkg: Package }) {
             return;
         }
 
+        // Refresh membership context so Silver-gated features (search/chat)
+        // unlock immediately without a page reload.
+        if (onPurchased) await onPurchased();
+        setShowModal(false);
         alert(`Membership activated: ${pkg.name}`);
         setShowModal(false);
     };
@@ -310,7 +314,33 @@ function TierCard({ pkg }: { pkg: Package }) {
 export function MembershipPage() {
     const [packages, setPackages] = useState<Package[]>([]);
     const [loading, setLoading] = useState(true);
-    const { membership } = useMembership();
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+    const { membership, refreshMembership } = useMembership();
+
+    // Active membership = user is on a paid plan (not the FREE starter)
+    const hasActiveMembership =
+        !!membership.package && membership.package.toLowerCase() !== 'free';
+
+    const handleCancelConfirm = async () => {
+        setCancelling(true);
+        try {
+            const res = await userApi.cancelMembership();
+            if (res.error) {
+                alert(res.error);
+                return;
+            }
+            // Refresh membership context + status so the user immediately
+            // reverts to FREE and Silver features become locked again.
+            await refreshMembership();
+            setShowCancelModal(false);
+            alert('Your membership has been cancelled. You are now a Free user.');
+        } catch {
+            alert('Failed to cancel membership. Please try again.');
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -421,6 +451,22 @@ export function MembershipPage() {
 
                 {/* Feature preview is DB-driven via /membership/status. No hardcoded coming-soon gates. */}
 
+                        {/* Cancel Membership — only for active (paid) members */}
+                        {hasActiveMembership && (
+                            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                <button
+                                    onClick={() => setShowCancelModal(true)}
+                                    className="btn btn-ghost btn-sm"
+                                    style={{
+                                        borderColor: 'rgba(239,68,68,0.5)',
+                                        color: '#f87171',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    Cancel Membership
+                                </button>
+                            </div>
+                        )}
                     </motion.div>
                 )}
 
@@ -490,13 +536,77 @@ export function MembershipPage() {
                         width: '100%',
                     }}>
                         {sortedPackages.map(pkg => (
-                            <TierCard key={pkg.id} pkg={pkg} />
+                            <TierCard key={pkg.id} pkg={pkg} onPurchased={refreshMembership} />
                         ))}
                     </div>
                 )}
 
-
             </div>
+
+            {/* Cancel Membership Confirmation Modal */}
+            {showCancelModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'var(--bg-overlay)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 99999,
+                    padding: '20px',
+                }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="card gold-top-edge"
+                        style={{ width: '100%', maxWidth: '440px', position: 'relative' }}
+                    >
+                        <div style={{ marginBottom: '20px' }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                fontWeight: 700,
+                                color: 'var(--text-primary)',
+                                margin: '0 0 12px 0',
+                            }}>
+                                Cancel Membership
+                            </h3>
+                            <p style={{
+                                fontSize: '0.9rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.6,
+                                margin: 0,
+                            }}>
+                                Are you sure you want to cancel your membership?
+                                This action will remove your membership immediately and does not refund your payment.
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="btn btn-ghost btn-sm"
+                                disabled={cancelling}
+                            >
+                                Keep Membership
+                            </button>
+                            <button
+                                onClick={handleCancelConfirm}
+                                className="btn btn-primary btn-sm"
+                                disabled={cancelling}
+                                style={{
+                                    background: '#dc2626',
+                                    borderColor: '#dc2626',
+                                    color: '#fff',
+                                }}
+                            >
+                                {cancelling ? 'Cancelling…' : 'Yes, Cancel'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </motion.div>
     );
 }

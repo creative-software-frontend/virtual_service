@@ -74,12 +74,29 @@ async function getProviderPackages(req, res) {
   }
 }
 
+async function cancelMembership(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const result = await membershipService.cancelMembership({ userId });
+    return res.status(200).json({
+      success: true,
+      message: "Membership canceled successfully"
+    });
+  } catch (error) {
+    const status = error.statusCode || 500;
+    return res.status(status).json({ message: error.message || "Failed to cancel membership" });
+  }
+}
+
 module.exports = {
   buyMembership,
   getMembershipStatus,
   getCurrentMembership,
   getUserPackages,
   getProviderPackages,
+  cancelMembership,
 };
 
 

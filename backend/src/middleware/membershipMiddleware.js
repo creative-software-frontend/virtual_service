@@ -1,10 +1,22 @@
 const db = require("../config/db");
 
+// Map the UI/middleware feature aliases to the canonical feature_key values
+// stored in the `features` table. The DB uses lowercase, scoped keys
+// (e.g. "basic_chat", "partner_search") while some call sites pass the
+// legacy uppercase names (e.g. "CHAT", "PARTNER_SEARCH").
+// NOTE: provider-scoped keys like "EVENT_ACCESS" are intentionally left
+// untouched so provider functionality is never broken.
+const FEATURE_ALIASES = {
+  CHAT: "basic_chat",
+  PARTNER_SEARCH: "partner_search",
+  ADVANCED_SEARCH: "advanced_search_filter",
+};
+
 function normalizeFeatureName(featureName) {
   if (!featureName) return null;
   const s = String(featureName).trim();
   if (!s) return null;
-  return s;
+  return FEATURE_ALIASES[s] || s;
 }
 
 function membershipNoMembership() {
@@ -79,9 +91,9 @@ function requireFeature(featureName) {
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-      // Providers do not use the membership system yet — bypass all checks.
-      // Provider memberships may be introduced in the future.
-      if (req.user?.role === "provider") return next();
+      // Membership restrictions apply ONLY to role = 'user'.
+      // Admins and providers bypass all membership checks.
+      if (req.user?.role === "admin" || req.user?.role === "provider") return next();
 
       const result = await checkFeatureAccess(userId, f);
       if (!result.allowed) {

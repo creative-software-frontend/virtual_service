@@ -104,7 +104,6 @@ async function buyMembership({ userId, packageId }) {
       [packageId, now, newExpiresAt, userId]
     );
 
-
     // Transaction record (atomic)
     await connection.query(
       `INSERT INTO transactions (user_id, type, amount, status, description)
@@ -122,7 +121,6 @@ async function buyMembership({ userId, packageId }) {
       membership_started_at: now,
       membership_expires_at: newExpiresAt,
     };
-
   } catch (err) {
     await connection.rollback();
     throw err;
@@ -171,7 +169,6 @@ async function getMembershipStatus(userId) {
         tour_access: { enabled: false, available: false, message: "Locked" },
       }
     };
-
   }
 
   const [pkgRows] = await db.query(
@@ -213,7 +210,6 @@ async function getMembershipStatus(userId) {
     wallet_balance: Number(wallet_balance),
     features,
   };
-
 }
 
 async function getCurrentMembership(userId) {
@@ -288,17 +284,19 @@ async function normalizePackagesWithFeatures({ packages }) {
     });
   }
 
-  return packages.map(pkg => ({
-    id: pkg.id,
-    name: pkg.name,
-    description: pkg.description,
-    price: Number(pkg.price),
-    duration_days: pkg.duration_days,
-    duration_months: pkg.duration_months,
-    tier_type: pkg.tier_type,
-    type: pkg.type,
-    features: featureMap[pkg.id] || [],
-  }));
+  return packages.map(pkg => (
+    {
+      id: pkg.id,
+      name: pkg.name,
+      description: pkg.description,
+      price: Number(pkg.price),
+      duration_days: pkg.duration_days,
+      duration_months: pkg.duration_months,
+      tier_type: pkg.tier_type,
+      type: pkg.type,
+      features: featureMap[pkg.id] || [],
+    }
+  ));
 }
 
 async function getUserPackages() {
@@ -306,8 +304,8 @@ async function getUserPackages() {
     `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
      FROM packages
      WHERE type = 'user' AND is_active = 1
-     ORDER BY price ASC`
-  );
+     ORDER BY price ASC
+  `);
 
   console.log("[DB RESULT USER]", packages);
   return normalizePackagesWithFeatures({ packages });
@@ -318,11 +316,37 @@ async function getProviderPackages() {
     `SELECT id, name, description, price, duration_days, duration_months, tier_type, type, is_active, created_at
      FROM packages
      WHERE type = 'provider' AND is_active = 1
-     ORDER BY price ASC`
-  );
+     ORDER BY price ASC
+  `);
 
   console.log("[DB RESULT PROVIDER]", packages);
   return normalizePackagesWithFeatures({ packages });
+}
+
+// New cancellation function
+async function cancelMembership({ userId }) {
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Update user membership to free
+    await connection.query(
+      "UPDATE users SET membership_package_id = NULL, membership_started_at = NULL, membership_expires_at = NULL WHERE id = ?",
+      [userId]
+    );
+
+    await connection.commit();
+
+    return {
+      success: true,
+      message: "Membership canceled successfully"
+    };
+  } catch (err) {
+    await connection.rollback();
+    throw err;
+  } finally {
+    connection.release();
+  }
 }
 
 module.exports = {
@@ -331,6 +355,5 @@ module.exports = {
   getCurrentMembership,
   getUserPackages,
   getProviderPackages,
+  cancelMembership
 };
-
-

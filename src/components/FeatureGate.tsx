@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { useMembership } from '../context/MembershipContext';
+import { useAuth } from '../context/AuthContext';
 import { MembershipUpgradeButton } from './MembershipUpgradeButton';
 
 
@@ -26,6 +27,14 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
     requiredTier = 'Membership',
 }) => {
     const { hasFeature, loading } = useMembership();
+    const { user } = useAuth();
+
+    // Membership restrictions apply ONLY to role = 'user'.
+    // Admins and providers bypass all membership checks and keep full access.
+    const isExempt = user?.role === 'admin' || user?.role === 'provider';
+    if (isExempt) {
+        return <>{children}</>;
+    }
 
 
     if (loading) {

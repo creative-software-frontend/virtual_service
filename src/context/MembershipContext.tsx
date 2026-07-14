@@ -38,6 +38,8 @@ const FEATURE_ALIASES: Record<string, string> = {
     CHAT: 'basic_chat',
     PARTNER_SEARCH: 'partner_search',
     ADVANCED_SEARCH: 'advanced_search_filter',
+    EVENT_ACCESS: 'tour_access',
+    TOUR_ACCESS: 'tour_access',
 };
 
 // ── Provider ─────────────────────────────────────────────────────────────────

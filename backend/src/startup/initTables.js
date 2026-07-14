@@ -113,7 +113,7 @@ module.exports = async (db) => {
             { key: 'featured_profile',      display: 'Featured Profile', scope: 'provider' },
             { key: 'unlimited_services',    display: 'Unlimited Services', scope: 'provider' },
             { key: 'priority_search',       display: 'Priority Search Ranking', scope: 'provider' },
-            { key: 'verified_badge',        display: 'Verified Provider Badge', scope: 'provider' },
+            { key: 'verified_provider_badge', display: 'Verified Provider Badge', scope: 'provider' },
             { key: 'analytics_dashboard',   display: 'Analytics Dashboard', scope: 'provider' },
             { key: 'priority_support',      display: 'Priority Support', scope: 'provider' },
             { key: 'event_access',          display: 'Tour/Event Access', scope: 'provider' },

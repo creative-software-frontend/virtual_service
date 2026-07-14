@@ -69,19 +69,8 @@ export const router = createBrowserRouter([
       {
         path: "membership",
         lazy: async () => {
-          // Note: role is part of parent route `/:role/dashboard`.
-          // React Router lazy route functions don't receive params in this project setup,
-          // so we render based on runtime pathname.
-          const pathname = window.location.pathname;
-          const role = pathname.split('/')[1];
-
-          if (role === 'provider') {
-            const { ProviderMembershipPage } = await import("../features/dashboard/pages/ProviderMembershipPage");
-            return { element: <ProviderMembershipPage /> };
-          }
-
-          const { MembershipPage } = await import("../features/dashboard/pages/MembershipPage");
-          return { element: <MembershipPage /> };
+          const { default: MembershipRoute } = await import("../features/dashboard/pages/MembershipRoute");
+          return { element: <MembershipRoute /> };
         },
       },
       {

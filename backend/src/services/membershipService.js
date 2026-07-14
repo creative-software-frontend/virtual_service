@@ -35,6 +35,19 @@ function addDays(date, days) {
   return d;
 }
 
+// Membership hierarchy levels (by tier_type). Comparison uses LEVEL, not price.
+// Silver = 1, Gold = 2, Platinum = 3.
+const TIER_LEVEL = {
+  silver: 1,
+  Gold: 2,
+  premium: 3, // Platinum package uses tier_type 'premium'
+};
+
+function tierLevel(tierType) {
+  if (tierType == null) return 0; // no active membership
+  return TIER_LEVEL[tierType] ?? 0;
+}
+
 async function getWalletBalanceForUser(connection, userId) {
   const [rows] = await connection.query("SELECT balance FROM users WHERE id = ? LIMIT 1", [userId]);
   if (!rows.length) return null;
@@ -60,7 +73,7 @@ async function buyMembership({ userId, packageId }) {
     const user = userRows[0];
 
     const [pkgRows] = await connection.query(
-      "SELECT id, price, duration_days, tier_type FROM packages WHERE id = ? AND is_active = 1 LIMIT 1 FOR UPDATE",
+      "SELECT id, name, price, duration_days, tier_type FROM packages WHERE id = ? AND is_active = 1 LIMIT 1 FOR UPDATE",
       [packageId]
     );
     if (!pkgRows.length) {
@@ -75,6 +88,30 @@ async function buyMembership({ userId, packageId }) {
 
     const walletBalance = Number(user.balance || 0);
 
+    // ── Membership hierarchy rules ──────────────────────────────────────────
+    // Fetch current active membership (package + tier) to compare hierarchy level.
+    const [currentRows] = await connection.query(
+      `SELECT p.tier_type
+       FROM users u
+       LEFT JOIN packages p ON p.id = u.membership_package_id
+       WHERE u.id = ? LIMIT 1`,
+      [userId]
+    );
+    const currentTier = currentRows?.[0]?.tier_type ?? null;
+    const currentLevel = tierLevel(currentTier);
+    const targetLevel = tierLevel(pkg.tier_type);
+
+    // RULE 3 — Lower plan purchase while a higher plan is active => REJECT.
+    // Do NOT deduct wallet balance.
+    if (currentLevel > 0 && targetLevel > 0 && targetLevel < currentLevel) {
+      const err = new Error(
+        "You already have a higher membership plan active.\n\n" +
+        "Please wait for your current membership to expire or cancel it before purchasing a lower plan."
+      );
+      err.statusCode = 409;
+      throw err;
+    }
+
     if (price > 0 && walletBalance < price) {
       const err = new Error("Insufficient wallet balance.");
       err.statusCode = 409;
@@ -88,7 +125,9 @@ async function buyMembership({ userId, packageId }) {
 
     const now = getNow();
 
-    // Renewal / upgrade: new_expiration = MAX(current_expiration, NOW()) + duration_days
+    // RULE 1 (same plan) & RULE 2 (higher plan):
+    // new_expiration = MAX(current_expiration, NOW()) + duration_days
+    // (preserves remaining subscription time on upgrade).
     const [current] = await connection.query(
       "SELECT membership_package_id, membership_expires_at FROM users WHERE id = ? LIMIT 1",
       [userId]
@@ -113,6 +152,17 @@ async function buyMembership({ userId, packageId }) {
 
     await connection.commit();
 
+    // Determine message based on hierarchy relationship.
+    let message;
+    if (currentLevel === targetLevel) {
+      message = `Your ${pkg.name} membership has been extended successfully.`;
+    } else if (targetLevel > currentLevel) {
+      message = `You have successfully upgraded to ${pkg.name} membership.`;
+    } else {
+      // Should not reach here (lower plan is rejected above), but keep a safe default.
+      message = `Membership activated successfully.`;
+    }
+
     return {
       user_id: userId,
       package_id: pkg.id,
@@ -120,6 +170,7 @@ async function buyMembership({ userId, packageId }) {
       price,
       membership_started_at: now,
       membership_expires_at: newExpiresAt,
+      message,
     };
   } catch (err) {
     await connection.rollback();

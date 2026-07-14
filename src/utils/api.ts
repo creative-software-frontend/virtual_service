@@ -317,7 +317,7 @@ export const userApi = {
     getCurrentMembership: () => request<CurrentMembership>('/user/membership/current'),
 
     buyMembership: (packageId: number) =>
-        request<{ message: string; membership: unknown }>('/user/membership/buy', {
+        request<{ success: boolean; message: string; package_id: number }>('/user/membership/buy', {
             method: 'POST',
             body: JSON.stringify({ package_id: packageId }),
         }),

@@ -18,7 +18,7 @@ async function buyMembership(req, res) {
     const result = await membershipService.buyMembership({ userId, packageId: packageIdNum });
     return res.status(200).json({
       success: true,
-      message: "Membership activated successfully",
+      message: result?.message || "Membership activated successfully",
       package_id: result?.package_id,
     });
 

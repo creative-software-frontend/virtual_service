@@ -65,7 +65,9 @@ function TierCard({ pkg, onPurchased }: { pkg: Package; onPurchased?: () => void
         // unlock immediately without a page reload.
         if (onPurchased) await onPurchased();
         setShowModal(false);
-        toast.success(`${pkg.name} membership activated successfully.`);
+        // Prefer the backend's rule-specific message (extend vs upgrade);
+        // fall back to a generic success message.
+        toast.success(res.data?.message || `${pkg.name} membership activated successfully.`);
     };
 
 

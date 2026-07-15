@@ -27,16 +27,24 @@ app.get("/", (req, res) => {
 // routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/test", require("./routes/testRoutes"));
+
 app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/user/membership", require("./routes/membershipRoutes"));
+
 app.use("/api/user-wallet", require("./routes/wallet.routes"));
+
 app.use("/api/provider", require("./routes/providerRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/admin-wallet", require("./routes/admin.wallet.routes"));
-app.use("/api/upload",   require("./routes/uploadRoutes"));
-app.use("/api/newsfeed", require("./routes/newsfeedRoutes"));
+
 app.use("/api/partner", require("./routes/partnerRequestRoutes"));
 app.use("/api/provider", require("./routes/partnerRequestRoutes"));
+
+app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/admin-wallet", require("./routes/admin.wallet.routes"));
+
+app.use("/api/upload", require("./routes/uploadRoutes"));
+
+app.use("/api/newsfeed", require("./routes/newsfeedRoutes"));
+
 
 // 404
 app.use((req, res) => {

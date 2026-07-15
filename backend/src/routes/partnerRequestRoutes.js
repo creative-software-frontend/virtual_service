@@ -3,6 +3,7 @@ const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const { requireFeature } = require("../middleware/membershipMiddleware");
 
 const db = require("../config/db");
 
@@ -102,6 +103,7 @@ router.get(
     "/partner-requests",
     authMiddleware,
     roleMiddleware(["provider"]),
+    requireFeature("MY_EVENTS"),
     (req, res) => {
         const providerId = req.user.id;
 
@@ -140,6 +142,7 @@ router.post(
     "/partner-request/:id/accept",
     authMiddleware,
     roleMiddleware(["provider"]),
+    requireFeature("MY_EVENTS"),
     (req, res) => {
         const providerId = req.user.id;
         const id = parseInt(String(req.params.id), 10);
@@ -178,6 +181,7 @@ router.post(
     "/partner-request/:id/reject",
     authMiddleware,
     roleMiddleware(["provider"]),
+    requireFeature("MY_EVENTS"),
     (req, res) => {
         const providerId = req.user.id;
         const id = parseInt(String(req.params.id), 10);

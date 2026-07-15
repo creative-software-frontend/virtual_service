@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
+import { useMembership } from '../../../../../context/MembershipContext';
 import { useEvents } from './hooks/useEvents';
 import { EventFilters } from './EventFilters';
 import { EventList } from './EventList';
@@ -17,9 +18,16 @@ import { FeatureGate } from '../../../../../components/FeatureGate';
 export function EventPage() {
     const { role = 'user' } = useParams<{ role: string }>();
     const { user } = useAuth();
+    const { hasFeature } = useMembership();
     const currentUserId = user?.id ?? 0;
 
     const userRole = user?.role ?? role;
+
+    // Provider-only features are DB-driven via the `features` table
+    // (provider_my_events / provider_browse_events). A provider WITHOUT an
+    // active membership is FREE and must NOT be able to create events or
+    // view/handle partner requests — those are locked until they upgrade.
+    const providerHasMembership = userRole === 'provider' && hasFeature('MY_EVENTS');
 
     const {
         events,
@@ -32,11 +40,11 @@ export function EventPage() {
         deleteEvent
     } = useEvents(role);
 
-    // Providers can create events; the backend still enforces the MY_EVENTS
-    // feature gate on POST /provider/events. Users never create events.
-    // Visibility is driven by role only (not the membership feature), so the
-    // Create Event item is always shown to providers.
-    const canCreateEvent = userRole === 'provider';
+    // Providers can create events ONLY with an active membership. The backend
+    // enforces the MY_EVENTS feature gate on POST /provider/events, and the
+    // Create Event tab is hidden for FREE providers (no active membership).
+    // Users never create events.
+    const canCreateEvent = providerHasMembership;
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -114,7 +122,7 @@ export function EventPage() {
                     )}
                 </button>
 
-                {userRole === 'provider' && (
+                {userRole === 'provider' && providerHasMembership && (
                     <button
                         onClick={() => setActiveTab('my-events')}
                         style={{
@@ -145,7 +153,7 @@ export function EventPage() {
                     </button>
                 )}
 
-                {userRole === 'provider' && canCreateEvent && (
+                {userRole === 'provider' && canCreateEvent && providerHasMembership && (
                     <button
                         onClick={() => {
                             setEventToEdit(null);
@@ -179,7 +187,7 @@ export function EventPage() {
                     </button>
                 )}
 
-                {userRole === 'provider' && (
+                {userRole === 'provider' && providerHasMembership && (
                     <button
                         onClick={() => setActiveTab('requests')}
                         style={{
@@ -276,6 +284,11 @@ export function EventPage() {
             {/* Event Lists depending on active tab */}
             {activeTab === 'partner' ? (
                 <PartnerSearchPanel />
+            ) : userRole === 'provider' && !providerHasMembership && (activeTab === 'requests' || activeTab === 'my-events') ? (
+                // FREE provider: events + requests are locked until they upgrade.
+                <FeatureGate feature="MY_EVENTS" fullPage requiredTier="Provider">
+                    <></>
+                </FeatureGate>
             ) : activeTab === 'requests' ? (
                 <PartnerRequestsPanel />
             ) : loading ? (

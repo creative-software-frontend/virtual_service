@@ -589,4 +589,139 @@ router.post("/events/:id/leave", authMiddleware, (req, res) => {
     );
 });
 
+// ── GET /api/user/providers ──────────────────────────────────────────────────
+// Returns all provider profiles for the user's "Models" quick-link.
+router.get("/providers", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    db.query(
+        `SELECT id, name, avatar_url, profession, location, interests, date_of_birth
+         FROM users
+         WHERE role = 'provider'
+           AND id != ?
+           AND is_active = 1
+         ORDER BY created_at DESC
+         LIMIT 50`,
+        [userId],
+        (err, rows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json(rows || []);
+        }
+    );
+});
+
+// ── GET /api/user/event-locations ────────────────────────────────────────────
+// Returns distinct event locations for the user's "Places" quick-link.
+router.get("/event-locations", authMiddleware, (req, res) => {
+    db.query(
+        `SELECT
+            location,
+            COUNT(*) AS event_count,
+            MIN(CASE WHEN date_time >= NOW() THEN date_time END) AS next_event
+         FROM events
+         WHERE status = 'active' AND location IS NOT NULL AND location != ''
+         GROUP BY location
+         ORDER BY next_event ASC, event_count DESC
+         LIMIT 20`,
+        (err, rows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json(rows || []);
+        }
+    );
+});
+
+// ── GET /api/user/joined-events ──────────────────────────────────────────────
+// Returns events the current user has joined (for the BOOKINGS quick-link).
+router.get("/joined-events", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    db.query(
+        `SELECT e.id, e.title, e.description, e.date_time, e.location, e.capacity, e.status,
+                e.host_name, e.entry_fee, e.created_at,
+                (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) as participant_count
+         FROM events e
+         JOIN event_participants ep ON ep.event_id = e.id
+         WHERE ep.user_id = ?
+         ORDER BY e.date_time ASC`,
+        [userId],
+        (err, rows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json(rows || []);
+        }
+    );
+});
+
+// ── GET /api/user/recent-activity ────────────────────────────────────────────
+// Returns recent activity for the user dashboard: joined events and friends
+// added (accepted match requests), newest first.
+router.get("/recent-activity", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    db.query(
+        `(
+            SELECT
+                'event_join' AS type,
+                ep.event_id AS id,
+                'joined' AS status,
+                ep.joined_at AS created_at,
+                e.title AS detail,
+                e.location AS extra,
+                u.name AS counterpart_name,
+                u.avatar_url AS counterpart_avatar
+            FROM event_participants ep
+            JOIN events e ON e.id = ep.event_id
+            JOIN users u ON u.id = e.creator_id
+            WHERE ep.user_id = ?
+            ORDER BY ep.joined_at DESC
+            LIMIT 5
+        )
+        UNION ALL
+        (
+            SELECT
+                'friend_added' AS type,
+                mr.id,
+                mr.status,
+                mr.created_at,
+                NULL AS detail,
+                NULL AS extra,
+                u.name AS counterpart_name,
+                u.avatar_url AS counterpart_avatar
+            FROM match_requests mr
+            JOIN users u ON u.id = mr.sender_id
+            WHERE mr.receiver_id = ? AND mr.status = 'accepted'
+            ORDER BY mr.created_at DESC
+            LIMIT 5
+        )
+        ORDER BY created_at DESC
+        LIMIT 10`,
+        [userId, userId],
+        (err, rows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json(rows || []);
+        }
+    );
+});
+
+// ── GET /api/user/featured-providers ─────────────────────────────────────────
+// Returns membership-holding providers (providers with an active membership)
+// for the user's "Featured Profiles" section: name, age, picture, location.
+router.get("/featured-providers", authMiddleware, (req, res) => {
+    const userId = req.user.id;
+    db.query(
+        `SELECT u.id, u.name, u.avatar_url, u.location, u.date_of_birth, u.profession,
+                p.name AS membership_package
+         FROM users u
+         LEFT JOIN packages p ON p.id = u.membership_package_id
+         WHERE u.role = 'provider'
+           AND u.id != ?
+           AND u.is_active = 1
+           AND u.membership_package_id IS NOT NULL
+           AND (u.membership_expires_at IS NULL OR u.membership_expires_at >= NOW())
+         ORDER BY u.created_at DESC
+         LIMIT 12`,
+        [userId],
+        (err, rows) => {
+            if (err) return res.status(500).json({ message: "Database error: " + err.message });
+            res.json(rows || []);
+        }
+    );
+});
+
 module.exports = router;

@@ -17,6 +17,7 @@ export function StatsRow({
 }) {
     const navigate = useNavigate();
     const isProvider = role === 'provider';
+    const isUser = role === 'user';
 
     const stats = useMemo(
         () => [
@@ -45,14 +46,15 @@ export function StatsRow({
             {stats.map((s) => {
                 const isOnlineCard = s.label === 'ONLINE';
                 const isBookingsCard = s.label === 'BOOKINGS';
-                const clickable = (showOnlineCard && isOnlineCard) || (isProvider && isBookingsCard);
+                const clickable = (showOnlineCard && isOnlineCard) || ((isProvider || isUser) && isBookingsCard);
+                const bookingsTarget = isProvider ? 'services' : 'bookings';
 
                 return (
                     <div
                         key={s.label}
                         onClick={() => {
                             if (clickable && isOnlineCard) setOnlineOpen(true);
-                            else if (clickable && isBookingsCard) navigate(`/${role}/dashboard/services`);
+                            else if (clickable && isBookingsCard) navigate(`/${role}/dashboard/${bookingsTarget}`);
                         }}
                         style={{
                             background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',

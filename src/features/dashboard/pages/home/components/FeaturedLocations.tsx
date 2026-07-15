@@ -1,6 +1,7 @@
 export function FeaturedLocations({
     locations,
     loading,
+    isUser,
 }: {
     locations: Array<{
         location: string;
@@ -8,6 +9,7 @@ export function FeaturedLocations({
         next_event: string | null;
     }>;
     loading?: boolean;
+    isUser?: boolean;
 }) {
     return (
         <div style={{ paddingBottom: '8px' }}>
@@ -18,7 +20,7 @@ export function FeaturedLocations({
                     <path d="M9 21V9" />
                 </svg>
                 <span style={{ fontSize: 'clamp(0.9rem, 4vw, 1rem)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
-                    Featured Locations
+                    {isUser ? 'Event Locations' : 'Featured Locations'}
                 </span>
             </div>
             <div style={{ display: 'flex', gap: 'clamp(10px, 3vw, 14px)', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>

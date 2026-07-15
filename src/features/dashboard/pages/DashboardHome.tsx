@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { TopNav } from './TopNav';
-import { providerApi } from '../../../utils/api';
+import { providerApi, userApi } from '../../../utils/api';
 import { useAuth } from '../../../context/AuthContext';
 import { useMembership } from '../../../context/MembershipContext';
 import { WelcomeCard } from './home/components/WelcomeCard';
@@ -17,7 +17,9 @@ export interface FeaturedProfile {
     avatar_url: string | null;
     profession: string | null;
     location: string | null;
-    interests: string | null;
+    interests?: string | null;
+    date_of_birth?: string | null;
+    membership_package?: string | null;
 }
 
 export interface FeaturedLocation {
@@ -53,7 +55,8 @@ export function DashboardHome() {
     const [locations, setLocations] = useState<FeaturedLocation[]>([]);
     const [locationsLoading, setLocationsLoading] = useState(false);
     const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
-    const [recentEventsLoading, setRecentEventsLoading] = useState(false);
+    const [userActivity, setUserActivity] = useState<any[]>([]);
+    const [userActivityLoading, setUserActivityLoading] = useState(false);
 
 
     const [onlineList, setOnlineList] = useState<
@@ -95,7 +98,7 @@ export function DashboardHome() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showOnlineCard, isProviderDashboard]);
 
-    // Fetch dynamic featured profiles + locations for provider dashboard
+    // Fetch dynamic data for provider dashboard
     useEffect(() => {
         if (!isProviderDashboard) return;
 
@@ -125,13 +128,10 @@ export function DashboardHome() {
 
         const loadRecentEvents = async () => {
             try {
-                setRecentEventsLoading(true);
                 const res = await providerApi.getRecentEvents();
                 if (!res.error) setRecentEvents(res.data || []);
             } catch {
                 // keep empty
-            } finally {
-                setRecentEventsLoading(false);
             }
         };
 
@@ -139,6 +139,51 @@ export function DashboardHome() {
         loadLocations();
         loadRecentEvents();
     }, [isProviderDashboard]);
+
+    // Fetch dynamic data for user dashboard
+    useEffect(() => {
+        if (!isUserDashboard) return;
+
+        const loadFeaturedProviders = async () => {
+            try {
+                setProfilesLoading(true);
+                const res = await userApi.getFeaturedProviders();
+                if (!res.error) setProfiles(res.data || []);
+            } catch {
+                // keep empty
+            } finally {
+                setProfilesLoading(false);
+            }
+        };
+
+        const loadEventLocations = async () => {
+            try {
+                setLocationsLoading(true);
+                const res = await userApi.getEventLocations();
+                if (!res.error) setLocations(res.data || []);
+            } catch {
+                // keep empty
+            } finally {
+                setLocationsLoading(false);
+            }
+        };
+
+        const loadUserActivity = async () => {
+            try {
+                setUserActivityLoading(true);
+                const res = await userApi.getRecentActivity();
+                if (!res.error) setUserActivity(res.data || []);
+            } catch {
+                // keep empty
+            } finally {
+                setUserActivityLoading(false);
+            }
+        };
+
+        loadFeaturedProviders();
+        loadEventLocations();
+        loadUserActivity();
+    }, [isUserDashboard]);
 
     return (
         <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>
@@ -176,20 +221,25 @@ export function DashboardHome() {
                 <RecentActivityCard
                     role={role}
                     recentEvents={isProviderDashboard ? recentEvents : []}
-                    recentEventsLoading={isProviderDashboard ? recentEventsLoading : false}
+                    userActivity={isUserDashboard ? userActivity : []}
+                    userActivityLoading={isUserDashboard ? userActivityLoading : false}
                 />
 
 
-                {/* ── Featured Profiles (non-provider roles only) ── */}
-                {!isProviderDashboard && (
-                    <FeaturedProfiles profiles={profiles} loading={profilesLoading} />
-                )}
+                {/* ── Featured Profiles ── */}
+                <FeaturedProfiles
+                    profiles={profiles}
+                    loading={profilesLoading}
+                    isUser={isUserDashboard}
+                />
 
 
-                {/* ── Featured Locations (non-provider roles only) ── */}
-                {!isProviderDashboard && (
-                    <FeaturedLocations locations={locations} loading={locationsLoading} />
-                )}
+                {/* ── Featured Locations ── */}
+                <FeaturedLocations
+                    locations={locations}
+                    loading={locationsLoading}
+                    isUser={isUserDashboard}
+                />
 
             </div>
 

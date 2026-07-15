@@ -1,5 +1,8 @@
 export function QuickLinksGrid({ role }: { role: string | undefined }) {
-    const isProvider = role === 'provider';
+    // MODELS → provider directory (provider sees other providers; user sees all providers)
+    // PLACES → events/places (provider sees all events; user sees event locations)
+    const modelsTo = `/${role}/dashboard/providers`;
+    const placesTo = `/${role}/dashboard/places`;
 
     return (
         <div
@@ -14,7 +17,7 @@ export function QuickLinksGrid({ role }: { role: string | undefined }) {
         >
             {[
                 {
-                    to: isProvider ? `/${role}/dashboard/providers` : `/${role}/dashboard/models`,
+                    to: modelsTo,
                     label: 'MODELS',
                     icon: (
                         <svg
@@ -36,7 +39,7 @@ export function QuickLinksGrid({ role }: { role: string | undefined }) {
                     ),
                 },
                 {
-                    to: isProvider ? `/${role}/dashboard/places` : `/${role}/dashboard/assets`,
+                    to: placesTo,
                     label: 'PLACES',
                     icon: (
                         <svg

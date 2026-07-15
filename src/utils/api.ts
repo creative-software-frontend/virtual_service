@@ -470,6 +470,63 @@ export const userApi = {
         request<{ profile: UserProfile; access: 'public' | 'full'; partner_status: PartnerRequestStatus | null }>(
             `/partner/profile/${providerId}`
         ),
+
+    // ── User dashboard dynamic data ──
+    getProviders: () =>
+        request<Array<{
+            id: number;
+            name: string;
+            avatar_url: string | null;
+            profession: string | null;
+            location: string | null;
+            interests: string | null;
+            date_of_birth: string | null;
+        }>>('/user/providers'),
+
+    getEventLocations: () =>
+        request<Array<{
+            location: string;
+            event_count: number;
+            next_event: string | null;
+        }>>('/user/event-locations'),
+
+    getJoinedEvents: () =>
+        request<Array<{
+            id: number;
+            title: string;
+            description: string | null;
+            date_time: string;
+            location: string;
+            capacity: number;
+            status: string;
+            host_name: string | null;
+            entry_fee: number;
+            created_at: string;
+            participant_count: number;
+        }>>('/user/joined-events'),
+
+    getRecentActivity: () =>
+        request<Array<{
+            type: 'event_join' | 'friend_added';
+            id: number;
+            status: string;
+            created_at: string;
+            detail: string | null;
+            extra: string | null;
+            counterpart_name: string;
+            counterpart_avatar: string | null;
+        }>>('/user/recent-activity'),
+
+    getFeaturedProviders: () =>
+        request<Array<{
+            id: number;
+            name: string;
+            avatar_url: string | null;
+            location: string | null;
+            date_of_birth: string | null;
+            profession: string | null;
+            membership_package: string | null;
+        }>>('/user/featured-providers'),
 };
 
 // ── Provider Package type (normalized) ────────────────────────────────────────

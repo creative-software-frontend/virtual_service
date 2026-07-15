@@ -1,6 +1,7 @@
 export function FeaturedProfiles({
     profiles,
     loading,
+    isUser,
 }: {
     profiles: Array<{
         id: number;
@@ -8,16 +9,26 @@ export function FeaturedProfiles({
         avatar_url: string | null;
         profession: string | null;
         location: string | null;
-        interests: string | null;
+        interests?: string | null;
+        date_of_birth?: string | null;
+        membership_package?: string | null;
     }>;
     loading?: boolean;
+    isUser?: boolean;
 }) {
+    const getAge = (dob: string | null | undefined) => {
+        if (!dob) return null;
+        const diff = Date.now() - new Date(dob).getTime();
+        const age = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+        return age > 0 && age < 150 ? age : null;
+    };
+
     return (
         <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <span style={{ color: 'var(--gold-mid)', fontSize: '18px', textShadow: '0 0 10px rgba(232,160,32,0.7)', flexShrink: 0 }}>★</span>
                 <span style={{ fontSize: 'clamp(0.9rem, 4vw, 1rem)', fontWeight: 700, color: 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>
-                    Featured Profiles
+                    {isUser ? 'Membership Holders' : 'Featured Profiles'}
                 </span>
             </div>
             {/* Horizontal scroll — cards sized relative to viewport */}
@@ -34,17 +45,19 @@ export function FeaturedProfiles({
                     </p>
                 )}
 
-                {!loading && profiles.map(p => (
+                {!loading && profiles.map(p => {
+                    const age = isUser ? getAge(p.date_of_birth) : null;
+                    return (
                     <div
                         key={p.id}
                         style={{
                             flex: '0 0 clamp(120px, 38vw, 150px)',
                             borderRadius: '12px',
                             overflow: 'hidden',
-                            border: '2px solid var(--blue-vivid)',
+                            border: isUser ? '2px solid var(--gold-mid)' : '2px solid var(--blue-vivid)',
                             position: 'relative',
                             cursor: 'pointer',
-                            boxShadow: '0 0 15px rgba(59,130,246,0.3)',
+                            boxShadow: isUser ? '0 0 15px rgba(232,160,32,0.3)' : '0 0 15px rgba(59,130,246,0.3)',
                         }}
                     >
                         {p.avatar_url ? (
@@ -64,18 +77,32 @@ export function FeaturedProfiles({
                                 {p.name ? p.name.substring(0, 2).toUpperCase() : '?'}
                             </div>
                         )}
+                        {isUser && p.membership_package && (
+                            <span style={{
+                                position: 'absolute', top: '8px', right: '8px',
+                                background: 'var(--gold-mid)', color: '#000',
+                                fontSize: '0.5rem', letterSpacing: '0.1em',
+                                textTransform: 'uppercase', padding: '3px 8px',
+                                borderRadius: '4px', fontFamily: "'Inter', sans-serif", fontWeight: 800,
+                            }}>
+                                {p.membership_package}
+                            </span>
+                        )}
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
                             background: 'linear-gradient(transparent, var(--bg-nav))',
                             padding: '28px 10px 10px',
                         }}>
-                            <p style={{ color: 'var(--text-primary)', fontSize: 'clamp(0.85rem, 4vw, 1rem)', fontWeight: 700, fontFamily: "'Inter', sans-serif", marginBottom: '3px' }}>{p.name}</p>
-                            <p style={{ color: 'var(--blue-vivid)', fontSize: 'clamp(0.6rem, 2.5vw, 0.7rem)', fontWeight: 600, fontFamily: "'Inter', sans-serif", textShadow: '0 0 5px rgba(96,165,250,0.5)' }}>
-                                {p.profession || p.location || `#${p.id}`}
+                            <p style={{ color: 'var(--text-primary)', fontSize: 'clamp(0.85rem, 4vw, 1rem)', fontWeight: 700, fontFamily: "'Inter', sans-serif", marginBottom: '3px' }}>
+                                {p.name}{age ? `, ${age}` : ''}
+                            </p>
+                            <p style={{ color: isUser ? 'var(--gold-mid)' : 'var(--blue-vivid)', fontSize: 'clamp(0.6rem, 2.5vw, 0.7rem)', fontWeight: 600, fontFamily: "'Inter', sans-serif", textShadow: isUser ? '0 0 5px rgba(232,160,32,0.5)' : '0 0 5px rgba(96,165,250,0.5)' }}>
+                                {isUser ? (p.location || p.profession || `#${p.id}`) : (p.profession || p.location || `#${p.id}`)}
                             </p>
                         </div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TopNav } from './TopNav';
-import { providerApi } from '../../../utils/api';
+import { providerApi, userApi } from '../../../utils/api';
+import { useAuth } from '../../../context/AuthContext';
 
 interface ProviderProfile {
     id: number;
@@ -12,6 +13,8 @@ interface ProviderProfile {
 }
 
 export function ProviderDirectoryPage() {
+    const { user } = useAuth();
+    const isUser = user?.role === 'user';
     const [providers, setProviders] = useState<ProviderProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -20,7 +23,7 @@ export function ProviderDirectoryPage() {
         const load = async () => {
             try {
                 setLoading(true);
-                const res = await providerApi.getProviders();
+                const res = isUser ? await userApi.getProviders() : await providerApi.getProviders();
                 if (res.error) setError(res.error);
                 else setProviders(res.data || []);
             } catch (e: any) {
@@ -30,7 +33,7 @@ export function ProviderDirectoryPage() {
             }
         };
         load();
-    }, []);
+    }, [isUser]);
 
     return (
         <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>

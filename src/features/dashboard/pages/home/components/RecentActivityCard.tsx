@@ -14,6 +14,17 @@ interface ActivityItem {
     detail: string | null;
 }
 
+interface UserActivityItem {
+    type: 'event_join' | 'friend_added';
+    id: number;
+    status: string;
+    created_at: string;
+    detail: string | null;
+    extra: string | null;
+    counterpart_name: string;
+    counterpart_avatar: string | null;
+}
+
 interface RecentEvent {
     id: number;
     title: string;
@@ -30,15 +41,18 @@ interface RecentEvent {
 export function RecentActivityCard({
     role,
     recentEvents = [],
-    recentEventsLoading = false,
+    userActivity = [],
+    userActivityLoading = false,
 }: {
     role: string | undefined;
     recentEvents?: RecentEvent[];
-    recentEventsLoading?: boolean;
+    userActivity?: UserActivityItem[];
+    userActivityLoading?: boolean;
 }) {
     const { role: paramRole } = useParams<{ role: string }>();
     const activeRole = role || paramRole;
     const isProvider = activeRole === 'provider';
+    const isUser = activeRole === 'user';
 
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -73,6 +87,17 @@ export function RecentActivityCard({
                 return `${a.counterpart_name} joined "${a.detail || 'your event'}"`;
             case 'message':
                 return `Message from ${a.counterpart_name}: ${a.detail ? `"${a.detail.slice(0, 40)}${a.detail.length > 40 ? '...' : ''}"` : ''}`;
+            default:
+                return '';
+        }
+    };
+
+    const getUserActivityText = (a: UserActivityItem) => {
+        switch (a.type) {
+            case 'event_join':
+                return `You joined "${a.detail || 'an event'}"`;
+            case 'friend_added':
+                return `Friend added: ${a.counterpart_name}`;
             default:
                 return '';
         }
@@ -123,7 +148,13 @@ export function RecentActivityCard({
                 </p>
             )}
 
-            {!loading && activities.length === 0 && !recentEventsLoading && recentEvents.length === 0 && (
+            {userActivityLoading && isUser && (
+                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '28px 0', fontSize: '0.85rem' }}>
+                    Loading activity...
+                </p>
+            )}
+
+            {!loading && !userActivityLoading && activities.length === 0 && recentEvents.length === 0 && userActivity.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '28px 0' }}>
                     <svg
                         width="40"
@@ -153,7 +184,7 @@ export function RecentActivityCard({
                 </div>
             )}
 
-            {!loading && (activities.length > 0 || recentEvents.length > 0) && (
+            {!loading && (activities.length > 0 || recentEvents.length > 0 || userActivity.length > 0) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {/* Recent events (provider only) */}
                     {recentEvents.map(ev => (
@@ -203,6 +234,61 @@ export function RecentActivityCard({
                                     fontFamily: "'Inter', sans-serif",
                                 }}>
                                     {ev.location} • {new Date(ev.created_at).toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+
+                    {/* User activity (joined events, friends added) */}
+                    {userActivity.map(a => (
+                        <div
+                            key={`user-${a.type}-${a.id}`}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                padding: '10px 12px',
+                                background: 'var(--bg-input)',
+                                border: '1px solid var(--border-subtle)',
+                                borderRadius: '10px',
+                            }}
+                        >
+                            <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                background: a.type === 'friend_added'
+                                    ? 'linear-gradient(135deg, var(--gold-deep), var(--blue-neon))'
+                                    : 'linear-gradient(135deg, var(--blue-neon), var(--gold-deep))',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#fff',
+                                fontWeight: 700,
+                                fontSize: '0.8rem',
+                                flexShrink: 0,
+                            }}>
+                                {a.type === 'friend_added' ? '👤' : '📅'}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{
+                                    color: 'var(--text-primary)',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 600,
+                                    fontFamily: "'Inter', sans-serif",
+                                    marginBottom: '2px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {getUserActivityText(a)}
+                                </p>
+                                <p style={{
+                                    color: 'var(--text-muted)',
+                                    fontSize: '0.7rem',
+                                    fontFamily: "'Inter', sans-serif",
+                                }}>
+                                    {new Date(a.created_at).toLocaleDateString()} {new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
                         </div>

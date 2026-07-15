@@ -121,6 +121,27 @@ export const router = createBrowserRouter([
           return { element: <ModelsPage /> };
         },
       },
+      {
+        path: "providers",
+        lazy: async () => {
+          const { ProviderDirectoryPage } = await import("../features/dashboard/pages/ProviderDirectoryPage");
+          return { element: <ProviderDirectoryPage /> };
+        },
+      },
+      {
+        path: "places",
+        lazy: async () => {
+          const { PlacesPage } = await import("../features/dashboard/pages/PlacesPage");
+          return { element: <PlacesPage /> };
+        },
+      },
+      {
+        path: "bookings",
+        lazy: async () => {
+          const { BookingsPage } = await import("../features/dashboard/pages/BookingsPage");
+          return { element: <BookingsPage /> };
+        },
+      },
 
       // Admin-only pages
       {

@@ -9,12 +9,15 @@ export interface CurrentMembershipState {
     package: string;
     expires_at: string | null;
     features: string[];
+    /** DB-driven display names for active features (from features.display_name). */
+    features_display: string[];
 }
 
 const FREE_STATE: CurrentMembershipState = {
     package: 'Free',
     expires_at: null,
     features: [],
+    features_display: [],
 };
 
 // ── Context ──────────────────────────────────────────────────────────────────
@@ -96,6 +99,7 @@ export const MembershipProvider: React.FC<{ children: ReactNode }> = ({ children
                 package: data.package ?? 'Free',
                 expires_at: data.expires_at ?? null,
                 features: Array.isArray(data.features) ? data.features : [],
+                features_display: Array.isArray(data.features_display) ? data.features_display : [],
             });
         } catch (err: unknown) {
             // Network failure — do NOT crash the app

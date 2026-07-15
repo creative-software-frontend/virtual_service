@@ -387,10 +387,45 @@ function EmptyState() {
 
 export function ProviderMembershipPage() {
     const [packages, setPackages] = useState<Package[]>([]);
-    const { refreshMembership } = useMembership();
+    const { membership, refreshMembership } = useMembership();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelling, setCancelling] = useState(false);
+    const toast = useToast();
+
+    // Active membership = provider is on a paid plan (not the FREE starter)
+    const hasActiveMembership =
+        !!membership.package && membership.package.toLowerCase() !== 'free';
+
+    // DB-driven feature display names (from features.display_name).
+    // Fall back to the raw feature keys with underscores replaced if the
+    // backend did not return display names.
+    const activeFeatureLabels: string[] =
+        (membership.features_display && membership.features_display.length > 0)
+            ? membership.features_display
+            : membership.features.map(f => f.replace(/_/g, ' '));
+
+    const handleCancelConfirm = async () => {
+        setCancelling(true);
+        try {
+            const res = await userApi.cancelMembership();
+            if (res.error) {
+                toast.error(res.error);
+                return;
+            }
+            // Refresh membership context + status so the provider immediately
+            // reverts to FREE and provider-gated features become locked again.
+            await refreshMembership();
+            setShowCancelModal(false);
+            toast.success('Membership cancelled successfully. You are now using the Free plan.');
+        } catch {
+            toast.error('Failed to cancel membership. Please try again.');
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -466,6 +501,73 @@ export function ProviderMembershipPage() {
                     </p>
                 </motion.div>
 
+                {/* ── Current Plan Status ─────────────────────────────────── */}
+                {membership && (
+                    <motion.div variants={fadeUp} style={{
+                        background: 'linear-gradient(135deg, rgba(245,158,11,0.10), rgba(245,158,11,0.04))',
+                        border: '1px solid rgba(245,158,11,0.25)',
+                        borderRadius: 16, padding: '20px 24px', marginBottom: 24,
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                            <div>
+                                <p style={{ margin: '0 0 4px', fontSize: '0.6rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>Current Membership</p>
+                                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#fff', fontFamily: "'Inter', sans-serif" }}>{membership.package}</p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <p style={{ margin: '0 0 2px', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 700 }}>Status</p>
+                                <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: hasActiveMembership ? 'var(--green-status)' : 'var(--text-muted)' }}>
+                                    {hasActiveMembership ? 'Active' : 'Inactive'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {hasActiveMembership && membership.expires_at && (
+                            <div style={{ marginTop: 12 }}>
+                                <p style={{ margin: '0 0 2px', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 700 }}>Expires</p>
+                                <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+                                    {new Date(membership.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </p>
+                            </div>
+                        )}
+
+                        {hasActiveMembership && activeFeatureLabels.length > 0 && (
+                            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                <p style={{ margin: '0 0 10px', fontSize: '0.6rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontWeight: 700 }}>Active Features</p>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                    {activeFeatureLabels.map(f => (
+                                        <span key={f} style={{
+                                            padding: '4px 12px', borderRadius: 999,
+                                            background: 'rgba(245,158,11,0.12)',
+                                            border: '1px solid rgba(245,158,11,0.25)',
+                                            fontSize: '0.72rem', fontWeight: 700,
+                                            color: 'var(--gold-mid)', letterSpacing: '0.04em',
+                                        }}>
+                                            ✓ {f}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Cancel Membership — only for active (paid) providers */}
+                        {hasActiveMembership && (
+                            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                                <button
+                                    onClick={() => setShowCancelModal(true)}
+                                    className="btn btn-ghost btn-sm"
+                                    style={{
+                                        borderColor: 'rgba(239,68,68,0.5)',
+                                        color: '#f87171',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    Cancel Membership
+                                </button>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
                 {/* Info notice */}
                 <motion.div
                     variants={fadeUp}
@@ -516,6 +618,71 @@ export function ProviderMembershipPage() {
                     </motion.div>
                 )}
             </div>
+
+            {/* Cancel Membership Confirmation Modal */}
+            {showCancelModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    backgroundColor: 'var(--bg-overlay)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 99999,
+                    padding: '20px',
+                }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        className="card gold-top-edge"
+                        style={{ width: '100%', maxWidth: '440px', position: 'relative' }}
+                    >
+                        <div style={{ marginBottom: '20px' }}>
+                            <h3 style={{
+                                fontSize: '1.25rem',
+                                fontWeight: 700,
+                                color: 'var(--text-primary)',
+                                margin: '0 0 12px 0',
+                            }}>
+                                Cancel Membership
+                            </h3>
+                            <p style={{
+                                fontSize: '0.9rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.6,
+                                margin: 0,
+                            }}>
+                                Are you sure you want to cancel your membership?
+                                This action will remove your membership immediately and does not refund your payment.
+                            </p>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="btn btn-ghost btn-sm"
+                                disabled={cancelling}
+                            >
+                                Keep Membership
+                            </button>
+                            <button
+                                onClick={handleCancelConfirm}
+                                className="btn btn-primary btn-sm"
+                                disabled={cancelling}
+                                style={{
+                                    background: '#dc2626',
+                                    borderColor: '#dc2626',
+                                    color: '#fff',
+                                }}
+                            >
+                                {cancelling ? 'Cancelling…' : 'Yes, Cancel'}
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </motion.div>
     );
 }

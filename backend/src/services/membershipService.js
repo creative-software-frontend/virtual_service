@@ -311,19 +311,29 @@ async function getCurrentMembership(userId) {
 
     // Query normalized package_features: package_id -> feature_id -> feature_key
     const [pfRows] = await db.query(
-      `SELECT f.feature_key
+      `SELECT f.feature_key, f.display_name
        FROM package_features pf
        JOIN features f ON f.id = pf.feature_id
        WHERE pf.package_id = ?`,
       [u.membership_package_id]
     );
     features = pfRows.map(row => row.feature_key);
+
+    // DB-driven display names for the active features. The UI must NOT
+    // hardcode feature labels — they come straight from the `features`
+    // table (display_name column). This keeps provider/user feature labels
+    // in sync with the database regardless of package or tier changes.
+    const features_display = pfRows.map(row => row.display_name || row.feature_key);
+  } else {
+    // No active membership — expose an empty display list for safety.
+    var features_display = [];
   }
 
   return {
     package: pkgName,
     expires_at: isExpired ? null : u.membership_expires_at,
-    features: features
+    features: features,
+    features_display: features_display
   };
 }
 

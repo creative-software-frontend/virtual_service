@@ -307,6 +307,8 @@ export interface CurrentMembership {
     package: string;
     expires_at: string | null;
     features: string[];
+    /** DB-driven display names for active features (from features.display_name). */
+    features_display?: string[];
 }
 
 export const userApi = {

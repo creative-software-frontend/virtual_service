@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { TopNav } from './TopNav';
 import { providerApi } from '../../../utils/api';
+import { useAuth } from '../../../context/AuthContext';
+import { useMembership } from '../../../context/MembershipContext';
 import { WelcomeCard } from './home/components/WelcomeCard';
 import { StatsRow } from './home/components/StatsRow';
 import { QuickLinksGrid } from './home/components/QuickLinksGrid';
@@ -9,44 +11,49 @@ import { RecentActivityCard } from './home/components/RecentActivityCard';
 import { FeaturedProfiles } from './home/components/FeaturedProfiles';
 import { FeaturedLocations } from './home/components/FeaturedLocations';
 
+export interface FeaturedProfile {
+    id: number;
+    name: string;
+    avatar_url: string | null;
+    profession: string | null;
+    location: string | null;
+    interests: string | null;
+}
 
+export interface FeaturedLocation {
+    location: string;
+    event_count: number;
+    next_event: string | null;
+}
 
-
-
-
-
-
-
-
-
-const PROFILES = [
-    { name: 'Sabia',  id: '#550369', img: 'https://images.unsplash.com/photo-1526510747491-58f928ec870f?w=300&q=80', demo: true },
-    { name: 'Fatiha', id: '#550983', img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=300&q=80', demo: true },
-    { name: 'Samina', id: '#550120', img: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&q=80', demo: false },
-];
-
-const LOCATIONS = [
-    {
-        name: 'Safehouse (Zindabazar Zone)',
-        tier: 'PREMIUM',
-        city: 'Sylhet',
-        img: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&q=80',
-    },
-    {
-        name: 'Safehouse (Dhanmondi Zone)',
-        tier: 'PREMIUM',
-        city: 'Dhaka',
-        img: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&q=80',
-    },
-];
+export interface RecentEvent {
+    id: number;
+    title: string;
+    description: string | null;
+    date_time: string;
+    location: string;
+    capacity: number;
+    status: string;
+    created_at: string;
+    host_name: string | null;
+    entry_fee: number;
+}
 
 export function DashboardHome() {
     const { role } = useParams<{ role: string }>();
-    const user = localStorage.getItem('bluedise_user') || 'member';
+    const { user } = useAuth();
+    const { membership } = useMembership();
 
     const isProviderDashboard = role === 'provider';
     const isUserDashboard = role === 'user';
     const showOnlineCard = isProviderDashboard || isUserDashboard;
+
+    const [profiles, setProfiles] = useState<FeaturedProfile[]>([]);
+    const [profilesLoading, setProfilesLoading] = useState(false);
+    const [locations, setLocations] = useState<FeaturedLocation[]>([]);
+    const [locationsLoading, setLocationsLoading] = useState(false);
+    const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
+    const [recentEventsLoading, setRecentEventsLoading] = useState(false);
 
 
     const [onlineList, setOnlineList] = useState<
@@ -88,6 +95,51 @@ export function DashboardHome() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showOnlineCard, isProviderDashboard]);
 
+    // Fetch dynamic featured profiles + locations for provider dashboard
+    useEffect(() => {
+        if (!isProviderDashboard) return;
+
+        const loadProfiles = async () => {
+            try {
+                setProfilesLoading(true);
+                const res = await providerApi.getFeaturedProfiles();
+                if (!res.error) setProfiles(res.data || []);
+            } catch {
+                // keep empty — static fallback not shown
+            } finally {
+                setProfilesLoading(false);
+            }
+        };
+
+        const loadLocations = async () => {
+            try {
+                setLocationsLoading(true);
+                const res = await providerApi.getFeaturedLocations();
+                if (!res.error) setLocations(res.data || []);
+            } catch {
+                // keep empty
+            } finally {
+                setLocationsLoading(false);
+            }
+        };
+
+        const loadRecentEvents = async () => {
+            try {
+                setRecentEventsLoading(true);
+                const res = await providerApi.getRecentEvents();
+                if (!res.error) setRecentEvents(res.data || []);
+            } catch {
+                // keep empty
+            } finally {
+                setRecentEventsLoading(false);
+            }
+        };
+
+        loadProfiles();
+        loadLocations();
+        loadRecentEvents();
+    }, [isProviderDashboard]);
+
     return (
         <div style={{ background: 'var(--bg-root)', minHeight: '100svh', overflowX: 'hidden' }}>
             <TopNav />
@@ -100,7 +152,7 @@ export function DashboardHome() {
             }}>
 
                 {/* ── Welcome card ── */}
-                <WelcomeCard role={role} user={user} />
+                <WelcomeCard role={role} userName={user?.username} membershipPackage={membership.package} />
 
 
 
@@ -111,6 +163,8 @@ export function DashboardHome() {
                     showOnlineCard={showOnlineCard}
                     onlineCount={onlineCount}
                     setOnlineOpen={setOnlineOpen}
+                    membershipPackage={membership.package}
+                    role={role}
                 />
 
 
@@ -119,15 +173,23 @@ export function DashboardHome() {
 
 
                 {/* ── Recent Activity ── */}
-                <RecentActivityCard />
+                <RecentActivityCard
+                    role={role}
+                    recentEvents={isProviderDashboard ? recentEvents : []}
+                    recentEventsLoading={isProviderDashboard ? recentEventsLoading : false}
+                />
 
 
-                {/* ── Featured Profiles ── */}
-                <FeaturedProfiles PROFILES={PROFILES} />
+                {/* ── Featured Profiles (non-provider roles only) ── */}
+                {!isProviderDashboard && (
+                    <FeaturedProfiles profiles={profiles} loading={profilesLoading} />
+                )}
 
 
-                {/* ── Featured Locations ── */}
-                <FeaturedLocations LOCATIONS={LOCATIONS} />
+                {/* ── Featured Locations (non-provider roles only) ── */}
+                {!isProviderDashboard && (
+                    <FeaturedLocations locations={locations} loading={locationsLoading} />
+                )}
 
             </div>
 

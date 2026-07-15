@@ -153,6 +153,20 @@ export const router = createBrowserRouter([
           return { element: <ProviderServicePage /> };
         },
       },
+      {
+        path: "providers",
+        lazy: async () => {
+          const { ProviderDirectoryPage } = await import("../features/dashboard/pages/ProviderDirectoryPage");
+          return { element: <ProviderDirectoryPage /> };
+        },
+      },
+      {
+        path: "places",
+        lazy: async () => {
+          const { PlacesPage } = await import("../features/dashboard/pages/PlacesPage");
+          return { element: <PlacesPage /> };
+        },
+      },
     ],
   },
 ]);

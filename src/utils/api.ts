@@ -520,6 +520,76 @@ export const providerApi = {
         request<{ profile: UserProfile; access: 'public' | 'full'; partner_status: PartnerRequestStatus | null }>(
             `/provider/requester-profile/${userId}`
         ),
+
+    // ── Dashboard home dynamic data (PROVIDER) ──
+    getFeaturedProfiles: () =>
+        request<Array<{
+            id: number;
+            name: string;
+            avatar_url: string | null;
+            profession: string | null;
+            location: string | null;
+            interests: string | null;
+        }>>('/provider/featured-profiles'),
+
+    getFeaturedLocations: () =>
+        request<Array<{
+            location: string;
+            event_count: number;
+            next_event: string | null;
+        }>>('/provider/featured-locations'),
+
+    getRecentActivity: () =>
+        request<Array<{
+            type: 'partner_request' | 'event_join' | 'message';
+            id: number;
+            status: string;
+            created_at: string;
+            counterpart_name: string;
+            counterpart_avatar: string | null;
+            detail: string | null;
+        }>>('/provider/recent-activity'),
+
+    getRecentEvents: () =>
+        request<Array<{
+            id: number;
+            title: string;
+            description: string | null;
+            date_time: string;
+            location: string;
+            capacity: number;
+            status: string;
+            created_at: string;
+            host_name: string | null;
+            entry_fee: number;
+        }>>('/provider/recent-events'),
+
+    // ── Provider directory (Models quick-link) ──
+    getProviders: () =>
+        request<Array<{
+            id: number;
+            name: string;
+            avatar_url: string | null;
+            profession: string | null;
+            location: string | null;
+            interests: string | null;
+        }>>('/provider/list'),
+
+    // ── All events (Places quick-link) ──
+    getAllEvents: () =>
+        request<Array<{
+            id: number;
+            title: string;
+            description: string | null;
+            date_time: string;
+            location: string;
+            capacity: number;
+            status: string;
+            created_at: string;
+            host_name: string | null;
+            entry_fee: number;
+            participant_count: number;
+        }>>('/provider/all-events'),
 };
 
 // ── Membership catalogs (role isolation) ─────────────────────────────────

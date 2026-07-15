@@ -1,5 +1,17 @@
-export function FeaturedProfiles({ PROFILES }: { PROFILES: Array<any> }) {
-
+export function FeaturedProfiles({
+    profiles,
+    loading,
+}: {
+    profiles: Array<{
+        id: number;
+        name: string;
+        avatar_url: string | null;
+        profession: string | null;
+        location: string | null;
+        interests: string | null;
+    }>;
+    loading?: boolean;
+}) {
     return (
         <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -10,7 +22,19 @@ export function FeaturedProfiles({ PROFILES }: { PROFILES: Array<any> }) {
             </div>
             {/* Horizontal scroll — cards sized relative to viewport */}
             <div style={{ display: 'flex', gap: 'clamp(10px, 3vw, 14px)', overflowX: 'auto', paddingBottom: '10px', WebkitOverflowScrolling: 'touch' }}>
-                {PROFILES.map(p => (
+                {loading && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '20px 0' }}>
+                        Loading profiles...
+                    </p>
+                )}
+
+                {!loading && profiles.length === 0 && (
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '20px 0' }}>
+                        No member profiles available yet.
+                    </p>
+                )}
+
+                {!loading && profiles.map(p => (
                     <div
                         key={p.id}
                         style={{
@@ -23,18 +47,22 @@ export function FeaturedProfiles({ PROFILES }: { PROFILES: Array<any> }) {
                             boxShadow: '0 0 15px rgba(59,130,246,0.3)',
                         }}
                     >
-                        <img src={p.img} alt={p.name} style={{ width: '100%', height: 'clamp(150px, 48vw, 190px)', objectFit: 'cover', display: 'block' }} />
-                        {p.demo && (
-                            <span style={{
-                                position: 'absolute', top: '8px', right: '8px',
-                                background: 'var(--bg-overlay)', color: 'var(--text-primary)',
-                                fontSize: '0.55rem', letterSpacing: '0.15em',
-                                textTransform: 'uppercase', padding: '4px 8px',
-                                borderRadius: '4px', fontFamily: "'Inter', sans-serif", fontWeight: 800,
-                                boxShadow: '0 0 5px rgba(248,250,252,0.4)',
+                        {p.avatar_url ? (
+                            <img src={p.avatar_url} alt={p.name} style={{ width: '100%', height: 'clamp(150px, 48vw, 190px)', objectFit: 'cover', display: 'block' }} />
+                        ) : (
+                            <div style={{
+                                width: '100%',
+                                height: 'clamp(150px, 48vw, 190px)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
+                                color: 'var(--text-secondary)',
+                                fontSize: '2rem',
+                                fontWeight: 700,
                             }}>
-                                DEMO
-                            </span>
+                                {p.name ? p.name.substring(0, 2).toUpperCase() : '?'}
+                            </div>
                         )}
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -42,7 +70,9 @@ export function FeaturedProfiles({ PROFILES }: { PROFILES: Array<any> }) {
                             padding: '28px 10px 10px',
                         }}>
                             <p style={{ color: 'var(--text-primary)', fontSize: 'clamp(0.85rem, 4vw, 1rem)', fontWeight: 700, fontFamily: "'Inter', sans-serif", marginBottom: '3px' }}>{p.name}</p>
-                            <p style={{ color: 'var(--blue-vivid)', fontSize: 'clamp(0.6rem, 2.5vw, 0.7rem)', fontWeight: 600, fontFamily: "'Inter', sans-serif", textShadow: '0 0 5px rgba(96,165,250,0.5)' }}>{p.id}</p>
+                            <p style={{ color: 'var(--blue-vivid)', fontSize: 'clamp(0.6rem, 2.5vw, 0.7rem)', fontWeight: 600, fontFamily: "'Inter', sans-serif", textShadow: '0 0 5px rgba(96,165,250,0.5)' }}>
+                                {p.profession || p.location || `#${p.id}`}
+                            </p>
                         </div>
                     </div>
                 ))}

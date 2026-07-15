@@ -1,4 +1,6 @@
 export function QuickLinksGrid({ role }: { role: string | undefined }) {
+    const isProvider = role === 'provider';
+
     return (
         <div
             style={{
@@ -12,7 +14,7 @@ export function QuickLinksGrid({ role }: { role: string | undefined }) {
         >
             {[
                 {
-                    to: `/${role}/dashboard/models`,
+                    to: isProvider ? `/${role}/dashboard/providers` : `/${role}/dashboard/models`,
                     label: 'MODELS',
                     icon: (
                         <svg
@@ -34,7 +36,7 @@ export function QuickLinksGrid({ role }: { role: string | undefined }) {
                     ),
                 },
                 {
-                    to: `/${role}/dashboard/assets`,
+                    to: isProvider ? `/${role}/dashboard/places` : `/${role}/dashboard/assets`,
                     label: 'PLACES',
                     icon: (
                         <svg

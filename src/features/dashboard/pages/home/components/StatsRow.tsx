@@ -1,18 +1,26 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 
 export function StatsRow({
     showOnlineCard,
     onlineCount,
     setOnlineOpen,
+    membershipPackage,
+    role,
 }: {
     showOnlineCard: boolean;
     onlineCount: number;
     setOnlineOpen: (open: boolean) => void;
+    membershipPackage?: string;
+    role?: string;
 }) {
+    const navigate = useNavigate();
+    const isProvider = role === 'provider';
+
     const stats = useMemo(
         () => [
-            { label: 'LEVEL', value: 'Free', highlight: false },
+            { label: 'LEVEL', value: membershipPackage || 'Free', highlight: false },
             { label: 'BOOKINGS', value: '0', highlight: false },
             {
                 label: 'ONLINE',
@@ -20,7 +28,7 @@ export function StatsRow({
                 highlight: true,
             },
         ],
-        [showOnlineCard, onlineCount]
+        [showOnlineCard, onlineCount, membershipPackage]
     );
 
     return (
@@ -36,13 +44,15 @@ export function StatsRow({
         >
             {stats.map((s) => {
                 const isOnlineCard = s.label === 'ONLINE';
-                const clickable = showOnlineCard && isOnlineCard;
+                const isBookingsCard = s.label === 'BOOKINGS';
+                const clickable = (showOnlineCard && isOnlineCard) || (isProvider && isBookingsCard);
 
                 return (
                     <div
                         key={s.label}
                         onClick={() => {
-                            if (clickable) setOnlineOpen(true);
+                            if (clickable && isOnlineCard) setOnlineOpen(true);
+                            else if (clickable && isBookingsCard) navigate(`/${role}/dashboard/services`);
                         }}
                         style={{
                             background: 'linear-gradient(135deg, var(--bg-card-hover) 0%, var(--bg-card) 100%)',

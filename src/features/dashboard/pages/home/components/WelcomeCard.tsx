@@ -2,10 +2,12 @@
 
 export function WelcomeCard({
     role,
-    user,
+    userName,
+    membershipPackage,
 }: {
     role: string | undefined;
-    user: string;
+    userName?: string;
+    membershipPackage?: string;
 }) {
     return (
         <div
@@ -43,7 +45,7 @@ export function WelcomeCard({
                             marginBottom: '4px',
                         }}
                     >
-                        Welcome, {user}
+                        Welcome, {userName || 'Member'}
                     </p>
                     <p
                         style={{
@@ -85,73 +87,77 @@ export function WelcomeCard({
                             marginTop: '4px',
                         }}
                     >
-                        FREE
+                        {membershipPackage || 'Free'}
                     </span>
                 </div>
             </div>
 
-            {/* Upgrade bar */}
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    background: 'var(--blue-glow)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '8px',
-                    padding: 'clamp(10px, 3vw, 12px) clamp(10px, 3.5vw, 14px)',
-                    marginBottom: '14px',
-                    boxShadow: 'inset 0 0 10px rgba(59,130,246,0.2)',
-                }}
-            >
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="var(--blue-vivid)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(96,165,250,0.6))' }}
-                >
-                    <rect x="3" y="11" width="18" height="11" rx="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                <span
-                    style={{
-                        fontSize: 'clamp(0.78rem, 3.5vw, 0.85rem)',
-                        color: 'var(--text-primary)',
-                        fontFamily: "'Inter', sans-serif",
-                        fontWeight: 500,
-                    }}
-                >
-                    Upgrade to unlock benefits
-                </span>
-            </div>
+            {/* Upgrade bar — only shown when provider has NO active membership */}
+            {(!membershipPackage || membershipPackage === 'Free') && (
+                <>
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            background: 'var(--blue-glow)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: '8px',
+                            padding: 'clamp(10px, 3vw, 12px) clamp(10px, 3.5vw, 14px)',
+                            marginBottom: '14px',
+                            boxShadow: 'inset 0 0 10px rgba(59,130,246,0.2)',
+                        }}
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="var(--blue-vivid)"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{ flexShrink: 0, filter: 'drop-shadow(0 0 3px rgba(96,165,250,0.6))' }}
+                        >
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <span
+                            style={{
+                                fontSize: 'clamp(0.78rem, 3.5vw, 0.85rem)',
+                                color: 'var(--text-primary)',
+                                fontFamily: "'Inter', sans-serif",
+                                fontWeight: 500,
+                            }}
+                        >
+                            Upgrade to unlock benefits
+                        </span>
+                    </div>
 
-            {/* CTA button */}
-            <a
-                href={`/${role}/dashboard/membership`}
-                style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'var(--gold-mid)',
-                    color: '#000',
-                    padding: 'clamp(9px, 2.5vw, 11px) clamp(16px, 5vw, 22px)',
-                    fontSize: 'clamp(0.65rem, 2.5vw, 0.75rem)',
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    fontWeight: 800,
-                    textDecoration: 'none',
-                    fontFamily: "'Inter', sans-serif",
-                    borderRadius: '6px',
-                    boxShadow: '0 0 10px rgba(232,160,32,0.5)',
-                }}
-            >
-                → SEE PLANS
-            </a>
+                    {/* CTA button */}
+                    <a
+                        href={`/${role}/dashboard/membership`}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: 'var(--gold-mid)',
+                            color: '#000',
+                            padding: 'clamp(9px, 2.5vw, 11px) clamp(16px, 5vw, 22px)',
+                            fontSize: 'clamp(0.65rem, 2.5vw, 0.75rem)',
+                            letterSpacing: '0.1em',
+                            textTransform: 'uppercase',
+                            fontWeight: 800,
+                            textDecoration: 'none',
+                            fontFamily: "'Inter', sans-serif",
+                            borderRadius: '6px',
+                            boxShadow: '0 0 10px rgba(232,160,32,0.5)',
+                        }}
+                    >
+                        → SEE PLANS
+                    </a>
+                </>
+            )}
         </div>
     );
 }

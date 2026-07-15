@@ -609,4 +609,199 @@ router.get(
     }
 );
 
+// ── GET /api/provider/featured-profiles ──────────────────────────────────────
+// Returns real member (user-role) profiles for the provider's "Featured Profiles"
+// section on the dashboard home. Excludes the requesting provider and any
+// admin accounts. Sorted by most recently created.
+router.get(
+    "/featured-profiles",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    (req, res) => {
+        const providerId = req.user.id;
+        db.query(
+            `SELECT id, name, avatar_url, profession, location, interests
+             FROM users
+             WHERE role = 'user'
+               AND id != ?
+               AND is_active = 1
+             ORDER BY created_at DESC
+             LIMIT 12`,
+            [providerId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows || []);
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/featured-locations ─────────────────────────────────────
+// Returns distinct event locations (from the events table) for the provider's
+// "Featured Locations" section. Each row carries the event count and the next
+// upcoming event date for that location.
+router.get(
+    "/featured-locations",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    (req, res) => {
+        db.query(
+            `SELECT
+                location,
+                COUNT(*) AS event_count,
+                MIN(CASE WHEN date_time >= NOW() THEN date_time END) AS next_event
+             FROM events
+             WHERE status = 'active' AND location IS NOT NULL AND location != ''
+             GROUP BY location
+             ORDER BY next_event ASC, event_count DESC
+             LIMIT 12`,
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows || []);
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/recent-activity ────────────────────────────────────────
+// Returns recent activity for the provider dashboard: incoming partner requests,
+// event joins, and new chat messages, newest first.
+router.get(
+    "/recent-activity",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    (req, res) => {
+        const providerId = req.user.id;
+        db.query(
+            `(
+                SELECT
+                    'partner_request' AS type,
+                    pr.id,
+                    pr.status,
+                    pr.created_at,
+                    u.name AS counterpart_name,
+                    u.avatar_url AS counterpart_avatar,
+                    NULL AS detail
+                FROM partner_requests pr
+                JOIN users u ON u.id = pr.user_id
+                WHERE pr.provider_id = ?
+                ORDER BY pr.created_at DESC
+                LIMIT 5
+            )
+            UNION ALL
+            (
+                SELECT
+                    'event_join' AS type,
+                    ep.event_id AS id,
+                    'joined' AS status,
+                    ep.joined_at AS created_at,
+                    u.name AS counterpart_name,
+                    u.avatar_url AS counterpart_avatar,
+                    e.title AS detail
+                FROM event_participants ep
+                JOIN users u ON u.id = ep.user_id
+                JOIN events e ON e.id = ep.event_id
+                WHERE e.creator_id = ?
+                ORDER BY ep.joined_at DESC
+                LIMIT 5
+            )
+            UNION ALL
+            (
+                SELECT
+                    'message' AS type,
+                    cm.id,
+                    'received' AS status,
+                    cm.created_at,
+                    u.name AS counterpart_name,
+                    u.avatar_url AS counterpart_avatar,
+                    cm.message AS detail
+                FROM chat_messages cm
+                JOIN users u ON u.id = cm.sender_id
+                WHERE cm.receiver_id = ?
+                ORDER BY cm.created_at DESC
+                LIMIT 5
+            )
+            ORDER BY created_at DESC
+            LIMIT 10`,
+            [providerId, providerId, providerId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows || []);
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/recent-events ──────────────────────────────────────────
+// Returns the provider's most recent events (newest created first) for the
+// "Recent Activity" section on the provider dashboard home.
+router.get(
+    "/recent-events",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    (req, res) => {
+        const providerId = req.user.id;
+        db.query(
+            `SELECT id, title, description, date_time, location, capacity, status, created_at, host_name, entry_fee
+             FROM events
+             WHERE creator_id = ?
+             ORDER BY created_at DESC
+             LIMIT 10`,
+            [providerId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows || []);
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/list ───────────────────────────────────────────────────
+// Returns all provider profiles (id, name, avatar_url, profession, location)
+// for the "Models" quick-link on the provider dashboard. Excludes the
+// requesting provider and any admin accounts.
+router.get(
+    "/list",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    (req, res) => {
+        const providerId = req.user.id;
+        db.query(
+            `SELECT id, name, avatar_url, profession, location, interests
+             FROM users
+             WHERE role = 'provider'
+               AND id != ?
+               AND is_active = 1
+             ORDER BY created_at DESC
+             LIMIT 50`,
+            [providerId],
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows || []);
+            }
+        );
+    }
+);
+
+// ── GET /api/provider/all-events ─────────────────────────────────────────────
+// Returns all events (with location + date) for the "Places" quick-link on the
+// provider dashboard. Each card shows the event location name and date.
+router.get(
+    "/all-events",
+    authMiddleware,
+    roleMiddleware(["provider", "admin"]),
+    (req, res) => {
+        db.query(
+            `SELECT id, title, description, date_time, location, capacity, status, created_at, host_name, entry_fee,
+                    (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) as participant_count
+             FROM events e
+             ORDER BY date_time ASC`,
+            (err, rows) => {
+                if (err) return res.status(500).json({ message: "Database error: " + err.message });
+                res.json(rows || []);
+            }
+        );
+    }
+);
+
 module.exports = router;

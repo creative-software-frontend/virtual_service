@@ -53,6 +53,13 @@ export function ProviderRegisterPage() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const normalizedPhone = phone.replace(/\s+/g, '');
+    const signupBlocked = !isLogin && (
+        !isValidBdMobile(normalizedPhone) ||
+        !privacyAccepted ||
+        !termsAccepted
+    );
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -394,19 +401,19 @@ export function ProviderRegisterPage() {
                     <button
                         id="auth-submit"
                         type="submit"
-                        disabled={loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, '')))}
+                        disabled={loading || signupBlocked}
                         style={{
                             width: '100%', padding: '14px', marginTop: '4px',
-                            background: (loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, ''))))
+                            background: (loading || signupBlocked)
                                 ? 'rgba(59,130,246,0.4)'
                                 : 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))',
                             border: 'none', borderRadius: '8px', color: '#fff',
                             fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                             fontWeight: 700, fontFamily: "'Inter', sans-serif",
-                            cursor: (loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, ''))))
+                            cursor: (loading || signupBlocked)
                                 ? 'not-allowed'
                                 : 'pointer',
-                            boxShadow: (loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, ''))))
+                            boxShadow: (loading || signupBlocked)
                                 ? 'none'
                                 : 'var(--shadow-blue)',
                             transition: 'filter 0.2s, transform 0.2s',

@@ -116,9 +116,9 @@ function ActionBtn({ onClick, active, activeColor = '#f472b6', label, icon, disa
             onMouseLeave={() => setHover(false)}
             style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: hover ? 'rgba(99,102,241,0.12)' : 'transparent',
+                background: hover ? 'rgba(197,168,128,0.12)' : 'transparent',
                 border: 'none', borderRadius: 8,
-                color: active ? activeColor : hover ? '#a5b4fc' : 'var(--text-muted)',
+                color: active ? activeColor : hover ? 'var(--gold-mid)' : 'var(--text-muted)',
                 padding: '6px 12px', fontSize: '0.8rem', fontWeight: 600,
                 cursor: disabled ? 'default' : 'pointer',
                 transition: 'all 0.18s', opacity: disabled ? 0.6 : 1,
@@ -136,7 +136,7 @@ function CommentItem({ comment }: { comment: PostComment }) {
     return (
         <div style={{
             display: 'flex', gap: 10, padding: '10px 0',
-            borderBottom: '1px solid rgba(99,102,241,0.08)',
+            borderBottom: '1px solid var(--gold-border)',
         }}>
             <Avatar name={comment.author_name} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -229,8 +229,8 @@ function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps
                 transform: 'translateX(-50%)',
                 width: '100%', maxWidth: 480,
                 zIndex: 901,
-                background: 'linear-gradient(180deg,rgba(22,28,48,0.99),rgba(10,14,30,0.99))',
-                border: '1px solid rgba(99,102,241,0.25)',
+                background: 'linear-gradient(180deg, rgba(11,21,45,0.99), rgba(7,16,32,0.99))',
+                border: '1px solid var(--gold-border)',
                 borderBottom: 'none',
                 borderRadius: '20px 20px 0 0',
                 padding: '0 0 calc(80px + env(safe-area-inset-bottom, 0px))',
@@ -245,7 +245,7 @@ function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps
                 {/* Title */}
                 <div style={{
                     padding: '4px 20px 16px',
-                    borderBottom: '1px solid rgba(99,102,241,0.12)',
+                    borderBottom: '1px solid var(--gold-border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 }}>
                     <div>
@@ -301,7 +301,7 @@ function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps
                 </div>
 
                 {/* Divider */}
-                <div style={{ margin: '0 20px', height: 1, background: 'rgba(99,102,241,0.1)' }} />
+                <div style={{ margin: '0 20px', height: 1, background: 'var(--gold-border)' }} />
 
                 {/* Internal copy link */}
                 <div style={{ padding: '16px 20px' }}>
@@ -312,7 +312,7 @@ function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps
                     <div style={{
                         display: 'flex', gap: 8, alignItems: 'center',
                         background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(99,102,241,0.2)',
+                        border: '1px solid var(--gold-border)',
                         borderRadius: 12, padding: '10px 12px',
                     }}>
                         <span style={{
@@ -326,7 +326,7 @@ function ShareModal({ post, shareUrl, copied, onCopy, onClose }: ShareModalProps
                             style={{
                                 background: copied
                                     ? 'rgba(52,211,153,0.2)'
-                                    : 'linear-gradient(135deg,#6366f1,#818cf8)',
+                                    : 'linear-gradient(135deg, var(--gold-rich), var(--gold-deep))',
                                 border: copied ? '1px solid #34d399' : 'none',
                                 borderRadius: 8, color: copied ? '#34d399' : '#fff',
                                 padding: '6px 14px', fontSize: '0.75rem', fontWeight: 700,
@@ -370,9 +370,9 @@ function PostCard({
 
     return (
         <div style={{
-            background: 'linear-gradient(135deg,rgba(30,41,59,0.92),rgba(15,23,42,0.92))',
-            border: '1px solid rgba(99,102,241,0.18)',
-            borderRadius: 16, overflow: 'hidden',
+            background: 'linear-gradient(135deg, rgba(11,21,45,0.92), rgba(7,16,32,0.92))',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-xl)', overflow: 'hidden',
             boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             animation: 'fadeIn 0.3s ease',
         }}>
@@ -390,9 +390,9 @@ function PostCard({
                 {post.author_role === 'provider' && (
                     <span style={{
                         fontSize: '0.6rem', letterSpacing: '0.1em',
-                        background: 'rgba(99,102,241,0.15)',
-                        border: '1px solid rgba(99,102,241,0.4)',
-                        color: '#818cf8', padding: '3px 8px', borderRadius: 20, fontWeight: 700,
+                        background: 'rgba(197,168,128,0.12)',
+                        border: '1px solid var(--gold-border)',
+                        color: 'var(--gold-mid)', padding: '3px 8px', borderRadius: 20, fontWeight: 700,
                     }}>PROVIDER</span>
                 )}
             </div>
@@ -407,7 +407,7 @@ function PostCard({
                         style={{
                             width: '100%', borderRadius: 10, display: 'block',
                             maxHeight: 320, objectFit: 'cover', marginTop: 12,
-                            border: '1px solid rgba(99,102,241,0.2)',
+                            border: '1px solid var(--gold-border)',
                         }} />
                 )}
             </div>
@@ -440,7 +440,7 @@ function PostCard({
             {/* Action bar */}
             <div style={{
                 display: 'flex', alignItems: 'center',
-                borderTop: '1px solid rgba(99,102,241,0.1)',
+                borderTop: '1px solid var(--gold-border)',
                 margin: '10px 8px 0', padding: '4px 0',
             }}>
                 <ActionBtn
@@ -492,7 +492,7 @@ function PostCard({
                                     disabled={cardState.loadingComments}
                                     style={{
                                         background: 'none', border: 'none', padding: '8px 0 4px',
-                                        color: '#818cf8', fontSize: '0.78rem', cursor: 'pointer',
+                                        color: 'var(--gold-mid)', fontSize: '0.78rem', cursor: 'pointer',
                                         fontWeight: 600, opacity: cardState.loadingComments ? 0.5 : 1,
                                     }}>
                                     {cardState.loadingComments ? 'Loading…' : `Load more (${cardState.commentsTotal - cardState.comments.length} remaining)`}
@@ -522,14 +522,14 @@ function PostCard({
                                 rows={2}
                                 style={{
                                     width: '100%', background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(99,102,241,0.25)',
+                                    border: '1px solid var(--gold-border)',
                                     borderRadius: 10, color: 'var(--text-primary)',
                                     padding: '8px 12px', resize: 'none',
                                     fontFamily: "'Inter', sans-serif", fontSize: '0.84rem',
                                     outline: 'none', lineHeight: 1.5, boxSizing: 'border-box',
                                 }}
-                                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)'; }}
-                                onBlur={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)'; }}
+                                onFocus={e => { e.currentTarget.style.borderColor = 'var(--gold-rich)'; }}
+                                onBlur={e => { e.currentTarget.style.borderColor = 'var(--gold-border)'; }}
                             />
                         </div>
                         <button
@@ -537,13 +537,13 @@ function PostCard({
                             disabled={cardState.submittingComment || !cardState.commentInput.trim()}
                             style={{
                                 background: cardState.submittingComment || !cardState.commentInput.trim()
-                                    ? 'rgba(99,102,241,0.3)'
-                                    : 'linear-gradient(135deg,#6366f1,#818cf8)',
-                                border: 'none', borderRadius: 10, color: '#fff',
+                                    ? 'rgba(197,168,128,0.3)'
+                                    : 'linear-gradient(135deg, var(--gold-rich), var(--gold-deep))',
+                                border: 'none', borderRadius: 10, color: '#0b0f1a',
                                 padding: '8px 16px', fontSize: '0.8rem', fontWeight: 700,
                                 cursor: cardState.submittingComment || !cardState.commentInput.trim() ? 'default' : 'pointer',
                                 transition: 'all 0.2s', whiteSpace: 'nowrap',
-                                boxShadow: '0 0 10px rgba(99,102,241,0.3)',
+                                boxShadow: '0 0 10px rgba(197,168,128,0.3)',
                                 height: 62,
                             }}>
                             {cardState.submittingComment ? '…' : 'Send'}
@@ -639,10 +639,10 @@ function ComposeCard({ myName, onPostCreated }: ComposeCardProps) {
 
     return (
         <div style={{
-            background: 'linear-gradient(135deg,rgba(30,41,59,0.97),rgba(15,23,42,0.97))',
-            border: '1px solid rgba(99,102,241,0.3)',
-            borderRadius: 16, padding: '18px 16px',
-            boxShadow: '0 0 24px rgba(99,102,241,0.12)',
+            background: 'linear-gradient(135deg, rgba(11,21,45,0.97), rgba(7,16,32,0.97))',
+            border: '1px solid var(--gold-border)',
+            borderRadius: 'var(--radius-xl)', padding: '18px 16px',
+            boxShadow: '0 0 24px rgba(197,168,128,0.12)',
         }}>
             <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
                 <Avatar name={myName} size={40} />
@@ -653,14 +653,14 @@ function ComposeCard({ myName, onPostCreated }: ComposeCardProps) {
                     rows={3}
                     style={{
                         flex: 1, background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(99,102,241,0.25)',
+                        border: '1px solid var(--gold-border)',
                         borderRadius: 10, color: 'var(--text-primary)',
                         padding: '10px 12px', resize: 'none',
                         fontFamily: "'Inter', sans-serif", fontSize: '0.9rem',
                         outline: 'none', lineHeight: 1.5,
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)'; }}
-                    onBlur={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.25)'; }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--gold-rich)'; }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--gold-border)'; }}
                 />
             </div>
 
@@ -678,7 +678,7 @@ function ComposeCard({ myName, onPostCreated }: ComposeCardProps) {
                             borderRadius: 10,
                         }}>
                             <span style={{
-                                background: 'rgba(0,0,0,0.7)', color: '#a5b4fc',
+                                background: 'rgba(0,0,0,0.7)', color: 'var(--gold-mid)',
                                 padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
                             }}>Uploading…</span>
                         </div>
@@ -708,9 +708,9 @@ function ComposeCard({ myName, onPostCreated }: ComposeCardProps) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    background: 'rgba(99,102,241,0.12)',
-                    border: '1px solid rgba(99,102,241,0.3)',
-                    borderRadius: 8, color: '#818cf8', padding: '7px 14px',
+                    background: 'rgba(197,168,128,0.1)',
+                    border: '1px solid var(--gold-border)',
+                    borderRadius: 8, color: 'var(--gold-mid)', padding: '7px 14px',
                     fontSize: '0.78rem', cursor: uploading ? 'wait' : 'pointer',
                     fontWeight: 600, transition: 'all 0.2s', opacity: uploading ? 0.6 : 1,
                 }}>
@@ -722,12 +722,12 @@ function ComposeCard({ myName, onPostCreated }: ComposeCardProps) {
 
                 <button onClick={submitPost} disabled={posting || uploading} style={{
                     background: posting || uploading
-                        ? 'rgba(99,102,241,0.4)'
-                        : 'linear-gradient(135deg,#6366f1,#818cf8)',
-                    border: 'none', borderRadius: 8, color: '#fff',
+                        ? 'rgba(197,168,128,0.4)'
+                        : 'linear-gradient(135deg, var(--gold-rich), var(--gold-deep))',
+                    border: 'none', borderRadius: 8, color: '#0b0f1a',
                     padding: '8px 22px', fontSize: '0.82rem', fontWeight: 700,
                     cursor: posting || uploading ? 'wait' : 'pointer',
-                    transition: 'all 0.2s', boxShadow: '0 0 12px rgba(99,102,241,0.4)',
+                    transition: 'all 0.2s', boxShadow: '0 0 12px rgba(197,168,128,0.4)',
                 }}>
                     {posting ? 'Posting…' : 'Post'}
                 </button>
@@ -913,8 +913,8 @@ export function NewsfeedTab({ myName }: { myName: string }) {
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-secondary)' }}>
                     <div style={{
-                        width: 36, height: 36, border: '3px solid rgba(99,102,241,0.3)',
-                        borderTopColor: '#6366f1', borderRadius: '50%',
+                        width: 36, height: 36, border: '3px solid rgba(197,168,128,0.3)',
+                        borderTopColor: 'var(--gold-rich)', borderRadius: '50%',
                         animation: 'spin 0.8s linear infinite',
                         margin: '0 auto 12px',
                     }} />

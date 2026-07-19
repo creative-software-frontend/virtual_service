@@ -11,8 +11,8 @@ export function NewsfeedPage() {
 
             {/* Page header */}
             <div style={{
-                background: 'linear-gradient(180deg, rgba(99,102,241,0.12) 0%, transparent 100%)',
-                borderBottom: '1px solid rgba(99,102,241,0.15)',
+                background: 'linear-gradient(180deg, rgba(197,168,128,0.1) 0%, transparent 100%)',
+                borderBottom: '1px solid var(--gold-border)',
                 padding: '18px 16px 14px',
                 display: 'flex',
                 alignItems: 'center',
@@ -44,8 +44,8 @@ export function NewsfeedPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 5,
-                    background: 'rgba(99,102,241,0.12)',
-                    border: '1px solid rgba(99,102,241,0.3)',
+                    background: 'rgba(197,168,128,0.1)',
+                    border: '1px solid var(--gold-border)',
                     borderRadius: 20,
                     padding: '4px 10px',
                 }}>
@@ -57,7 +57,7 @@ export function NewsfeedPage() {
                         display: 'inline-block',
                         animation: 'pulse 2s infinite',
                     }} />
-                    <span style={{ fontSize: '0.65rem', color: '#a5b4fc', fontWeight: 700, letterSpacing: '0.08em' }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--gold-mid)', fontWeight: 700, letterSpacing: '0.08em' }}>
                         LIVE
                     </span>
                 </div>

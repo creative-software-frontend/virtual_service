@@ -28,7 +28,35 @@ const EDUCATION_OPTIONS = [
     "Other",
 ] as const;
 
-const MARITAL_STATUS_OPTIONS = ["Single", "Divorced", "Widowed"] as const;
+const MARITAL_STATUS_OPTIONS = [
+    "Single",
+    "Married",
+    "Divorced",
+    "Widowed",
+] as const;
+
+const PROFESSION_OPTIONS = [
+    "Student",
+    "Software Engineer",
+    "Doctor",
+    "Engineer",
+    "Teacher",
+    "Lawyer",
+    "Accountant",
+    "Business Owner",
+    "Entrepreneur",
+    "Designer",
+    "Artist",
+    "Writer",
+    "Nurse",
+    "Civil Servant",
+    "Banker",
+    "Marketing Professional",
+    "Sales Professional",
+    "Consultant",
+    "Researcher",
+    "Other",
+] as const;
 
 const RELATIONSHIP_GOAL_OPTIONS = [
     "Serious Relationship",
@@ -665,7 +693,7 @@ export function ProfilePage() {
                                                         >
                                                             Profession
                                                         </div>
-                                                        <input
+                                                        <select
                                                             value={draft.profession ?? ""}
                                                             onChange={(e) =>
                                                                 setDraft((prev) => ({
@@ -681,7 +709,14 @@ export function ProfilePage() {
                                                                 borderRadius: 8,
                                                                 color: "var(--text-primary)",
                                                             }}
-                                                        />
+                                                        >
+                                                            <option value="">Select profession</option>
+                                                            {PROFESSION_OPTIONS.map((opt) => (
+                                                                <option key={opt} value={opt}>
+                                                                    {opt}
+                                                                </option>
+                                                            ))}
+                                                        </select>
                                                     </div>
 
                                                     <div style={{ flex: "1 1 200px" }}>

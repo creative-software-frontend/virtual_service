@@ -90,7 +90,7 @@ export function EventPage() {
             {/* Tab navigation */}
             <div style={{
                 display: 'flex',
-                borderBottom: '1px solid rgba(99,102,241,0.15)',
+                borderBottom: '1px solid var(--gold-border)',
                 marginBottom: 8
             }}>
                 <button
@@ -99,7 +99,7 @@ export function EventPage() {
                         flex: 1,
                         background: 'none',
                         border: 'none',
-                        color: activeTab === 'browse' ? '#818cf8' : 'var(--text-secondary)',
+                        color: activeTab === 'browse' ? 'var(--gold-mid)' : 'var(--text-secondary)',
                         padding: '12px 0',
                         fontSize: '0.85rem',
                         fontWeight: activeTab === 'browse' ? 700 : 500,
@@ -116,7 +116,7 @@ export function EventPage() {
                             left: '25%',
                             right: '25%',
                             height: 2,
-                            background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                            background: 'linear-gradient(90deg, var(--gold-rich), var(--gold-deep))',
                             borderRadius: 4
                         }} />
                     )}
@@ -129,7 +129,7 @@ export function EventPage() {
                             flex: 1,
                             background: 'none',
                             border: 'none',
-                            color: activeTab === 'my-events' ? '#818cf8' : 'var(--text-secondary)',
+                            color: activeTab === 'my-events' ? 'var(--gold-mid)' : 'var(--text-secondary)',
                             padding: '12px 0',
                             fontSize: '0.85rem',
                             fontWeight: activeTab === 'my-events' ? 700 : 500,
@@ -146,7 +146,7 @@ export function EventPage() {
                                 left: '25%',
                                 right: '25%',
                                 height: 2,
-                                background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                background: 'linear-gradient(90deg, var(--gold-rich), var(--gold-deep))',
                                 borderRadius: 4
                             }} />
                         )}
@@ -163,7 +163,7 @@ export function EventPage() {
                             flex: 1,
                             background: 'none',
                             border: 'none',
-                            color: isCreateOpen ? '#818cf8' : 'var(--text-secondary)',
+                            color: isCreateOpen ? 'var(--gold-mid)' : 'var(--text-secondary)',
                             padding: '12px 0',
                             fontSize: '0.85rem',
                             fontWeight: isCreateOpen ? 700 : 500,
@@ -180,7 +180,7 @@ export function EventPage() {
                                 left: '25%',
                                 right: '25%',
                                 height: 2,
-                                background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                background: 'linear-gradient(90deg, var(--gold-rich), var(--gold-deep))',
                                 borderRadius: 4
                             }} />
                         )}
@@ -194,7 +194,7 @@ export function EventPage() {
                             flex: 1,
                             background: 'none',
                             border: 'none',
-                            color: activeTab === 'requests' ? '#818cf8' : 'var(--text-secondary)',
+                            color: activeTab === 'requests' ? 'var(--gold-mid)' : 'var(--text-secondary)',
                             padding: '12px 0',
                             fontSize: '0.85rem',
                             fontWeight: activeTab === 'requests' ? 700 : 500,
@@ -211,7 +211,7 @@ export function EventPage() {
                                 left: '25%',
                                 right: '25%',
                                 height: 2,
-                                background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                background: 'linear-gradient(90deg, var(--gold-rich), var(--gold-deep))',
                                 borderRadius: 4
                             }} />
                         )}
@@ -226,7 +226,7 @@ export function EventPage() {
                                 flex: 1,
                                 background: 'none',
                                 border: 'none',
-                                color: activeTab === 'joined-events' ? '#818cf8' : 'var(--text-secondary)',
+                                color: activeTab === 'joined-events' ? 'var(--gold-mid)' : 'var(--text-secondary)',
                                 padding: '12px 0',
                                 fontSize: '0.85rem',
                                 fontWeight: activeTab === 'joined-events' ? 700 : 500,
@@ -243,7 +243,7 @@ export function EventPage() {
                                     left: '25%',
                                     right: '25%',
                                     height: 2,
-                                    background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                    background: 'linear-gradient(90deg, var(--gold-rich), var(--gold-deep))',
                                     borderRadius: 4
                                 }} />
                             )}
@@ -255,7 +255,7 @@ export function EventPage() {
                                 flex: 1,
                                 background: 'none',
                                 border: 'none',
-                                color: activeTab === 'partner' ? '#818cf8' : 'var(--text-secondary)',
+                                color: activeTab === 'partner' ? 'var(--gold-mid)' : 'var(--text-secondary)',
                                 padding: '12px 0',
                                 fontSize: '0.85rem',
                                 fontWeight: activeTab === 'partner' ? 700 : 500,
@@ -272,7 +272,7 @@ export function EventPage() {
                                     left: '25%',
                                     right: '25%',
                                     height: 2,
-                                    background: 'linear-gradient(90deg,#6366f1,#818cf8)',
+                                    background: 'linear-gradient(90deg, var(--gold-rich), var(--gold-deep))',
                                     borderRadius: 4
                                 }} />
                             )}

@@ -8,16 +8,16 @@ export function EmptyState({ message = 'No events found.' }: EmptyStateProps) {
             textAlign: 'center',
             padding: '60px 20px',
             color: 'var(--text-muted)',
-            background: 'linear-gradient(135deg,rgba(30,41,59,0.4),rgba(15,23,42,0.4))',
-            borderRadius: 16,
-            border: '1px dashed rgba(99,102,241,0.2)',
+            background: 'linear-gradient(135deg, rgba(11,21,45,0.5), rgba(7,16,32,0.5))',
+            borderRadius: 'var(--radius-xl)',
+            border: '1px dashed var(--gold-border)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 16
         }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(99,102,241,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--gold-mid)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
                 <line x1="8" y1="2" x2="8" y2="6" />

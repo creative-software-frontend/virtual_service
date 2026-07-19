@@ -25,38 +25,71 @@ export function CreateEventModal({ isOpen, eventToEdit, onClose, onSuccess }: Cr
         }}>
             <div style={{
                 width: '100%',
-                maxWidth: 480,
-                background: 'linear-gradient(135deg,rgba(30,41,59,0.98),rgba(15,23,42,0.98))',
-                border: '1px solid rgba(99,102,241,0.3)',
-                borderRadius: 20,
-                padding: '24px 20px',
-                boxShadow: '0 0 30px rgba(99,102,241,0.25)',
+                maxWidth: 600,
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                background: 'linear-gradient(135deg, rgba(11,21,45,0.98), rgba(7,16,32,0.98))',
+                border: '1px solid var(--gold-border)',
+                borderRadius: 'var(--radius-2xl)',
+                padding: '28px 26px',
+                boxShadow: '0 0 40px rgba(197,168,128,0.12), var(--shadow-lg)',
                 boxSizing: 'border-box',
                 animation: 'fadeIn 0.25s ease'
             }}>
                 <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 20
+                    alignItems: 'flex-start',
+                    marginBottom: 22,
+                    gap: 12
                 }}>
-                    <h2 style={{
-                        color: 'var(--text-primary)',
-                        fontSize: '1.15rem',
-                        fontWeight: 800,
-                        fontFamily: "'Inter', sans-serif",
-                        margin: 0
-                    }}>
-                        {eventToEdit ? 'Edit Experience Event' : 'Create Exclusive Event'}
-                    </h2>
+                    <div>
+                        <h2 style={{
+                            color: 'var(--text-primary)',
+                            fontSize: '1.35rem',
+                            fontWeight: 700,
+                            fontFamily: "'Inter', sans-serif",
+                            margin: 0,
+                            letterSpacing: '-0.01em'
+                        }}>
+                            {eventToEdit ? 'Edit Event' : 'Create Event'}
+                        </h2>
+                        <p style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.82rem',
+                            fontFamily: "'Inter', sans-serif",
+                            margin: '6px 0 0',
+                            lineHeight: 1.4
+                        }}>
+                            {eventToEdit ? 'Update the details of your event.' : 'Organize a new event for users.'}
+                        </p>
+                    </div>
                     <button
                         onClick={onClose}
+                        aria-label="Close"
                         style={{
-                            background: 'none',
-                            border: 'none',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid var(--border-default)',
+                            borderRadius: 'var(--radius-md)',
                             color: 'var(--text-muted)',
-                            fontSize: '1.2rem',
-                            cursor: 'pointer'
+                            fontSize: '1rem',
+                            lineHeight: 1,
+                            width: 32,
+                            height: 32,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.borderColor = 'var(--gold-border)';
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.color = 'var(--text-muted)';
+                            e.currentTarget.style.borderColor = 'var(--border-default)';
                         }}
                     >
                         ✕

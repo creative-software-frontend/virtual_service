@@ -40,9 +40,9 @@ export function EventFilters({
                         placeholder="Search events by title or location..."
                         style={{
                             width: '100%',
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1px solid rgba(99,102,241,0.2)',
-                            borderRadius: 10,
+                            background: 'var(--bg-input)',
+                            border: '1px solid var(--gold-border)',
+                            borderRadius: 'var(--radius-md)',
                             color: 'var(--text-primary)',
                             padding: '10px 12px 10px 36px',
                             fontSize: '0.88rem',
@@ -57,7 +57,7 @@ export function EventFilters({
                         height="16"
                         viewBox="0 0 24 24"
                         fill="none"
-                        stroke="rgba(99,102,241,0.5)"
+                        stroke="var(--gold-mid)"
                         strokeWidth="2.2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -78,10 +78,10 @@ export function EventFilters({
                     <button
                         onClick={onCreateClick}
                         style={{
-                            background: 'linear-gradient(135deg,#6366f1,#818cf8)',
-                            border: 'none',
-                            borderRadius: 10,
-                            color: '#fff',
+                            background: 'linear-gradient(135deg, var(--gold-rich), var(--gold-deep))',
+                            border: '1px solid var(--gold-border)',
+                            borderRadius: 'var(--radius-md)',
+                            color: '#0b0f1a',
                             padding: '10px 16px',
                             fontSize: '0.82rem',
                             fontWeight: 700,
@@ -89,7 +89,7 @@ export function EventFilters({
                             display: 'flex',
                             alignItems: 'center',
                             gap: 6,
-                            boxShadow: '0 0 14px rgba(99,102,241,0.4)',
+                            boxShadow: '0 0 14px rgba(197,168,128,0.3)',
                             transition: 'all 0.2s',
                             whiteSpace: 'nowrap'
                         }}
@@ -114,10 +114,10 @@ export function EventFilters({
                         key={status}
                         onClick={() => setStatusFilter(status)}
                         style={{
-                            background: statusFilter === status ? 'rgba(99,102,241,0.18)' : 'rgba(255,255,255,0.03)',
-                            border: statusFilter === status ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.05)',
+                            background: statusFilter === status ? 'rgba(197,168,128,0.16)' : 'rgba(255,255,255,0.03)',
+                            border: statusFilter === status ? '1px solid var(--gold-border)' : '1px solid rgba(255,255,255,0.05)',
                             borderRadius: 20,
-                            color: statusFilter === status ? '#818cf8' : 'var(--text-secondary)',
+                            color: statusFilter === status ? 'var(--gold-mid)' : 'var(--text-secondary)',
                             padding: '6px 14px',
                             fontSize: '0.78rem',
                             fontWeight: 600,

@@ -38,13 +38,13 @@ function Avatar({ name, avatar_url, size = 54 }: { name: string; avatar_url: str
                 height: size,
                 borderRadius: "50%",
                 overflow: "hidden",
-                border: "2px solid var(--border-subtle)",
-                background: "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",
+                border: "2px solid var(--gold-border)",
+                background: "linear-gradient(135deg, var(--gold-rich), var(--gold-deep))",
                 flexShrink: 0,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 0 0 3px rgba(59,130,246,0.08)",
+                boxShadow: "0 0 0 3px rgba(197,168,128,0.1)",
             }}
         >
             {avatar_url ? (
@@ -62,9 +62,9 @@ function Pill({ children }: { children: React.ReactNode }) {
             style={{
                 padding: "5px 11px",
                 borderRadius: 999,
-                border: "1px solid var(--border-subtle)",
-                background: "var(--blue-glow)",
-                color: "var(--blue-vivid)",
+                border: "1px solid var(--gold-border)",
+                background: "rgba(197,168,128,0.1)",
+                color: "var(--gold-mid)",
                 fontWeight: 700,
                 fontSize: "0.68rem",
                 whiteSpace: "nowrap",
@@ -129,7 +129,7 @@ function RequestCard({
                 overflow: "hidden",
             }}
         >
-            <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 1, background: "linear-gradient(90deg, transparent, var(--blue-vivid), transparent)", opacity: 0.5 }} />
+            <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 1, background: "linear-gradient(90deg, transparent, var(--gold-rich), transparent)", opacity: 0.5 }} />
 
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <Avatar name={item.name ?? "User"} avatar_url={item.avatar_url} />
@@ -301,7 +301,7 @@ function RequesterDetailsModal({
             >
                 {/* Header banner */}
                 <div style={{
-                    background: "linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))",
+                    background: "linear-gradient(135deg, var(--gold-rich), var(--gold-deep))",
                     padding: "22px 20px 18px",
                     position: "relative",
                 }}>

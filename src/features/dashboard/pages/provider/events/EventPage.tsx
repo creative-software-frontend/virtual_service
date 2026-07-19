@@ -10,6 +10,7 @@ import { JoinedEvents } from './JoinedEvents';
 import { CreateEventModal } from './CreateEventModal';
 import { EventDetailsModal } from './EventDetailsModal';
 import { JoinEventModal } from './JoinEventModal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import type { Event } from './types/event';
 import { PartnerSearchPanel } from '../../partner/PartnerSearchPanel';
 import { PartnerRequestsPanel } from '../../partner/PartnerRequestsPanel';
@@ -56,6 +57,7 @@ export function EventPage() {
     const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
     const [eventToView, setEventToView] = useState<Event | null>(null);
     const [eventToJoin, setEventToJoin] = useState<Event | null>(null);
+    const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
 
     const handleEditClick = (event: Event) => {
         setEventToEdit(event);
@@ -64,6 +66,10 @@ export function EventPage() {
 
     const handleViewDetails = (event: Event) => {
         setEventToView(event);
+    };
+
+    const handleDeleteClick = (event: Event) => {
+        setEventToDelete(event);
     };
 
     // Filter events before rendering
@@ -325,7 +331,10 @@ export function EventPage() {
                                 }}
                                 onLeave={leaveEvent}
                                 onEdit={handleEditClick}
-                                onDelete={deleteEvent}
+                                onDelete={(id) => {
+                                    const ev = events.find(e => e.id === id);
+                                    if (ev) handleDeleteClick(ev);
+                                }}
                                 onViewDetails={handleViewDetails}
                                 emptyMessage="No events match your criteria."
                             />
@@ -340,7 +349,10 @@ export function EventPage() {
                                 currentUserId={currentUserId}
                                 actionLoading={actionLoading}
                                 onEdit={handleEditClick}
-                                onDelete={deleteEvent}
+                                onDelete={(id) => {
+                                    const ev = events.find(e => e.id === id);
+                                    if (ev) handleDeleteClick(ev);
+                                }}
                                 onViewDetails={handleViewDetails}
                             />
                         </FeatureGate>
@@ -387,6 +399,15 @@ export function EventPage() {
                 onClose={() => setEventToJoin(null)}
                 onJoin={joinEvent}
                 onSuccess={refresh}
+            />
+
+            {/* Delete Event confirmation modal */}
+            <ConfirmDeleteModal
+                isOpen={eventToDelete !== null}
+                itemName={eventToDelete?.title}
+                onConfirm={() => deleteEvent(eventToDelete!.id)}
+                onSuccess={refresh}
+                onClose={() => setEventToDelete(null)}
             />
         </div>
     );

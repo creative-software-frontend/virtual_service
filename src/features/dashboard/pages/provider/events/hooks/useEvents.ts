@@ -69,16 +69,14 @@ export function useEvents(role: string) {
     }, [fetchEvents]);
 
     const deleteEvent = useCallback(async (eventId: number) => {
-        if (!window.confirm('Are you sure you want to delete this event?')) return;
         setActionLoading(eventId);
         const res = await eventApi.deleteEvent(eventId);
-        if (res.error) {
-            alert(res.error);
-        } else {
+        if (!res.error) {
             // refresh events
             await fetchEvents();
         }
         setActionLoading(null);
+        return res;
     }, [fetchEvents]);
 
     return {

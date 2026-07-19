@@ -21,9 +21,7 @@ export function WalletPage() {
 
     const [wallet, setWallet] = useState({
         balance: 0,
-        earnings: 0,
         available_balance: 0,
-        available_earnings: 0,
         role: "",
     });
 
@@ -58,10 +56,8 @@ export function WalletPage() {
         } else if (res.data) {
             setWallet({
                 balance: res.data.balance,
-                earnings: res.data.earnings,
                 // Fall back to raw totals for older backend versions
                 available_balance: res.data.available_balance ?? res.data.balance,
-                available_earnings: res.data.available_earnings ?? res.data.earnings,
                 role: res.data.role,
             });
             setTransactions(res.data.transactions || []);
@@ -127,14 +123,13 @@ export function WalletPage() {
             setModalStatus({ type: 'error', message: 'Please enter a valid positive amount.' });
             return;
         }
-        // Use server-calculated available amount (balance/earnings minus pending withdrawals)
-        const availableFunds = wallet.role === 'provider' ? wallet.available_earnings : wallet.available_balance;
+        // Use server-calculated available amount (balance minus pending withdrawals).
+        // Providers use a single balance wallet, so available funds = available_balance.
+        const availableFunds = wallet.available_balance;
         if (amt > availableFunds) {
             setModalStatus({
                 type: 'error',
-                message: wallet.role === 'provider'
-                    ? `Insufficient available earnings. Available: ৳${Number(availableFunds).toFixed(2)}`
-                    : `Insufficient available balance. Available: ৳${Number(availableFunds).toFixed(2)}`
+                message: `Insufficient available balance. Available: ৳${Number(availableFunds).toFixed(2)}`
             });
             return;
         }
@@ -312,7 +307,7 @@ export function WalletPage() {
                                                 marginBottom: "8px",
                                             }}
                                         >
-                                            ★ Total Earnings
+                                            ★ Wallet Balance
                                         </p>
                                         <p
                                             style={{
@@ -322,7 +317,7 @@ export function WalletPage() {
                                                 fontFamily: "'Inter', sans-serif",
                                             }}
                                         >
-                                            ৳ {Number(wallet.earnings).toFixed(2)}
+                                            ৳ {Number(wallet.balance).toFixed(2)}
                                         </p>
                                     </div>
                                 )}
@@ -359,7 +354,7 @@ export function WalletPage() {
                                 },
                                 {
                                     label: "WITHDRAW",
-                                    sub: "Withdraw your earnings",
+                                    sub: "Withdraw your balance",
                                     onClick: () => {
                                         setAmountInput("");
                                         setWithdrawMethod('bKash');
@@ -867,13 +862,10 @@ export function WalletPage() {
                             <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
                                 Enter the amount to withdraw.<br />
                                 <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>
-                                    Available {wallet.role === 'provider' ? 'earnings' : 'balance'}:{" "}
-                                    ৳{Number(wallet.role === 'provider' ? wallet.available_earnings : wallet.available_balance).toFixed(2)}
+                                    Available balance:{" "}
+                                    ৳{Number(wallet.available_balance).toFixed(2)}
                                 </span>
-                                {wallet.role === 'provider'
-                                    ? wallet.earnings !== wallet.available_earnings && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total earnings: ৳{Number(wallet.earnings).toFixed(2)} (৳{(wallet.earnings - wallet.available_earnings).toFixed(2)} reserved)</span></>
-                                    : wallet.balance !== wallet.available_balance && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total balance: ৳{Number(wallet.balance).toFixed(2)} (৳{(wallet.balance - wallet.available_balance).toFixed(2)} reserved)</span></>
-                                }
+                                {wallet.balance !== wallet.available_balance && <><br /><span style={{ fontSize: "0.7rem", color: "var(--gold-mid)" }}>Total balance: ৳{Number(wallet.balance).toFixed(2)} (৳{(wallet.balance - wallet.available_balance).toFixed(2)} reserved)</span></>}
                             </p>
                         </div>
 

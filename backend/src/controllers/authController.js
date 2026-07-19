@@ -3,6 +3,10 @@ const bcrypt = require("bcrypt");
 const generateToken = require("../utils/generateToken");
 const { generateReferralLink } = require("../utils/referralLink");
 
+// Valid Bangladesh mobile number: +880 followed by exactly 10 digits,
+// first digit 1, second digit one of 3,4,5,6,7,8,9.
+const BD_MOBILE_REGEX = /^8801[3-9]\d{8}$/;
+
 exports.register = async (req, res) => {
     const { name, email, phone, password, role, privacyAccepted } = req.body || {};
 
@@ -15,6 +19,15 @@ exports.register = async (req, res) => {
 
     if (!name || !email || !phone || !password) {
         return res.status(400).json({ message: "All fields required" });
+    }
+
+    // ✅ Validate Bangladesh mobile number (digits only, +880 prefix enforced)
+    const normalizedPhone = String(phone).replace(/\D/g, "");
+    const bdPhone = normalizedPhone.startsWith("880")
+        ? normalizedPhone
+        : `880${normalizedPhone.replace(/^0/, "")}`;
+    if (!BD_MOBILE_REGEX.test(bdPhone)) {
+        return res.status(400).json({ message: "Please enter a valid Bangladesh mobile number." });
     }
 
     const allowedRoles = ["user", "provider"];

@@ -69,16 +69,6 @@ export function NetworkPage() {
                 >
                     {[
                         {
-                            title: "EARNINGS",
-                            value: "৳ 0",
-                            icon: (
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-status)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="5" width="20" height="14" rx="2" />
-                                    <line x1="12" y1="5" x2="12" y2="19" />
-                                </svg>
-                            )
-                        },
-                        {
                             title: "REFERRALS",
                             value: "0",
                             icon: (

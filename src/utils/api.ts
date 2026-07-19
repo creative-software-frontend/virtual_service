@@ -104,10 +104,11 @@ export interface Transaction {
 
 export interface WalletResponse {
     balance: number;
+    /** Retained for backward compatibility; providers no longer use a separate earnings wallet. */
     earnings: number;
-    /** balance minus sum of all Pending withdrawal requests (for users) */
+    /** balance minus sum of all Pending withdrawal requests (single wallet for all roles) */
     available_balance: number;
-    /** earnings minus sum of all Pending withdrawal requests (for providers) */
+    /** Retained for backward compatibility; equals `earnings` and is no longer provider-specific. */
     available_earnings: number;
     role: string;
     transactions: Transaction[];

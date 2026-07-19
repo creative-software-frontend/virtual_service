@@ -372,7 +372,7 @@ router.get("/wallet", authMiddleware, (req, res) => {
                     // Seed provider with initial active mockup transactions if empty
                     if (user.role === "provider" && (!txResult || txResult.length === 0)) {
                         db.query(
-                            "UPDATE users SET balance = 8000.00, earnings = 12500.00 WHERE id = ?",
+                            "UPDATE users SET balance = 20500.00 WHERE id = ?",
                             [userId],
                             () => {
                                 db.query(
@@ -546,7 +546,7 @@ router.post("/events/:id/join", authMiddleware, requireFeature("EVENT_ACCESS"), 
             }
 
             await connection.query(
-                "UPDATE users SET earnings = earnings + ? WHERE id = ?",
+                "UPDATE users SET balance = balance + ? WHERE id = ?",
                 [fee, event.creator_id]
             );
 

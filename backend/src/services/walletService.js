@@ -112,8 +112,8 @@ async function getUserDepositHistory(userId) {
  * ──────────────────────
  * Reserved-funds approach:
  * - Lock the user row (FOR UPDATE)
- * - Validate against the user's current available funds (users.balance for users,
- *   users.earnings for providers)
+ * - Validate against the user's current available funds (users.balance for all roles;
+ *   providers use a single balance wallet)
  * - Immediately deduct the amount from the correct column
  * - Insert the withdrawal request as Pending
  *
@@ -183,8 +183,8 @@ async function createWithdrawRequest(userId, payload = {}) {
         }
 
         const user = userRows[0];
-        const isProvider = user.role === "provider";
-        const fundsField = isProvider ? "earnings" : "balance";
+        // Providers use a single balance wallet — all funds live in `balance`.
+        const fundsField = "balance";
 
         const available = Number(user[fundsField] || 0);
         if (Number(amount) > available) {
@@ -293,12 +293,13 @@ async function getWalletSummary(userId) {
 
     const balance = Number(user.balance || 0);
     const earnings = Number(user.earnings || 0);
-    const isProvider = user.role === "provider";
 
-    // Reservation is applied immediately on Pending creation by deducting
-    // from users.balance / users.earnings. Therefore available funds equal current values.
-    const available_balance = isProvider ? balance : Math.max(0, balance);
-    const available_earnings = isProvider ? Math.max(0, earnings) : earnings;
+    // Reservation is applied immediately on Pending creation by deducting from
+    // users.balance. Providers use a single balance wallet, so available funds
+    // equal the current balance for all roles. `available_earnings` is retained
+    // for backward compatibility but is no longer provider-specific.
+    const available_balance = Math.max(0, balance);
+    const available_earnings = earnings;
 
     // ── Map request rows to unified Transaction shape ───────────────────────
     const depositReqTx = depositReqRows.map((r) => ({
@@ -560,8 +561,8 @@ async function rejectWithdrawRequest(adminId, withdrawId, adminNote = "") {
         }
 
         const user = userRows[0];
-        const isProvider = user.role === "provider";
-        const fundsField = isProvider ? "earnings" : "balance";
+        // Providers use a single balance wallet — refund reserved funds to `balance`.
+        const fundsField = "balance";
 
         // Refund reserved funds
         await connection.query(

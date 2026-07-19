@@ -8,7 +8,6 @@ export function AssetsPage() {
     const role = user?.role;
 
     const [balance, setBalance] = useState(0);
-    const [earnings, setEarnings] = useState(0);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -27,7 +26,7 @@ export function AssetsPage() {
     const depositLabel = 'DEPOSIT';
     const depositSub = 'Deposit funds to wallet';
     const withdrawLabel = 'WITHDRAW';
-    const withdrawSub = 'Withdraw your earnings';
+    const withdrawSub = 'Withdraw your balance';
 
     const fetchWallet = async () => {
         try {
@@ -37,7 +36,6 @@ export function AssetsPage() {
                 setError(res.error);
             } else if (res.data) {
                 setBalance(res.data.balance);
-                setEarnings(res.data.earnings);
                 setTransactions(res.data.transactions);
             }
         } catch (e: any) {
@@ -87,9 +85,9 @@ export function AssetsPage() {
             setModalError('Please enter a valid positive amount.');
             return;
         }
-        const limit = role === 'provider' ? earnings : balance;
+        const limit = balance;
         if (amt > limit) {
-            setModalError(role === 'provider' ? 'Insufficient earnings to withdraw.' : 'Insufficient balance to withdraw.');
+            setModalError('Insufficient balance to withdraw.');
             return;
         }
 
@@ -149,36 +147,10 @@ export function AssetsPage() {
                         alignItems: 'stretch'
                     }}>
 
-                        {/* Balance & Earnings Display Column */}
+                        {/* Balance Display Column */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {role === 'provider' ? (
-                                // Provider Earning Cards Deck
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr',
-                                    gap: '16px',
-                                    width: '100%'
-                                }}>
-                                    {/* Current Earnings Card */}
-                                    <div style={{
-                                        background: 'linear-gradient(135deg, var(--bg-card-hover), var(--bg-card))',
-                                        border: '1px solid var(--border-gold)',
-                                        borderRadius: '16px',
-                                        padding: '24px',
-                                        textAlign: 'center',
-                                        boxShadow: 'var(--shadow-gold)'
-                                    }}>
-                                        <p style={{ fontSize: '0.65rem', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold-mid)', fontWeight: 700, marginBottom: '8px' }}>
-                                            ★ CURRENT EARNINGS
-                                        </p>
-                                        <p style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--gold-mid)', fontFamily: "'Inter', sans-serif" }}>
-                                            ৳ {Number(earnings).toFixed(2)}
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                // User Single Assets Card
-                                <div style={{
+                            {/* Single Assets Card (used for both user and provider) */}
+                            <div style={{
                                     background: 'var(--bg-card)',
                                     border: '1px solid var(--border-subtle)',
                                     borderRadius: '16px',
@@ -217,7 +189,6 @@ export function AssetsPage() {
                                         <span style={{ fontWeight: 400, color: 'var(--text-primary)' }}>৳</span> {Number(balance).toFixed(2)}
                                     </p>
                                 </div>
-                            )}
                         </div>
 
                         {/* Column 2: Action Buttons Layout Framework */}
@@ -228,7 +199,7 @@ export function AssetsPage() {
                             width: '100%'
                         }}>
                             {[
-                                ...(role !== 'provider' ? [{
+                                ...([{
                                     label: depositLabel,
                                     sub: depositSub,
                                     onClick: () => {
@@ -241,7 +212,7 @@ export function AssetsPage() {
                                             <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
                                         </svg>
                                     ),
-                                }] : []),
+                                }]),
                                 {
                                      label: withdrawLabel,
                                      sub: withdrawSub,
@@ -548,7 +519,7 @@ export function AssetsPage() {
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 Enter the amount to withdraw.<br/>
                                 <br/>
-                                Available balance: ৳{Number(role === 'provider' ? earnings : balance).toFixed(2)}
+                                Available balance: ৳{Number(balance).toFixed(2)}
                             </p>
                         </div>
 

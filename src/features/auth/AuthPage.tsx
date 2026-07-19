@@ -3,6 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../utils/api';
 import type { Role } from '../../context/AuthContext';
+import {
+    BD_COUNTRY_CODE,
+    BD_PHONE_ERROR,
+    isValidBdMobile,
+    sanitizeBdMobileInput,
+} from './utils/phoneValidation';
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const labelStyle: React.CSSProperties = {
@@ -80,13 +86,12 @@ export function AuthPage() {
                 }
 
                 const normalizedPhone = phone.replace(/\s+/g, '');
-                const bangladeshPhoneRegex = /^(\+?880)?(1\d{9})$/;
                 if (!normalizedPhone) {
                     setError('Please enter your phone number.');
                     return;
                 }
-                if (!bangladeshPhoneRegex.test(normalizedPhone)) {
-                    setError('Please enter a valid Bangladesh phone number (e.g. 01XXXXXXXXX or +8801XXXXXXXXX).');
+                if (!isValidBdMobile(normalizedPhone)) {
+                    setError(BD_PHONE_ERROR);
                     return;
                 }
 
@@ -100,11 +105,7 @@ export function AuthPage() {
                     return;
                 }
 
-                const finalPhone = normalizedPhone.startsWith('01')
-                    ? `+88${normalizedPhone}`
-                    : normalizedPhone.startsWith('+')
-                        ? normalizedPhone
-                        : `+${normalizedPhone}`;
+                const finalPhone = `${BD_COUNTRY_CODE}${normalizedPhone}`;
 
                 const res = await authApi.register({
                     name: username.trim(),
@@ -267,18 +268,30 @@ export function AuthPage() {
                     {/* Phone */}
                     {!isLogin && (
                         <div>
-                            <label style={labelStyle}>Phone Number (Bangladesh)</label>
-                            <input
-                                id="auth-phone"
-                                type="tel"
-                                inputMode="tel"
-                                placeholder="e.g. 01XXXXXXXXX or +8801XXXXXXXXX"
-                                value={phone}
-                                onChange={e => setPhone(e.target.value)}
-                                style={inputStyle}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
-                            />
+                            <label style={labelStyle}>Phone Number</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <span
+                                    id="auth-country-code"
+                                    style={{
+                                        ...inputStyle, width: 'auto', flexShrink: 0,
+                                        paddingRight: '12px', cursor: 'default',
+                                        display: 'inline-flex', alignItems: 'center',
+                                        color: 'var(--text-muted)',
+                                    }}
+                                >{BD_COUNTRY_CODE}</span>
+                                <input
+                                    id="auth-phone"
+                                    type="tel"
+                                    inputMode="tel"
+                                    placeholder="1XXXXXXXXX"
+                                    value={phone}
+                                    onChange={e => setPhone(sanitizeBdMobileInput(e.target.value))}
+                                    maxLength={10}
+                                    style={{ ...inputStyle, flex: 1 }}
+                                    onFocus={e => (e.currentTarget.style.borderColor = 'var(--gold-mid)')}
+                                    onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+                                />
+                            </div>
                         </div>
                     )}
 
@@ -381,21 +394,25 @@ export function AuthPage() {
                     <button
                         id="auth-submit"
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, '')))}
                         style={{
                             width: '100%', padding: '14px', marginTop: '4px',
-                            background: loading
+                            background: (loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, ''))))
                                 ? 'rgba(59,130,246,0.4)'
                                 : 'linear-gradient(135deg, var(--blue-neon), var(--blue-vivid))',
                             border: 'none', borderRadius: '8px', color: '#fff',
                             fontSize: '0.65rem', letterSpacing: '0.18em', textTransform: 'uppercase',
                             fontWeight: 700, fontFamily: "'Inter', sans-serif",
-                            cursor: loading ? 'not-allowed' : 'pointer',
-                            boxShadow: loading ? 'none' : 'var(--shadow-blue)',
+                            cursor: (loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, ''))))
+                                ? 'not-allowed'
+                                : 'pointer',
+                            boxShadow: (loading || (!isLogin && !isValidBdMobile(phone.replace(/\s+/g, ''))))
+                                ? 'none'
+                                : 'var(--shadow-blue)',
                             transition: 'filter 0.2s, transform 0.2s',
                         }}
                         onMouseEnter={e => {
-                            if (!loading) {
+                            if (!e.currentTarget.disabled) {
                                 e.currentTarget.style.filter = 'brightness(1.15)';
                                 e.currentTarget.style.transform = 'translateY(-1px)';
                             }
@@ -412,7 +429,7 @@ export function AuthPage() {
                 {/* ── Footer Links ── */}
                 <p style={{
                     textAlign: 'center', marginTop: '24px',
-                    fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
+                    fontSize: '0.8rem', fontFamily: "'Inter', sans-serif", color: '#ffffff',
                 }}>
                     {isLogin ? (
                         <>New to BLUEdise?{' '}
@@ -433,10 +450,10 @@ export function AuthPage() {
                 {isLogin && (
                     <p style={{
                         textAlign: 'center', marginTop: '12px',
-                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif", color: 'var(--text-muted)',
+                        fontSize: '0.72rem', fontFamily: "'Inter', sans-serif", color: '#ffffff',
                     }}>
                         Are you a service provider?{' '}
-                        <Link to="/provider/register" style={{ color: '#34d399', textDecoration: 'none', fontWeight: 500 }}>
+                        <Link to="/provider/register" style={{ color: 'var(--blue-vivid)', textDecoration: 'none', fontWeight: 500 }}>
                             Register here
                         </Link>
                     </p>
@@ -445,7 +462,7 @@ export function AuthPage() {
                 <p style={{
                     textAlign: 'center', marginTop: '20px',
                     fontSize: '0.55rem', letterSpacing: '0.18em', textTransform: 'uppercase',
-                    color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif",
+                    color: '#ffffff', fontFamily: "'Inter', sans-serif",
                 }}>© 2026 BLUEDISE SECURED PORTAL</p>
             </div>
         </div>

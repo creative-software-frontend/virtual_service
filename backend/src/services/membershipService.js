@@ -74,13 +74,12 @@ async function buyMembership({ userId, packageId }) {
 
     const user = userRows[0];
 
-    // Select the correct wallet source based on role.
-    // USER    -> balance
-    // PROVIDER -> earnings
-    const fundsField =
-      user.role === 'provider'
-        ? 'earnings'
-        : 'balance';
+    // Wallet source for membership purchases.
+    // Both USER and PROVIDER fund memberships from `balance`.
+    // Provider deposits (and admin-approved deposits) credit `balance`, so this
+    // lets providers buy memberships with deposited funds. `earnings` is kept
+    // separate and is only used for provider withdrawals.
+    const fundsField = 'balance';
 
     const [pkgRows] = await connection.query(
       "SELECT id, name, price, duration_days, tier_type, membership_level FROM packages WHERE id = ? AND is_active = 1 LIMIT 1 FOR UPDATE",

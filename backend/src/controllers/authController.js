@@ -107,3 +107,78 @@ exports.login = (req, res) => {
         });
     });
 };
+
+// POST /api/user/change-password
+// Requires JWT (authMiddleware). Reuses the same bcrypt rounds (10) as registration.
+exports.changePassword = (req, res) => {
+    const userId = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body || {};
+
+    // ── Validation ──
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({
+            success: false,
+            message: "Current password, new password, and confirmation are all required."
+        });
+    }
+
+    if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+            success: false,
+            message: "New password and confirmation do not match."
+        });
+    }
+
+    // This project limits passwords to exactly 8 characters during signup.
+    if (newPassword.length !== 8) {
+        return res.status(400).json({
+            success: false,
+            message: "Password must be exactly 8 characters."
+        });
+    }
+
+    db.query(
+        "SELECT password FROM users WHERE id = ?",
+        [userId],
+        async (err, result) => {
+            if (err) return res.status(500).json({ success: false, message: "Database error" });
+            if (!result || result.length === 0) {
+                return res.status(404).json({ success: false, message: "User not found" });
+            }
+
+            const user = result[0];
+
+            // Verify the supplied current password.
+            const match = await bcrypt.compare(currentPassword, user.password);
+            if (!match) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Current password is incorrect."
+                });
+            }
+
+            // New password must differ from the current one.
+            if (currentPassword === newPassword) {
+                return res.status(400).json({
+                    success: false,
+                    message: "New password must be different from your current password."
+                });
+            }
+
+            // Hash with the same rounds used at registration (10).
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+            db.query(
+                "UPDATE users SET password = ? WHERE id = ?",
+                [hashedPassword, userId],
+                (err) => {
+                    if (err) return res.status(500).json({ success: false, message: "Database error" });
+                    return res.json({
+                        success: true,
+                        message: "Password changed successfully."
+                    });
+                }
+            );
+        }
+    );
+};

@@ -115,6 +115,13 @@ export const router = createBrowserRouter([
         },
       },
       {
+        path: "change-password",
+        lazy: async () => {
+          const { ChangePasswordPage } = await import("../features/dashboard/pages/ChangePasswordPage");
+          return { element: <ChangePasswordPage /> };
+        },
+      },
+      {
         path: "models",
         lazy: async () => {
           const { ModelsPage } = await import("../features/dashboard/pages/ModelsPage");

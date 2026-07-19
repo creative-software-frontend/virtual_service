@@ -1248,6 +1248,7 @@ const uploadRes = await userApi.uploadImage(file, 'avatars');
                                     fontFamily: "'Inter', sans-serif",
                                     transition: "all 0.2s ease",
                                 }}
+                                onClick={() => navigate("../change-password")}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--blue-glow)")}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >

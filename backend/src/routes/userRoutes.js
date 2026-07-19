@@ -8,6 +8,7 @@ const walletService = require("../services/walletService");
 const { validateEventJoin } = require("../services/eventJoinService");
 
 const { getProfile, updateProfile } = require("../controllers/profileController");
+const { changePassword } = require("../controllers/authController");
 
 function parseCsvInterests(value) {
     if (!value) return [];
@@ -41,6 +42,9 @@ router.get("/profile", authMiddleware, getProfile);
 
 // PUT /api/user/profile
 router.put("/profile", authMiddleware, updateProfile);
+
+// POST /api/user/change-password
+router.post("/change-password", authMiddleware, changePassword);
 
 // GET /api/user/search
 // Query params (all optional): keyword, gender, ageMin, ageMax, profession, education, location, relationship_goal, marital_status, interests, page, pageSize

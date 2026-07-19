@@ -97,9 +97,9 @@ const ICONS = {
 
 const USER_NAV = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
+    { to: '/services', end: false, label: 'SERVICES', icon: ICONS.services },
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
     { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
-    { to: '/services', end: false, label: 'SERVICES', icon: ICONS.services },
     { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
@@ -117,9 +117,9 @@ const ADMIN_NAV = [
 const PROVIDER_NAV = [
     { to: '', end: true, label: 'HOME', icon: ICONS.home },
     { to: '/services', end: false, label: 'SERVICES', icon: ICONS.social },
-    { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
-    { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
     { to: '/membership', end: false, label: 'MEMBERSHIP', icon: ICONS.membership },
+    { to: '/wallet', end: false, label: 'WALLET', icon: ICONS.wallet },
+    { to: '/chat', end: false, label: 'CHAT', icon: ICONS.chat },
     { to: '/newsfeed', end: false, label: 'NEWSFEED', icon: ICONS.newsfeed },
     { to: '/profile', end: false, label: 'PROFILE', icon: ICONS.profile },
 ];
@@ -180,13 +180,13 @@ export function BottomNav() {
                             padding: '0 2px',
                             gap: '4px',
                             textDecoration: 'none',
-                            color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
+                            color: isActive ? 'var(--gold-mid)' : 'var(--text-secondary)',
                             transition: 'all 0.2s ease-in-out',
                             fontSize: 'clamp(0.52rem, 1.8vw, 0.65rem)',
                             letterSpacing: '0.06em',
                             fontWeight: 700,
                             textTransform: 'uppercase',
-                            textShadow: isActive ? '0 0 10px var(--blue-glow)' : 'none',
+                            textShadow: isActive ? '0 0 10px var(--gold-glow)' : 'none',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                         })}
@@ -194,11 +194,11 @@ export function BottomNav() {
                         {({ isActive }) => (
                             <>
                                 <span style={{
-                                    color: isActive ? 'var(--blue-vivid)' : 'var(--text-secondary)',
+                                    color: isActive ? 'var(--gold-mid)' : 'var(--text-secondary)',
                                     display: 'flex',
                                     transform: isActive ? 'scale(1.1)' : 'scale(1)',
                                     transition: 'transform 0.2s ease',
-                                    filter: isActive ? 'drop-shadow(0 0 8px var(--blue-vivid))' : 'none',
+                                    filter: isActive ? 'drop-shadow(0 0 8px var(--gold-mid))' : 'none',
                                 }}>
                                     {item.icon}
                                 </span>

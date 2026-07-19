@@ -528,7 +528,25 @@ export const userApi = {
             profession: string | null;
             membership_package: string | null;
         }>>('/user/featured-providers'),
+
+    // ── Change Password ──
+    changePassword: (payload: ChangePasswordPayload) =>
+        request<ChangePasswordResponse>('/user/change-password', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        }),
 };
+
+export interface ChangePasswordPayload {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface ChangePasswordResponse {
+    success: boolean;
+    message: string;
+}
 
 // ── Provider Package type (normalized) ────────────────────────────────────────
 export interface ProviderPackage {

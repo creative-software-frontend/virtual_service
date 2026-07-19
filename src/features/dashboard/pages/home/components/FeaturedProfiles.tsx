@@ -16,6 +16,14 @@ export function FeaturedProfiles({
     loading?: boolean;
     isUser?: boolean;
 }) {
+    const toFullUploadUrl = (url: string | null): string | undefined => {
+        if (!url) return undefined;
+        if (url.startsWith("/uploads/")) {
+            return `${import.meta.env.VITE_API_URL || "http://localhost:5000"}${url}`;
+        }
+        return url;
+    };
+
     const getAge = (dob: string | null | undefined) => {
         if (!dob) return null;
         const diff = Date.now() - new Date(dob).getTime();
@@ -61,7 +69,7 @@ export function FeaturedProfiles({
                         }}
                     >
                         {p.avatar_url ? (
-                            <img src={p.avatar_url} alt={p.name} style={{ width: '100%', height: 'clamp(150px, 48vw, 190px)', objectFit: 'cover', display: 'block' }} />
+                            <img src={toFullUploadUrl(p.avatar_url)} alt={p.name} style={{ width: '100%', height: 'clamp(150px, 48vw, 190px)', objectFit: 'cover', display: 'block' }} />
                         ) : (
                             <div style={{
                                 width: '100%',

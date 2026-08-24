@@ -30,6 +30,17 @@ function route(sql, values = []) {
         const role = map[Number(v[0])] || 'user';
         return [{ role, is_active: 1 }];
     }
+    if (S.startsWith('delete from deposit_payment_methods')) {
+        const id = Number(v[0]);
+        const idx = methods.findIndex(m => m.id === id);
+        if (idx === -1) return { affectedRows: 0 };
+        methods.splice(idx, 1);
+        return { affectedRows: 1 };
+    }
+    if (S.includes('from deposit_requests where payment_method_id')) {
+        // reference check used by deleteMethod — this stub has no deposit refs
+        return [];
+    }
     if (S.includes('from deposit_payment_methods')) {
         const list = S.includes('where is_active = 1')
             ? methods.filter(m => m.is_active === 1)
@@ -48,22 +59,37 @@ function route(sql, values = []) {
         return { affectedRows: 1 };
     }
     if (S.includes('insert into deposit_payment_methods')) {
-        const [method, accountNumber, accountType, isActive] = v;
-        const dup = methods.some(m => m.method === method && m.account_type === accountType);
+        // (method, provider_name, account_number, account_type, instructions, instruction_image_url, is_active)
+        const [method, providerName, accountNumber, accountType, instructions, imageUrl, isActive] = v;
+        const dup = methods.some(m => m.method === method && m.account_type !== null && m.account_type === accountType);
         if (dup) { throw Object.assign(new Error('dup'), { code: 'ER_DUP_ENTRY' }); }
-        const m = { id: nextId++, method, account_number: accountNumber, account_type: accountType, is_active: Number(isActive), created_at: null, updated_at: null };
+        const m = {
+            id: nextId++, method,
+            provider_name: providerName ?? null,
+            account_number: accountNumber,
+            account_type: accountType ?? null,
+            instructions: instructions ?? null,
+            instruction_image_url: imageUrl ?? null,
+            is_active: Number(isActive), created_at: null, updated_at: null,
+        };
         methods.push(m);
         return { insertId: m.id, affectedRows: 1 };
     }
-    if (S.includes('set account_number = ?, account_type = ?, is_active = ?')) {
-        const [accountNumber, accountType, isActive, id] = v;
+    if (S.includes('set provider_name = ?') && S.includes('update deposit_payment_methods')) {
+        // (provider_name, account_number, account_type, instructions, instruction_image_url, is_active, id)
+        const [providerName, accountNumber, accountType, instructions, imageUrl, isActive, id] = v;
         const target = methods.find(m => m.id === Number(id));
         if (!target) return { affectedRows: 0 };
-        const dup = methods.some(m => m.id !== target.id && m.method === target.method && m.account_type === accountType);
+        const dup = methods.some(m => m.id !== target.id && m.method === target.method && m.account_type != null && m.account_type === accountType);
         if (dup) { throw Object.assign(new Error('dup'), { code: 'ER_DUP_ENTRY' }); }
-        target.account_number = accountNumber;
-        target.account_type = accountType;
-        target.is_active = Number(isActive);
+        Object.assign(target, {
+            provider_name: providerName ?? null,
+            account_number: accountNumber,
+            account_type: accountType ?? null,
+            instructions: instructions ?? null,
+            instruction_image_url: imageUrl ?? null,
+            is_active: Number(isActive),
+        });
         return { affectedRows: 1 };
     }
     if (S.includes('update deposit_payment_methods set is_active = ? where id = ?')) {
@@ -116,7 +142,7 @@ test('create: valid bkash method is created active', async () => {
 
 test('create: validation rejects bad method, type and mobile number', async () => {
     seed();
-    await assert.rejects(() => svc.createMethod({ ...B, method: 'paypal' }), /method must be "bkash" or "nagad"/);
+    await assert.rejects(() => svc.createMethod({ ...B, method: 'paypal' }), /method must be "bkash", "nagad" or "merchant"/);
     await assert.rejects(() => svc.createMethod({ ...B, account_type: 'business' }), /account_type must be "personal" or "agent"/);
     await assert.rejects(() => svc.createMethod({ ...B, account_number: '12345' }), /valid Bangladesh mobile/);
     assert.equal(methods.length, 0);
@@ -263,4 +289,70 @@ test('route: admin create rejects invalid input with 400', async () => {
     const badNum = await call('POST', '/api/admin/deposit-methods', { token: adminTok, body: { method: 'bkash', account_number: '123', account_type: 'personal' } });
     assert.equal(badNum.status, 400);
     assert.equal(methods.length, 0);
+});
+
+// ── Merchant method (service level) ─────────────────────────────────────────
+
+const M = { method: 'merchant', provider_name: 'bKash Merchant', account_number: '01811002233', instructions: 'Send money as Personal', instruction_image_url: '/uploads/deposits/instructions.png', is_active: true };
+
+test('merchant create: valid merchant method with all fields is created active', async () => {
+    seed();
+    const m = await svc.createMethod(M);
+    assert.equal(m.method, 'merchant');
+    assert.equal(m.provider_name, 'bKash Merchant');
+    assert.equal(m.account_number, '01811002233');
+    assert.equal(m.account_type, null);
+    assert.equal(m.instructions, 'Send money as Personal');
+    assert.equal(m.instruction_image_url, '/uploads/deposits/instructions.png');
+    assert.equal(m.is_active, 1);
+});
+
+test('merchant create: optional fields default to null when omitted', async () => {
+    seed();
+    const m = await svc.createMethod({ method: 'merchant', provider_name: 'Nagad Merchant', account_number: '55-0099', is_active: true });
+    assert.equal(m.account_number, '550099');
+    assert.equal(m.instructions, null);
+    assert.equal(m.instruction_image_url, null);
+});
+
+test('merchant create: validation rejects missing name, bad number and bad image url', async () => {
+    seed();
+    await assert.rejects(() => svc.createMethod({ ...M, provider_name: undefined }), /provider_name is required/);
+    await assert.rejects(() => svc.createMethod({ ...M, provider_name: 'x' }), /provider_name is required/);
+    await assert.rejects(() => svc.createMethod({ ...M, account_number: '12ab' }), /valid merchant number/);
+    await assert.rejects(() => svc.createMethod({ ...M, account_number: '12345' }), /valid merchant number/);
+    await assert.rejects(() => svc.createMethod({ ...M, instruction_image_url: 'javascript:alert(1)' }), /instruction_image_url/);
+    assert.equal(methods.length, 0);
+});
+
+// ── Merchant method (route level) ───────────────────────────────────────────
+
+test('route: non-admin cannot create/update/delete a merchant; admin can manage it', async () => {
+    seed();
+    const created = await call('POST', '/api/admin/deposit-methods', { token: sign(1, 'admin'), body: M });
+    assert.equal(created.status, 201);
+    const id = created.json.method.id;
+
+    // user/provider/no-token mutations are forbidden
+    assert.equal((await call('POST', '/api/admin/deposit-methods', { token: sign(10, 'user'), body: M })).status, 403);
+    assert.equal((await call('PUT', `/api/admin/deposit-methods/${id}`, { token: sign(10, 'user'), body: { account_number: '01700000000' } })).status, 403);
+    assert.equal((await call('DELETE', `/api/admin/deposit-methods/${id}`, { token: sign(20, 'provider') })).status, 403);
+    assert.equal((await call('POST', '/api/admin/deposit-methods', { body: M })).status, 401);
+
+    // admin can update the merchant number
+    const upd = await call('PUT', `/api/admin/deposit-methods/${id}`, { token: sign(1, 'admin'), body: { account_number: '01999888777' } });
+    assert.equal(upd.status, 200);
+    assert.equal(upd.json.method.account_number, '01999888777');
+    assert.equal(methods.find(m => m.id === id).account_number, '01999888777');
+
+    // unreferenced merchant can be deleted by admin
+    const del = await call('DELETE', `/api/admin/deposit-methods/${id}`, { token: sign(1, 'admin') });
+    assert.equal(del.status, 200);
+    assert.equal(del.json.deleted, true);
+    assert.equal(methods.length, 0);
+
+    // deleting bkash is refused by design
+    const b = await svc.createMethod(B);
+    const delB = await call('DELETE', `/api/admin/deposit-methods/${b.id}`, { token: sign(1, 'admin') });
+    assert.equal(delB.status, 400);
 });

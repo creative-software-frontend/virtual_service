@@ -27,6 +27,10 @@ async function adminCreate(req, res) {
             account_number: req.body?.account_number,
             account_type: req.body?.account_type,
             is_active: req.body?.is_active !== false,
+            // Merchant-only fields (ignored by bkash/nagad creation).
+            provider_name: req.body?.provider_name,
+            instructions: req.body?.instructions,
+            instruction_image_url: req.body?.instruction_image_url,
         });
         return res.status(201).json({ method });
     } catch (err) {
@@ -41,6 +45,10 @@ async function adminUpdate(req, res) {
             account_number: req.body?.account_number,
             account_type: req.body?.account_type,
             is_active: req.body?.is_active,
+            // Merchant-only fields.
+            provider_name: req.body?.provider_name,
+            instructions: req.body?.instructions,
+            instruction_image_url: req.body?.instruction_image_url,
         });
         return res.json({ method });
     } catch (err) {
@@ -59,10 +67,21 @@ async function adminToggle(req, res) {
     }
 }
 
+async function adminDelete(req, res) {
+    try {
+        const id = Number(req.params.id);
+        const result = await depositPaymentService.deleteMethod(id);
+        return res.json(result);
+    } catch (err) {
+        return handleError(res, err, "Failed to delete deposit payment method");
+    }
+}
+
 module.exports = {
     listActive,
     adminList,
     adminCreate,
     adminUpdate,
     adminToggle,
+    adminDelete,
 };

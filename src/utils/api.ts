@@ -235,9 +235,11 @@ export interface WalletResponse {
 
 export interface DepositRequestPayload {
     amount: number;
-    method: 'bKash' | 'Nagad';
+    method: 'bKash' | 'Nagad' | 'Merchant';
     trx_id: string;
     screenshot_url: string;
+    /** Required when method is 'Merchant' — the configured deposit_payment_methods row used. */
+    payment_method_id?: number;
 }
 
 export interface WithdrawRequestPayload {
@@ -258,6 +260,12 @@ export interface DepositRequestItem {
     approved_by?: number | null;
     approved_at?: string | null;
     created_at: string;
+    /** Merchant deposit snapshot — details actually used at submission time. */
+    payment_method_id?: number | null;
+    merchant_provider_name?: string | null;
+    merchant_account_number?: string | null;
+    merchant_instructions?: string | null;
+    merchant_instruction_image_url?: string | null;
 }
 
 export interface WithdrawRequestItem {
@@ -1195,26 +1203,54 @@ export interface EventParticipant {
     joined_at: string;
 }
 
-// ── Deposit payment methods (admin-managed bKash/Nagad) ────────────────────────
+// ── Deposit payment methods (admin-managed bKash/Nagad/Merchant) ────────────────
 export interface DepositPaymentMethod {
     id: number;
-    method: 'bkash' | 'nagad';
+    method: 'bkash' | 'nagad' | 'merchant';
+    /** Merchant only — display name shown to users (e.g. "bKash Merchant"). */
+    provider_name?: string | null;
     account_number: string;
-    account_type: 'personal' | 'agent';
+    /** NULL for merchant rows. */
+    account_type: 'personal' | 'agent' | null;
+    instructions?: string | null;
+    instruction_image_url?: string | null;
     is_active: number;
     created_at?: string;
     updated_at?: string;
 }
 
+/** Display label for a deposit payment method discriminator. */
+export const depositMethodLabel = (m: string): 'bKash' | 'Nagad' | 'Merchant' =>
+    m === 'bkash' ? 'bKash' : m === 'nagad' ? 'Nagad' : 'Merchant';
+
+export interface DepositMethodCreatePayload {
+    method: string;
+    account_number: string;
+    account_type?: string;
+    is_active?: boolean;
+    provider_name?: string;
+    instructions?: string;
+    instruction_image_url?: string;
+}
+
+export interface DepositMethodUpdatePayload {
+    account_number?: string;
+    account_type?: string;
+    is_active?: boolean;
+    provider_name?: string;
+    instructions?: string;
+    instruction_image_url?: string | null;
+}
+
 export const paymentMethodApi = {
     getActive: () => request<{ methods: DepositPaymentMethod[] }>('/deposit-methods'),
     getAll: () => request<{ methods: DepositPaymentMethod[] }>('/admin/deposit-methods'),
-    create: (payload: { method: string; account_number: string; account_type: string; is_active?: boolean }) =>
+    create: (payload: DepositMethodCreatePayload) =>
         request<{ method: DepositPaymentMethod }>('/admin/deposit-methods', {
             method: 'POST',
             body: JSON.stringify(payload),
         }),
-    update: (id: number, payload: { account_number?: string; account_type?: string; is_active?: boolean }) =>
+    update: (id: number, payload: DepositMethodUpdatePayload) =>
         request<{ method: DepositPaymentMethod }>(`/admin/deposit-methods/${id}`, {
             method: 'PUT',
             body: JSON.stringify(payload),
@@ -1223,6 +1259,10 @@ export const paymentMethodApi = {
         request<{ method: DepositPaymentMethod }>(`/admin/deposit-methods/${id}/toggle`, {
             method: 'PATCH',
             body: JSON.stringify({ is_active }),
+        }),
+    remove: (id: number) =>
+        request<{ deleted: boolean; id: number }>(`/admin/deposit-methods/${id}`, {
+            method: 'DELETE',
         }),
 };
 

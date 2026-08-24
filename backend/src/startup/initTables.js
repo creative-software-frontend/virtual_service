@@ -602,6 +602,11 @@ module.exports = async (db) => {
                 admin_note     TEXT,
                 approved_by    INT           NULL,
                 approved_at    TIMESTAMP     NULL,
+                payment_method_id              INT           NULL,
+                merchant_provider_name         VARCHAR(100)  NULL,
+                merchant_account_number        VARCHAR(30)   NULL,
+                merchant_instructions          TEXT          NULL,
+                merchant_instruction_image_url VARCHAR(500)  NULL,
                 created_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT fk_dep_user     FOREIGN KEY (user_id)     REFERENCES users(id) ON DELETE CASCADE,
                 CONSTRAINT fk_dep_approved FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
@@ -808,15 +813,18 @@ module.exports = async (db) => {
         console.log('chat_messages table verified');
 
         // ════════════════════════════════════════════════════════════
-        // Deposit payment methods (admin-configured bKash/Nagad numbers)
+        // Deposit payment methods (admin-configured bKash/Nagad/Merchant numbers)
         // Resilient self-heal when migrations weren't run (fresh deployments)
         // ════════════════════════════════════════════════════════════
         await db.query(`
             CREATE TABLE IF NOT EXISTS deposit_payment_methods (
                 id             INT AUTO_INCREMENT PRIMARY KEY,
                 method         VARCHAR(10) NOT NULL,
+                provider_name  VARCHAR(100) NULL,
                 account_number VARCHAR(20) NOT NULL,
-                account_type   VARCHAR(10) NOT NULL DEFAULT 'personal',
+                account_type   VARCHAR(10) NULL DEFAULT 'personal',
+                instructions   TEXT NULL,
+                instruction_image_url VARCHAR(500) NULL,
                 is_active      TINYINT(1)  NOT NULL DEFAULT 1,
                 created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

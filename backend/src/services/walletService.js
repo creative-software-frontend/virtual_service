@@ -1,7 +1,14 @@
 const db = require("../config/db");
 
-const ALLOWED_PAYMENT_METHODS = ["bKash", "Nagad"];
+const ALLOWED_PAYMENT_METHODS = ["bKash", "Nagad", "Merchant"];
 const ALLOWED_STATUSES = ["Pending", "Approved", "Rejected", "Completed"];
+
+// Columns returned for a deposit request row (includes the merchant snapshot
+// captured at submission time — see createDepositRequest).
+const DEPOSIT_SELECT = `id, user_id, amount, method, trx_id, screenshot_url,
+    payment_method_id, merchant_provider_name, merchant_account_number,
+    merchant_instructions, merchant_instruction_image_url,
+    status, admin_note, approved_by, approved_at, created_at`;
 
 // Columns returned to callers for a withdrawal request row.
 const WITHDRAW_SELECT = `id, request_id, user_id, amount, method, account_number, status,
@@ -44,6 +51,49 @@ function isValidScreenshot(value) {
     return /^(data:image\/(jpeg|png|jpg|gif|webp);base64,)/i.test(trimmed);
 }
 
+/**
+ * Resolves the ACTIVE merchant payment method row for a Merchant deposit and
+ * returns the snapshot values that must be stored on the deposit request.
+ * Historical deposits keep this snapshot so later admin edits to the merchant
+ * configuration never rewrite what the user actually saw when paying.
+ */
+async function resolveMerchantSnapshot(connection, paymentMethodId) {
+    const id = Number(paymentMethodId);
+    if (!Number.isInteger(id) || id <= 0) {
+        const error = new Error("A valid payment method selection is required for Merchant deposits");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const [rows] = await connection.query(
+        `SELECT id, method, provider_name, account_number, instructions, instruction_image_url, is_active
+         FROM deposit_payment_methods WHERE id = ? AND method = 'merchant' LIMIT 1`,
+        [id]
+    );
+
+    if (!rows.length) {
+        const error = new Error("Selected payment method was not found");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const method = rows[0];
+    if (Number(method.is_active) !== 1) {
+        // Only active merchant methods may receive new deposits.
+        const error = new Error("This payment method is no longer available");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    return {
+        payment_method_id: method.id,
+        merchant_provider_name: method.provider_name || "Merchant",
+        merchant_account_number: method.account_number,
+        merchant_instructions: method.instructions || null,
+        merchant_instruction_image_url: method.instruction_image_url || null,
+    };
+}
+
 async function createDepositRequest(userId, payload = {}) {
     const amount = payload.amount;
     const method = normalizeMethod(payload.method);
@@ -57,7 +107,7 @@ async function createDepositRequest(userId, payload = {}) {
     }
 
     if (!method) {
-        const error = new Error("Payment method must be either bKash or Nagad");
+        const error = new Error("Payment method must be bKash, Nagad or Merchant");
         error.statusCode = 400;
         throw error;
     }
@@ -79,6 +129,16 @@ async function createDepositRequest(userId, payload = {}) {
         }
     }
 
+    let merchantSnapshot = null;
+    if (method === "Merchant") {
+        const connection = await db.getConnection();
+        try {
+            merchantSnapshot = await resolveMerchantSnapshot(connection, payload.payment_method_id);
+        } finally {
+            connection.release();
+        }
+    }
+
     const [existing] = await db.query(
         "SELECT id FROM deposit_requests WHERE trx_id = ? LIMIT 1",
         [trxId]
@@ -91,13 +151,27 @@ async function createDepositRequest(userId, payload = {}) {
     }
 
     const [result] = await db.query(
-        `INSERT INTO deposit_requests (user_id, amount, method, trx_id, screenshot_url, status)
-         VALUES (?, ?, ?, ?, ?, 'Pending')`,
-        [userId, Number(amount).toFixed(2), method, trxId, screenshotUrl || ""]
+        `INSERT INTO deposit_requests
+            (user_id, amount, method, trx_id, screenshot_url, status,
+             payment_method_id, merchant_provider_name, merchant_account_number,
+             merchant_instructions, merchant_instruction_image_url)
+         VALUES (?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?)`,
+        [
+            userId,
+            Number(amount).toFixed(2),
+            method,
+            trxId,
+            screenshotUrl || "",
+            merchantSnapshot?.payment_method_id ?? null,
+            merchantSnapshot?.merchant_provider_name ?? null,
+            merchantSnapshot?.merchant_account_number ?? null,
+            merchantSnapshot?.merchant_instructions ?? null,
+            merchantSnapshot?.merchant_instruction_image_url ?? null,
+        ]
     );
 
     const [rows] = await db.query(
-        `SELECT id, user_id, amount, method, trx_id, screenshot_url, status, admin_note, approved_by, approved_at, created_at
+        `SELECT ${DEPOSIT_SELECT}
          FROM deposit_requests WHERE id = ? LIMIT 1`,
         [result.insertId]
     );
@@ -107,7 +181,7 @@ async function createDepositRequest(userId, payload = {}) {
 
 async function getUserDepositHistory(userId) {
     const [rows] = await db.query(
-        `SELECT id, user_id, amount, method, trx_id, screenshot_url, status, admin_note, approved_by, approved_at, created_at
+        `SELECT ${DEPOSIT_SELECT}
          FROM deposit_requests WHERE user_id = ? ORDER BY created_at DESC`,
         [userId]
     );
@@ -290,7 +364,7 @@ async function getWalletSummary(userId) {
 
     // ── Pending & Rejected deposit requests ─────────────────────────────────
     const [depositReqRows] = await db.query(
-        `SELECT id, amount, method, trx_id, status, admin_note, created_at
+        `SELECT id, amount, method, trx_id, merchant_provider_name, status, admin_note, created_at
          FROM deposit_requests
          WHERE user_id = ? AND status IN ('Pending', 'Rejected')
          ORDER BY created_at DESC`,
@@ -317,15 +391,18 @@ async function getWalletSummary(userId) {
     const available_earnings = earnings;
 
     // ── Map request rows to unified Transaction shape ───────────────────────
-    const depositReqTx = depositReqRows.map((r) => ({
-        id: `dep_req_${r.id}`,
-        type: "deposit",
-        amount: r.amount,
-        status: r.status.toLowerCase(),   // 'pending' | 'rejected'
-        description: `Deposit request via ${r.method} (TXN: ${r.trx_id})${r.admin_note ? ` — ${r.admin_note}` : ""}`,
-        created_at: r.created_at,
-        _source: "request",
-    }));
+    const depositReqTx = depositReqRows.map((r) => {
+        const methodLabel = r.method === "Merchant" && r.merchant_provider_name ? `${r.method} (${r.merchant_provider_name})` : r.method;
+        return {
+            id: `dep_req_${r.id}`,
+            type: "deposit",
+            amount: r.amount,
+            status: r.status.toLowerCase(),   // 'pending' | 'rejected'
+            description: `Deposit request via ${methodLabel} (TXN: ${r.trx_id})${r.admin_note ? ` — ${r.admin_note}` : ""}`,
+            created_at: r.created_at,
+            _source: "request",
+        };
+    });
 
     const withdrawReqTx = withdrawReqRows.map((r) => ({
         id: `wd_req_${r.id}`,
@@ -364,7 +441,10 @@ async function getWalletSummary(userId) {
 
 async function getAdminDepositRequests() {
     const [rows] = await db.query(
-        `SELECT dr.id, dr.user_id, dr.amount, dr.method, dr.trx_id, dr.screenshot_url, dr.status, dr.admin_note, dr.approved_by, dr.approved_at, dr.created_at,
+        `SELECT dr.id, dr.user_id, dr.amount, dr.method, dr.trx_id, dr.screenshot_url,
+                dr.payment_method_id, dr.merchant_provider_name, dr.merchant_account_number,
+                dr.merchant_instructions, dr.merchant_instruction_image_url,
+                dr.status, dr.admin_note, dr.approved_by, dr.approved_at, dr.created_at,
                 u.name AS user_name, u.email AS user_email
          FROM deposit_requests dr
          LEFT JOIN users u ON u.id = dr.user_id
@@ -429,7 +509,7 @@ async function approveDepositRequest(adminId, depositId, adminNote = "") {
         await connection.commit();
 
         const [updatedRows] = await db.query(
-            `SELECT id, user_id, amount, method, trx_id, screenshot_url, status, admin_note, approved_by, approved_at, created_at
+            `SELECT ${DEPOSIT_SELECT}
              FROM deposit_requests WHERE id = ? LIMIT 1`,
             [depositId]
         );
@@ -458,7 +538,7 @@ async function rejectDepositRequest(adminId, depositId, adminNote = "") {
     }
 
     const [rows] = await db.query(
-        `SELECT id, user_id, amount, method, trx_id, screenshot_url, status, admin_note, approved_by, approved_at, created_at
+        `SELECT ${DEPOSIT_SELECT}
          FROM deposit_requests WHERE id = ? LIMIT 1`,
         [depositId]
     );

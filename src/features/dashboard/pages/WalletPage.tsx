@@ -6,6 +6,7 @@ import { useToast } from "../../../components/Toast";
 import { PointsDisplay, PointsIcon } from "../../../components/PointsDisplay";
 import { PaymentMethodSelector } from "../../../components/PaymentMethodSelector";
 import type { DepositPaymentMethod } from "../../../utils/api";
+import { depositMethodLabel } from "../../../utils/api";
 
 type Transaction = {
     id: number;
@@ -103,9 +104,10 @@ export function WalletPage() {
             setModalLoading(true);
             const res = await userApi.deposit({
                 amount: amt,
-                method: selectedDepositMethod.method === 'bkash' ? 'bKash' : 'Nagad',
+                method: depositMethodLabel(selectedDepositMethod.method),
                 trx_id: depositTrxId.trim(),
                 screenshot_url: depositScreenshotUrl.trim(),
+                payment_method_id: selectedDepositMethod.id,
             });
             if (res.error) {
                 setModalStatus({ type: 'error', message: res.error });

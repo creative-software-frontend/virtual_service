@@ -353,7 +353,14 @@ export default function AdminReportsPage() {
                                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>Deposit • {req.user_name || 'User'}</strong>
                                 <span style={{ color: 'var(--green-status)', fontWeight: 600 }}><PointsDisplay amount={req.amount} decimals={2} /></span>
                             </div>
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-1)' }}>{req.method} • {req.trx_id}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 'var(--space-1)' }}>
+                                {req.method === 'Merchant' && req.merchant_provider_name ? `${req.method} (${req.merchant_provider_name})` : req.method} • {req.trx_id}
+                            </div>
+                            {req.method === 'Merchant' && req.merchant_account_number ? (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginBottom: 'var(--space-1)' }}>
+                                    Paid to merchant: <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>{req.merchant_account_number}</span>
+                                </div>
+                            ) : null}
                                     {req.screenshot_url ? (
                                         <button
                                             type="button"

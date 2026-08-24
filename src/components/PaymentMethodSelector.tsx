@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { paymentMethodApi, type DepositPaymentMethod } from '../utils/api';
+import { paymentMethodApi, depositMethodLabel, type DepositPaymentMethod } from '../utils/api';
+import { resolveMediaUrl } from '../config/apiConfig';
 import bkashLogo from '../assets/bikash-logo.png';
 import nagadLogo from '../assets/Nagad-Logo.png';
 
@@ -14,6 +15,27 @@ const labelStyle: React.CSSProperties = {
     marginBottom: '8px',
 };
 
+function StoreIcon() {
+    return (
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#c5a880" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 9l1.5-5h15L21 9" />
+            <path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" />
+            <path d="M3 9a2.5 2.5 0 0 0 5 0a2.5 2.5 0 0 0 5 0a2.5 2.5 0 0 0 5 0" />
+            <path d="M9 21v-6h6v6" />
+        </svg>
+    );
+}
+
+function methodLogo(method: DepositPaymentMethod): React.ReactNode {
+    if (method.method === 'bkash') return <img src={bkashLogo} alt={depositMethodLabel(method.method)} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
+    if (method.method === 'nagad') return <img src={nagadLogo} alt={depositMethodLabel(method.method)} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
+    const img = method.instruction_image_url ? resolveMediaUrl(method.instruction_image_url) : null;
+    if (img) {
+        return <img src={img} alt={method.provider_name || 'Merchant'} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
+    }
+    return <StoreIcon />;
+}
+
 function MethodCard({
     name,
     logo,
@@ -22,7 +44,7 @@ function MethodCard({
     onPick,
 }: {
     name: string;
-    logo: string;
+    logo: React.ReactNode;
     available: boolean;
     selected: boolean;
     onPick: () => void;
@@ -47,7 +69,7 @@ function MethodCard({
             onMouseLeave={(e) => { if (!selected) e.currentTarget.style.borderColor = 'var(--border-subtle)'; }}
         >
             <span style={{ width: 34, height: 34, borderRadius: 8, overflow: 'hidden', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <img src={logo} alt={name} style={{ width: 30, height: 30, objectFit: 'contain' }} />
+                {logo}
             </span>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: selected ? 'var(--gold-mid)' : 'var(--text-primary)', fontFamily: "'Inter', sans-serif" }}>{name}</span>
         </button>
@@ -55,19 +77,25 @@ function MethodCard({
 }
 
 /**
- * Dynamic bKash/Nagad payment-method chooser for deposit and withdrawal modals.
- * Reads ACTIVE methods from the backend — never hardcodes numbers.
+ * Dynamic bKash/Nagad/Merchant payment-method chooser for deposit and
+ * withdrawal modals. Reads ACTIVE methods from the backend — never hardcodes
+ * numbers or merchant configuration.
  *
- * - `showAccountInfo: true`  → deposit mode: shows the admin-configured account
- *   number/type for the selected method, plus the payment instruction.
- * - `showAccountInfo: false` → withdrawal mode: only the method choice is shown;
- *   the user enters their own receiving account number in the form below.
+ * - Deposit mode (`mode: 'deposit'`): shows the admin-configured account
+ *   number/type for the selected method, plus payment instructions
+ *   (Merchant also shows its provider name and optional instruction image).
+ * - Withdraw mode (`mode: 'withdraw'`): only bKash/Nagad are offered (money is
+ *   received into the user's own account); the user enters their receiving
+ *   account number in the form below.
  */
 export function PaymentMethodSelector({
     onSelect,
-    showAccountInfo = true,
+    mode = 'deposit',
+    showAccountInfo,
 }: {
     onSelect: (method: DepositPaymentMethod | null) => void;
+    mode?: 'deposit' | 'withdraw';
+    /** @deprecated use `mode` — kept for backward compatibility with existing callers. */
     showAccountInfo?: boolean;
 }) {
     const [methods, setMethods] = useState<DepositPaymentMethod[]>([]);
@@ -85,8 +113,13 @@ export function PaymentMethodSelector({
         return () => { cancelled = true; };
     }, []);
 
-    const activeFor = (method: 'bkash' | 'nagad') =>
-        methods.find((m) => m.method === method && m.is_active === 1) ?? null;
+    // Withdrawals never offer Merchant — it is a deposit-only destination.
+    // Legacy callers pass `showAccountInfo={false}` for withdrawal mode.
+    const isWithdrawMode = mode === 'withdraw' || showAccountInfo === false;
+    const visibleMethods = isWithdrawMode ? methods.filter((m) => m.method !== 'merchant') : methods;
+
+    const activeFor = (method: 'bkash' | 'nagad' | 'merchant') =>
+        visibleMethods.find((m) => m.method === method && m.is_active === 1) ?? null;
 
     const pick = (m: DepositPaymentMethod) => {
         setSelected(m);
@@ -95,6 +128,10 @@ export function PaymentMethodSelector({
 
     const bkash = activeFor('bkash');
     const nagad = activeFor('nagad');
+    const merchant = activeFor('merchant');
+
+    // Deselect automatically if the selected method disappeared from view.
+    const selectedVisible = selected && visibleMethods.some((m) => m.id === selected.id);
 
     return (
         <div>
@@ -102,55 +139,87 @@ export function PaymentMethodSelector({
 
             {loading ? (
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: 0 }}>Loading payment methods…</p>
-            ) : methods.length === 0 ? (
+            ) : visibleMethods.length === 0 ? (
                 <p style={{ color: 'var(--gold-mid)', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>
                     Payment method is currently unavailable.
                 </p>
             ) : (
                 <>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: merchant ? 'repeat(3, 1fr)' : '1fr 1fr', gap: 10 }}>
                         <MethodCard
                             name="bKash"
-                            logo={bkashLogo}
+                            logo={methodLogo(bkash ?? ({ method: 'bkash' } as DepositPaymentMethod))}
                             available={!!bkash}
                             selected={selected?.method === 'bkash'}
                             onPick={() => bkash && pick(bkash)}
                         />
                         <MethodCard
                             name="Nagad"
-                            logo={nagadLogo}
+                            logo={methodLogo(nagad ?? ({ method: 'nagad' } as DepositPaymentMethod))}
                             available={!!nagad}
                             selected={selected?.method === 'nagad'}
                             onPick={() => nagad && pick(nagad)}
                         />
+                        {merchant && (
+                            <MethodCard
+                                name={merchant.provider_name?.trim() || 'Merchant'}
+                                logo={methodLogo(merchant)}
+                                available
+                                selected={selected?.method === 'merchant'}
+                                onPick={() => pick(merchant)}
+                            />
+                        )}
                     </div>
 
-                    {selected && (
+                    {selectedVisible && (
                         <div style={{
                             marginTop: 12, padding: '12px 14px', borderRadius: 10,
                             background: 'var(--bg-input)', border: '1px solid var(--border-subtle)',
                             fontFamily: "'Inter', sans-serif", fontSize: '0.8rem', color: 'var(--text-primary)',
                         }}>
                             <div style={{ fontWeight: 700, color: 'var(--gold-mid)', marginBottom: 6 }}>
-                                Selected: {selected.method === 'bkash' ? 'bKash' : 'Nagad'}
+                                Selected: {selected!.method === 'merchant' && selected!.provider_name ? selected!.provider_name : depositMethodLabel(selected!.method)}
                             </div>
-                            {showAccountInfo ? (
+                            {!isWithdrawMode ? (
                                 <>
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>Send money to:</span>
-                                        <span style={{ fontWeight: 800 }}>{selected.account_number}</span>
+                                        <span style={{ fontWeight: 800 }}>{selected!.account_number}</span>
                                     </div>
-                                    <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                                        <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>Account type:</span>
-                                        <span style={{ fontWeight: 700 }}>{selected.account_type === 'agent' ? 'Agent' : 'Personal'}</span>
-                                    </div>
-                                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 6 }}>
-                                        After payment, enter the Transaction ID below and upload your payment screenshot.
-                                    </div>
+                                    {selected!.method === 'merchant' ? (
+                                        selected!.instructions ? (
+                                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 6, whiteSpace: 'pre-wrap' }}>
+                                                {selected!.instructions}
+                                            </div>
+                                        ) : (
+                                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 6 }}>
+                                                After payment, enter the Transaction ID below and upload your payment screenshot.
+                                            </div>
+                                        )
+                                    ) : (
+                                        <>
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                                                <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>Account type:</span>
+                                                <span style={{ fontWeight: 700 }}>{selected!.account_type === 'agent' ? 'Agent' : 'Personal'}</span>
+                                            </div>
+                                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: 6 }}>
+                                                After payment, enter the Transaction ID below and upload your payment screenshot.
+                                            </div>
+                                        </>
+                                    )}
+                                    {selected!.method === 'merchant' && selected!.instruction_image_url && (
+                                        <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                                            <img
+                                                src={resolveMediaUrl(selected!.instruction_image_url)}
+                                                alt={`${selected!.provider_name || 'Merchant'} payment instructions`}
+                                                style={{ width: '100%', maxHeight: 220, objectFit: 'contain', background: '#fff', display: 'block' }}
+                                            />
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                                    Enter your own {selected.method === 'bkash' ? 'bKash' : 'Nagad'} account number below to receive the money.
+                                    Enter your own {depositMethodLabel(selected!.method)} account number below to receive the money.
                                 </div>
                             )}
                         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { TopNav } from './TopNav';
-import { userApi, type Transaction, type DepositPaymentMethod } from '../../../utils/api';
+import { userApi, depositMethodLabel, type Transaction, type DepositPaymentMethod } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
 import { PointsDisplay, PointsIcon } from '../../../components/PointsDisplay';
 import { PaymentMethodSelector } from '../../../components/PaymentMethodSelector';
@@ -88,9 +88,10 @@ export function AssetsPage() {
             setModalLoading(true);
             const res = await userApi.deposit({
                 amount: amt,
-                method: selectedDepositMethod.method === 'bkash' ? 'bKash' : 'Nagad',
+                method: depositMethodLabel(selectedDepositMethod.method),
                 trx_id: depositTrxId.trim(),
                 screenshot_url: depositScreenshotUrl.trim(),
+                payment_method_id: selectedDepositMethod.id,
             });
             if (res.error) {
                 setModalError(res.error);

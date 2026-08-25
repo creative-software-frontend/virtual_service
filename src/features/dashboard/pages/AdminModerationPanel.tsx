@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi, type AdminUserReport } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
+import { useConfirmDialog } from '../../../components/ConfirmDialog';
 
 const btn = (color: string): React.CSSProperties => ({
     border: `1px solid ${color}66`, background: `${color}18`, color, borderRadius: 8,
@@ -22,6 +23,7 @@ interface AccountGroup {
 
 export default function AdminModerationPanel() {
     const toast = useToast();
+    const confirmDialog = useConfirmDialog();
     const navigate = useNavigate();
     const [reports, setReports] = useState<AdminUserReport[]>([]);
     const [status, setStatus] = useState('');
@@ -72,6 +74,15 @@ export default function AdminModerationPanel() {
     };
 
     const ban = async (userId: number, name: string) => {
+        const ok = await confirmDialog({
+            title: 'Ban Account?',
+            message: `Are you sure you want to ban ${name}? This will restrict their account access.`,
+            confirmLabel: 'Ban',
+            cancelLabel: 'Cancel',
+            variant: 'danger',
+        });
+        if (!ok) return;
+
         const note = window.prompt('Ban note (optional)') ?? undefined;
         const res = await adminApi.banUser(userId, note);
         if (res.error) toast.error(res.error);
@@ -79,6 +90,15 @@ export default function AdminModerationPanel() {
     };
 
     const unban = async (userId: number, name: string) => {
+        const ok = await confirmDialog({
+            title: 'Unban Account?',
+            message: `Are you sure you want to unban ${name}? This will restore their account access.`,
+            confirmLabel: 'Unban',
+            cancelLabel: 'Cancel',
+            variant: 'primary',
+        });
+        if (!ok) return;
+
         const note = window.prompt('Unban note (optional)') ?? undefined;
         const res = await adminApi.unbanUser(userId, note);
         if (res.error) toast.error(res.error);

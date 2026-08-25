@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { paymentMethodApi, depositMethodLabel, type DepositPaymentMethod } from '../utils/api';
-import { resolveMediaUrl } from '../config/apiConfig';
 import bkashLogo from '../assets/bikash-logo.png';
 import nagadLogo from '../assets/Nagad-Logo.png';
+import bkashPaymentImg from '../assets/bikashpayment.jpeg';
+import nagadPaymentImg from '../assets/nagadhpayment.jpeg';
 
 const labelStyle: React.CSSProperties = {
     display: 'block',
@@ -29,9 +30,9 @@ function StoreIcon() {
 function methodLogo(method: DepositPaymentMethod): React.ReactNode {
     if (method.method === 'bkash') return <img src={bkashLogo} alt={depositMethodLabel(method.method)} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
     if (method.method === 'nagad') return <img src={nagadLogo} alt={depositMethodLabel(method.method)} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
-    const img = method.instruction_image_url ? resolveMediaUrl(method.instruction_image_url) : null;
-    if (img) {
-        return <img src={img} alt={method.provider_name || 'Merchant'} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
+    if (method.method === 'merchant') {
+        const isNagad = (method.provider_name || '').toLowerCase().includes('nagad');
+        return <img src={isNagad ? nagadLogo : bkashLogo} alt={method.provider_name || 'Merchant'} style={{ width: 30, height: 30, objectFit: 'contain' }} />;
     }
     return <StoreIcon />;
 }
@@ -183,7 +184,7 @@ export function PaymentMethodSelector({
                             {!isWithdrawMode ? (
                                 <>
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>Send money to:</span>
+                                        <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{selected!.method === 'merchant' ? 'Pay to:' : 'Send money to:'}</span>
                                         <span style={{ fontWeight: 800 }}>{selected!.account_number}</span>
                                     </div>
                                     {selected!.method === 'merchant' ? (
@@ -207,10 +208,10 @@ export function PaymentMethodSelector({
                                             </div>
                                         </>
                                     )}
-                                    {selected!.method === 'merchant' && selected!.instruction_image_url && (
+                                    {selected!.method === 'merchant' && (
                                         <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
                                             <img
-                                                src={resolveMediaUrl(selected!.instruction_image_url)}
+                                                src={(selected!.provider_name || '').toLowerCase().includes('nagad') ? nagadPaymentImg : bkashPaymentImg}
                                                 alt={`${selected!.provider_name || 'Merchant'} payment instructions`}
                                                 style={{ width: '100%', maxHeight: 220, objectFit: 'contain', background: '#fff', display: 'block' }}
                                             />

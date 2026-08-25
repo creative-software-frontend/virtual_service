@@ -217,6 +217,13 @@ export const router = createBrowserRouter([
           return { element: <ProtectedRoute allowedRoles={['admin']}><AdminReportsPage /></ProtectedRoute> };
         },
       },
+      {
+        path: "report-reasons",
+        lazy: async () => {
+          const { default: AdminReportReasonsPage } = await import("../features/dashboard/pages/AdminReportReasonsPage");
+          return { element: <ProtectedRoute allowedRoles={['admin']}><AdminReportReasonsPage /></ProtectedRoute> };
+        },
+      },
 
       // Provider-only pages
       {

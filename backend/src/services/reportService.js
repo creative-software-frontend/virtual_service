@@ -3,7 +3,7 @@ const { boom } = require("../utils/httpError");
 
 const reportSelect = `r.id, r.description, r.status, r.admin_note, r.reviewed_at, r.created_at, r.updated_at,
   r.reporter_id, reporter.name AS reporter_name, reporter.email AS reporter_email, reporter.role AS reporter_role,
-  r.reported_user_id, reported.name AS reported_name, reported.email AS reported_email, reported.role AS reported_role,
+  r.reported_user_id, reported.name AS reported_name, reported.email AS reported_email, reported.role AS reported_role, reported.is_active AS reported_is_active,
   r.reason_id, rr.name AS reason_name, rr.description AS reason_description,
   r.reviewed_by, reviewer.name AS reviewer_name, reviewer.email AS reviewer_email`;
 
@@ -50,9 +50,11 @@ async function updateReason(id, { name, description, isActive }) {
 async function toggleReason(id, isActive) { return updateReason(id, { isActive }); }
 
 async function deleteReason(id) {
-  const [result] = await db.query("UPDATE report_reasons SET is_active = 0 WHERE id = ?", [id]);
+  const [refs] = await db.query("SELECT COUNT(*) AS cnt FROM user_reports WHERE reason_id = ?", [id]);
+  if (refs[0].cnt > 0) throw boom(409, "Cannot delete: this reason is referenced by existing reports.");
+  const [result] = await db.query("DELETE FROM report_reasons WHERE id = ?", [id]);
   if (!result.affectedRows) throw boom(404, "Report reason not found");
-  return { id: Number(id), is_active: 0 };
+  return { id: Number(id) };
 }
 
 async function createReport({ reporterId, reportedUserId, reasonId, description }) {

@@ -76,7 +76,9 @@ export function WithdrawReviewModal({
     const [busy, setBusy] = useState<null | 'approve' | 'reject' | 'complete'>(null);
     const [showReject, setShowReject] = useState(false);
     const [showComplete, setShowComplete] = useState(false);
+    const [showApprove, setShowApprove] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
+    const [approveTxId, setApproveTxId] = useState('');
     const [payTxId, setPayTxId] = useState('');
     const [payAmount, setPayAmount] = useState(String(withdrawal.amount ?? 0));
     const [payMethod, setPayMethod] = useState('bKash');
@@ -85,8 +87,9 @@ export function WithdrawReviewModal({
     const status = withdrawal.status;
 
     const handleApprove = async () => {
+        if (!approveTxId.trim()) return;
         setBusy('approve');
-        const res = await adminApi.approveWithdrawRequest(withdrawal.id);
+        const res = await adminApi.approveWithdrawRequest(withdrawal.id, approveTxId.trim());
         setBusy(null);
         if (res.error) { toast.error(res.error); return; }
         toast.success('Withdrawal approved — awaiting payment');
@@ -317,8 +320,39 @@ export function WithdrawReviewModal({
                     </div>
                 )}
 
+                {/* Approve form */}
+                {showApprove && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px', padding: '14px', borderRadius: '12px', background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.25)' }}>
+                        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: 'var(--blue-vivid)', fontFamily: "'Inter', sans-serif" }}>
+                            Approve Withdrawal
+                        </p>
+                        <div>
+                            <label style={labelStyle}>Transaction ID *</label>
+                            <input value={approveTxId} onChange={(e) => setApproveTxId(e.target.value)} placeholder="Enter payment transaction ID" style={inputStyle} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button type="button" onClick={() => setShowApprove(false)} disabled={!!busy} style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleApprove}
+                                disabled={!!busy || !approveTxId.trim()}
+                                style={{
+                                    padding: '9px 16px', borderRadius: '8px', border: 'none',
+                                    background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', color: '#fff',
+                                    fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer',
+                                    opacity: busy || !approveTxId.trim() ? 0.5 : 1,
+                                }}
+                            >
+                                {busy === 'approve' ? 'Approving…' : 'Approve Withdrawal'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Lifecycle actions */}
-                {status === 'Pending' && !showReject && !showComplete && (
+                {status === 'Pending' && !showReject && !showComplete && !showApprove && (
                     <div style={{ display: 'flex', gap: '10px' }}>
                         <button
                             type="button"
@@ -335,7 +369,7 @@ export function WithdrawReviewModal({
                         </button>
                         <button
                             type="button"
-                            onClick={handleApprove}
+                            onClick={() => setShowApprove(true)}
                             disabled={!!busy}
                             style={{
                                 flex: 1, padding: '12px', borderRadius: '10px', cursor: 'pointer', border: 'none',
@@ -344,7 +378,7 @@ export function WithdrawReviewModal({
                                 fontFamily: "'Inter', sans-serif", opacity: busy ? 0.5 : 1,
                             }}
                         >
-                            {busy === 'approve' ? 'Approving…' : 'Approve'}
+                            Approve
                         </button>
                     </div>
                 )}

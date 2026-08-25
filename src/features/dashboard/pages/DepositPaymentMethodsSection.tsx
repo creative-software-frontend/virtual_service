@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { paymentMethodApi, depositMethodLabel, type DepositPaymentMethod } from '../../../utils/api';
-import { userApi } from '../../../utils/api';
 import { useToast } from '../../../components/Toast';
 import { useConfirmDialog } from '../../../components/ConfirmDialog';
 import bkashLogo from '../../../assets/bikash-logo.png';
 import nagadLogo from '../../../assets/Nagad-Logo.png';
+import bkashPaymentImg from '../../../assets/bikashpayment.jpeg';
+import nagadPaymentImg from '../../../assets/nagadhpayment.jpeg';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 12 },
@@ -53,7 +54,13 @@ function StoreIcon({ size = 30 }: { size?: number }) {
 function methodLogo(m: DepositPaymentMethod) {
     if (m.method === 'bkash') return bkashLogo;
     if (m.method === 'nagad') return nagadLogo;
-    return null; // merchant uses the store glyph
+    if (m.method === 'merchant' && m.provider_name?.toLowerCase().includes('nagad')) return nagadPaymentImg;
+    if (m.method === 'merchant') return bkashPaymentImg;
+    return null;
+}
+
+function merchantPaymentImg(providerName: string) {
+    return providerName.toLowerCase().includes('nagad') ? nagadPaymentImg : bkashPaymentImg;
 }
 
 type FormMethod = 'bkash' | 'nagad' | 'merchant';
@@ -71,10 +78,8 @@ export function DepositPaymentMethodsSection() {
     const [formMethod, setFormMethod] = useState<FormMethod>('bkash');
     const [formNumber, setFormNumber] = useState('');
     const [formType, setFormType] = useState<'personal' | 'agent'>('personal');
-    const [formProviderName, setFormProviderName] = useState('');
     const [formInstructions, setFormInstructions] = useState('');
-    const [formImageUrl, setFormImageUrl] = useState('');
-    const [uploadingImage, setUploadingImage] = useState(false);
+    const [formMerchantPlatform, setFormMerchantPlatform] = useState<'bkash' | 'nagad'>('bkash');
     const [saving, setSaving] = useState(false);
 
     const load = async () => {
@@ -100,9 +105,8 @@ export function DepositPaymentMethodsSection() {
         setFormMethod(m);
         setFormNumber('');
         setFormType('personal');
-        setFormProviderName('');
         setFormInstructions('');
-        setFormImageUrl('');
+        setFormMerchantPlatform('bkash');
         setShowForm(true);
     };
 
@@ -112,36 +116,10 @@ export function DepositPaymentMethodsSection() {
         setFormNumber(m.account_number);
         if (m.account_type === 'agent' || m.account_type === 'personal') setFormType(m.account_type);
         else setFormType('personal');
-        setFormProviderName(m.provider_name || '');
         setFormInstructions(m.instructions || '');
-        setFormImageUrl(m.instruction_image_url || '');
+        const isNagad = (m.provider_name || '').toLowerCase().includes('nagad');
+        setFormMerchantPlatform(isNagad ? 'nagad' : 'bkash');
         setShowForm(true);
-    };
-
-    const handleImageUpload = async (file: File) => {
-        if (uploadingImage) return;
-        const ext = file.name.toLowerCase().includes('.') ? file.name.slice(file.name.lastIndexOf('.')) : '';
-        const allowedExt = new Set(['.jpg', '.jpeg', '.png', '.webp']);
-        const allowedMime = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
-        if (!allowedExt.has(ext) || !allowedMime.has(file.type)) {
-            toast.error('Only jpg, jpeg, png, webp images are allowed.');
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Maximum file size is 5MB.');
-            return;
-        }
-        try {
-            setUploadingImage(true);
-            const res = await userApi.uploadImage(file, 'deposits');
-            if (res.error || !res.data?.url) throw new Error(res.error || 'Upload failed');
-            setFormImageUrl(res.data.url);
-        } catch (err) {
-            setFormImageUrl('');
-            toast.error(err instanceof Error ? err.message : 'Upload failed');
-        } finally {
-            setUploadingImage(false);
-        }
     };
 
     const handleSave = async () => {
@@ -149,20 +127,17 @@ export function DepositPaymentMethodsSection() {
         let payload: Parameters<typeof paymentMethodApi.create>[0];
 
         if (isMerchantForm) {
-            if (formProviderName.trim().length < 2 || formProviderName.trim().length > 100) {
-                toast.error('Enter a provider name (2–100 characters).');
-                return;
-            }
             if (!/^\d{6,20}$/.test(num)) {
                 toast.error('Enter a valid merchant number (6–20 digits).');
                 return;
             }
+            const platformLabel = formMerchantPlatform === 'nagad' ? 'Nagad' : 'bKash';
+            const providerName = `${platformLabel} Merchant`;
             payload = {
                 method: 'merchant',
                 account_number: num,
-                provider_name: formProviderName.trim(),
+                provider_name: providerName,
                 instructions: formInstructions.trim(),
-                instruction_image_url: formImageUrl.trim() || undefined,
                 is_active: true,
             };
         } else {
@@ -353,7 +328,9 @@ export function DepositPaymentMethodsSection() {
                     >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                             <div style={{ width: 32, height: 32, borderRadius: 8, overflow: 'hidden', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                {isMerchantForm ? <StoreIcon size={22} /> : (
+                                {isMerchantForm ? (
+                                    <img src={formMerchantPlatform === 'nagad' ? nagadLogo : bkashLogo} alt={formMerchantPlatform} style={{ width: 26, height: 26, objectFit: 'contain' }} />
+                                ) : (
                                     (() => {
                                         const src = logoSrc({ id: 0, method: formMethod } as DepositPaymentMethod);
                                         return src ? (
@@ -370,13 +347,15 @@ export function DepositPaymentMethodsSection() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             {isMerchantForm && (
                                 <div>
-                                    <label style={labelStyle}>Provider name *</label>
-                                    <input
-                                        style={inputStyle}
-                                        value={formProviderName}
-                                        onChange={(e) => setFormProviderName(e.target.value.slice(0, 100))}
-                                        placeholder="e.g. bKash Merchant"
-                                    />
+                                    <label style={labelStyle}>Merchant platform *</label>
+                                    <select
+                                        style={{ ...inputStyle, cursor: 'pointer' }}
+                                        value={formMerchantPlatform}
+                                        onChange={(e) => setFormMerchantPlatform(e.target.value as 'bkash' | 'nagad')}
+                                    >
+                                        <option value="bkash">bKash Merchant</option>
+                                        <option value="nagad">Nagad Merchant</option>
+                                    </select>
                                 </div>
                             )}
 
@@ -422,37 +401,16 @@ export function DepositPaymentMethodsSection() {
                                     </div>
                                     <div>
                                         <label style={labelStyle}>Instruction image</label>
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp"
-                                            disabled={uploadingImage}
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) handleImageUpload(file);
-                                                e.currentTarget.value = '';
-                                            }}
-                                            style={{ ...inputStyle, padding: '9px 12px' }}
-                                        />
-                                        {uploadingImage ? (
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: 6 }}>Uploading…</div>
-                                        ) : formImageUrl ? (
-                                            <div style={{ marginTop: 8, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-subtle)', position: 'relative' }}>
-                                                <img src={formImageUrl} alt="Instruction preview" style={{ width: '100%', maxHeight: 140, objectFit: 'contain', background: '#fff', display: 'block' }} />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFormImageUrl('')}
-                                                    style={{
-                                                        position: 'absolute', top: 6, right: 6,
-                                                        background: 'rgba(2,6,18,0.75)', color: '#fff', border: 'none',
-                                                        borderRadius: 6, padding: '4px 10px', fontSize: '0.7rem', cursor: 'pointer',
-                                                    }}
-                                                >
-                                                    Remove
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: 6 }}>Optional — jpg/png/webp up to 5MB.</div>
-                                        )}
+                                        <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-subtle)' }}>
+                                            <img
+                                                src={merchantPaymentImg(formMerchantPlatform === 'nagad' ? 'Nagad' : 'bKash')}
+                                                alt={`${formMerchantPlatform === 'nagad' ? 'Nagad' : 'bKash'} payment instructions`}
+                                                style={{ width: '100%', maxHeight: 160, objectFit: 'contain', background: '#fff', display: 'block' }}
+                                            />
+                                        </div>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', marginTop: 6 }}>
+                                            Instruction image is set automatically based on the platform.
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -461,7 +419,7 @@ export function DepositPaymentMethodsSection() {
                                 <button className="btn btn-ghost btn-sm" onClick={() => setShowForm(false)} disabled={saving}>
                                     Cancel
                                 </button>
-                                <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || uploadingImage}>
+                                <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
                                     {saving ? 'Saving…' : 'Save'}
                                 </button>
                             </div>

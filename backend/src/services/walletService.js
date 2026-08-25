@@ -409,10 +409,11 @@ async function getWalletSummary(userId) {
         type: "withdraw",
         amount: r.amount,
         status: r.status.toLowerCase(),   // 'pending' | 'rejected' | 'approved'
-        description: `Withdrawal request via ${r.method} to ${r.account_number}${r.admin_note ? ` — ${r.admin_note}` : ""}`,
+        description: `Withdrawal request via ${r.method} to ${r.account_number}`,
         created_at: r.created_at,
         method: r.method,
         account_number: r.account_number,
+        admin_note: r.admin_note || null,
         _source: "request",
     }));
 

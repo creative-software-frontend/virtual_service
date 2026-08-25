@@ -31,6 +31,7 @@ export interface AdminUserReport {
     reported_name: string;
     reported_email: string;
     reported_role: 'user' | 'provider';
+    reported_is_active: number;
     reason_id: number;
     reason_name: string;
     description: string | null;
@@ -217,6 +218,7 @@ export interface Transaction {
     status: string;
     description: string;
     created_at: string;
+    admin_note?: string | null;
 }
 
 
@@ -1090,6 +1092,9 @@ export const adminApi = {
 
     toggleReportReason: (id: number, is_active: boolean) =>
         request<{ reason: ReportReason }>(`/admin/report-reasons/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ is_active }) }),
+
+    deleteReportReason: (id: number) =>
+        request<{ reason: { id: number } }>(`/admin/report-reasons/${id}`, { method: 'DELETE' }),
 
     banUser: (id: number, admin_note?: string) =>
         request<{ id: number; is_active: number }>(`/admin/users/${id}/ban`, { method: 'PATCH', body: JSON.stringify({ admin_note }) }),

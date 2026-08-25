@@ -19,11 +19,18 @@ const settingsIcon = (
     </svg>
 );
 
+const reportIcon = (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
+    </svg>
+);
+
 const ITEMS = [
     { to: '/admin-wallet', label: 'WALLET', icon: walletIcon },
     { to: '/admin-gifts', label: 'GIFTS', icon: giftIcon },
     { to: '/platform-settings', label: 'RATES', icon: settingsIcon },
     { to: '/settings', label: 'SETTINGS', icon: settingsIcon },
+    { to: '/report-reasons', label: 'REPORT REASONS', icon: reportIcon },
 ];
 
 /**

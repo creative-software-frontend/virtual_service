@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { TopNav } from "./TopNav";
 import { userApi } from "../../../utils/api";
@@ -9,12 +9,13 @@ import type { DepositPaymentMethod } from "../../../utils/api";
 import { depositMethodLabel } from "../../../utils/api";
 
 type Transaction = {
-    id: number;
+    id: number | string;
     type: string;
     amount: number;
     status: string;
     description: string;
     created_at: string;
+    admin_note?: string | null;
 };
 
 const allowedScreenshotExt = new Set([".jpg", ".jpeg", ".png", ".webp"]);
@@ -33,6 +34,13 @@ export function WalletPage() {
 
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [visibleCount, setVisibleCount] = useState(6);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+
+    const copyTxId = useCallback((id: string) => {
+        navigator.clipboard.writeText(id);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 1500);
+    }, []);
 
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -548,6 +556,32 @@ export function WalletPage() {
                                                         }}>
                                                             {statusLabel}
                                                         </span>
+                                                        {tx.admin_note && (
+                                                            <span
+                                                                onClick={() => copyTxId(tx.admin_note!)}
+                                                                style={{
+                                                                    fontSize: "0.62rem",
+                                                                    fontWeight: 700,
+                                                                    padding: "2px 7px",
+                                                                    borderRadius: "20px",
+                                                                    background: copiedId === tx.admin_note ? "rgba(16,185,129,0.15)" : "rgba(59,130,246,0.1)",
+                                                                    color: copiedId === tx.admin_note ? "var(--green-status)" : "var(--blue-vivid)",
+                                                                    border: `1px solid ${copiedId === tx.admin_note ? "rgba(16,185,129,0.3)" : "rgba(59,130,246,0.2)"}`,
+                                                                    cursor: "pointer",
+                                                                    display: "inline-flex",
+                                                                    alignItems: "center",
+                                                                    gap: "4px",
+                                                                    transition: "all 0.15s",
+                                                                }}
+                                                                title="Click to copy"
+                                                            >
+                                                                {copiedId === tx.admin_note ? (
+                                                                    <>Copied! <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg></>
+                                                                ) : (
+                                                                    <>TX: {tx.admin_note} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg></>
+                                                                )}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
